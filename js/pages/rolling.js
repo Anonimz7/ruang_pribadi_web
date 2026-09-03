@@ -37,9 +37,7 @@ let needleAngle = 0;
 let needleOmega = 0;
 let lastElapsed = 0;
 
-// State roda
-let baseRotation = 0;
-let spinAngle = 0;
+// State roda (bukan pakai baseRotation — kita reset ke 0 di setiap spin)
 let spinning = false;
 let result = null;
 let spinDuration = 0;
@@ -255,7 +253,7 @@ function startSpin() {
   const tierCenter = SECTOR_ANGLE * index + SECTOR_ANGLE / 2;
   const jitter = (Math.random() * SECTOR_ANGLE * 0.6 - SECTOR_ANGLE * 0.3);
 
-  let targetAngle = 270 - tierCenter - baseRotation + jitter;
+  let targetAngle = 270 - tierCenter + jitter;
   targetAngle = ((targetAngle % 360) + 360) % 360;
 
   const T = SPIN_TIME_MIN + Math.random() * (SPIN_TIME_MAX - SPIN_TIME_MIN);
@@ -266,8 +264,6 @@ function startSpin() {
 
   spinning = true;
   result = null;
-  baseRotation = baseRotation + spinAngle;
-  spinAngle = totalAngle;
   spinDuration = T;
   spinStartTime = performance.now();
   needleAngle = 0;
@@ -313,16 +309,15 @@ function animateSpin(timestamp) {
 
 function finishSpin() {
   spinning = false;
-  const finalAngle = baseRotation + totalAngle;
-  result = getResultFromAngle(finalAngle);
+  // Gunakan totalAngle absolut — roda sudah di-reset ke 0 di startSpin
+  result = getResultFromAngle(totalAngle);
   needleAngle = 0;
   needleOmega = 0;
 
-  // Biarkan roda tetap di posisi akhir (sesuai Dart source)
-  // RODA TETAP BERPUTAR di posisinya — inilah yang user anggap "berputar lagi"
+  // Roda tetap posisi akhiri — flush transform ke totalAngle untuk konsistensi
   if (wheelEl) {
     wheelEl.style.transition = 'none';
-    wheelEl.style.transform = `rotate(${finalAngle}deg)`;
+    wheelEl.style.transform = `rotate(${totalAngle}deg)`;
   }
   if (needleEl) {
     needleEl.style.transition = 'transform 0.5s ease-out';

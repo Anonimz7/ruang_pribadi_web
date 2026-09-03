@@ -47,8 +47,6 @@ let needleAngle = 0;
 let needleOmega = 0;
 let lastElapsed = 0;
 
-let baseRotation = 0;
-let spinAngle = 0;
 let spinning = false;
 let result = null;
 let spinDuration = 0;
@@ -315,8 +313,6 @@ function startSpin() {
 
   spinning = true;
   result = null;
-  baseRotation = baseRotation + spinAngle;
-  spinAngle = totalAngle;
   spinDuration = T;
   spinStartTime = performance.now();
   needleAngle = 0;
@@ -362,15 +358,15 @@ function animateSpin(timestamp) {
 
 function finishSpin() {
   spinning = false;
-  const finalAngle = baseRotation + totalAngle;
-  result = getSectorFromAngle(finalAngle);
+  // Gunakan totalAngle absolut — roda sudah di-reset ke 0 di startSpin
+  result = getSectorFromAngle(totalAngle);
   needleAngle = 0;
   needleOmega = 0;
 
-  // Biarkan roda tetap di posisi akhir (sesuai Dart source)
+  // Roda tetap posisi akhiri — flush transform
   if (wheelEl) {
     wheelEl.style.transition = 'none';
-    wheelEl.style.transform = `rotate(${finalAngle}deg)`;
+    wheelEl.style.transform = `rotate(${totalAngle}deg)`;
   }
   if (needleEl) {
     needleEl.style.transition = 'transform 0.5s ease-out';
