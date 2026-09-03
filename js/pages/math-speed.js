@@ -334,7 +334,6 @@ export function render() {
     answer = '';
     qStart = Date.now();
     updateTimer();
-    updateAns();
     if (timer) clearInterval(timer);
     timer = setInterval(() => {
       remaining--;
@@ -376,7 +375,6 @@ export function render() {
 
     if (qIdx < session.length - 1) {
       qIdx++;
-      answer = '';
       switchView('quiz');
       startQuestion();
     } else {
@@ -442,7 +440,6 @@ export function render() {
     retryBtn.addEventListener('click', () => {
       sessions[sessIdx] = genSession(settings);
       qIdx = 0;
-      answer = '';
       switchView('quiz');
       startQuestion();
     });
@@ -454,7 +451,6 @@ export function render() {
     nextBtn.addEventListener('click', () => {
       if (sessIdx < sessions.length - 1) {
         sessIdx++; qIdx = 0;
-        answer = '';
         switchView('quiz');
         startQuestion();
       } else {
