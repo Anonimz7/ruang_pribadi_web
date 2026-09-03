@@ -344,6 +344,7 @@
   width: 260px;
   height: 260px;
   margin: 0 auto;
+  transform: translateY(26px); /* Turun 10% bersama wheel, needle & GO button */
 }
 
 .gacha-wheel-inner {
@@ -391,7 +392,7 @@
 /* Needle — absolute center top di wheelWrapper */
 .gacha-needle {
   position: absolute !important;
-  top: -8px;
+  top: -8px; /* Posisi relatif ke wheelWrapper — ikut turun 26px via transform:translateY */
   left: 50%;
   transform-origin: center top; /* Pivot di atas tengah */
   z-index: 10;
@@ -481,14 +482,15 @@
     padding: var(--s-4) var(--s-2);
   }
 
-  .gacha-go-btn {
-    width: 60px;
-    height: 60px;
-  }
-
   .gacha-wheel-wrapper {
     width: 220px;
     height: 220px;
+    transform: translateY(22px); /* Mobile: 10% dari 220px */
+  }
+
+  .gacha-go-btn {
+    width: 60px;
+    height: 60px;
   }
 
   .gacha-page .gacha-stats-grid {
