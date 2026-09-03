@@ -308,3 +308,191 @@
   width: 14px;
   height: 14px;
 }
+
+
+/* ==================== */
+/* Shared: Gacha Luck & Rolling Yes/No */
+/* ==================== */
+
+.gacha-page,
+.rolling-container {
+  max-width: 640px;
+  margin: 0 auto;
+  padding: var(--s-5) var(--s-4);
+}
+
+.gacha-header,
+.rolling-container > .gacha-header {
+  text-align: center;
+}
+
+.gacha-roulette-table {
+  position: relative;
+  border-radius: 50%;
+  margin: 0 auto;
+  width: fit-content;
+}
+
+.gacha-roulette-table svg {
+  display: block;
+  filter: drop-shadow(0 4px 12px rgba(0, 0, 0, 0.3));
+}
+
+/* Wheel wrapper — relative positioning context untuk GO button & needle */
+.gacha-wheel-wrapper {
+  position: relative;
+  width: 260px;
+  height: 260px;
+  margin: 0 auto;
+}
+
+.gacha-wheel-inner {
+  width: 100%;
+  height: 100%;
+}
+
+.gacha-wheel-outer {
+  width: 100%;
+  height: 100%;
+}
+
+/* GO button — absolute center di wheelWrapper (bukan rouletteTable) */
+.gacha-go-btn {
+  position: absolute !important;
+  top: 50% !important;
+  left: 50% !important;
+  transform: translate(-50%, -50%) !important;
+  width: 72px;
+  height: 72px;
+  border-radius: 50%;
+  background: linear-gradient(135deg, #00c87a, #00995e);
+  border: none;
+  cursor: pointer;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  box-shadow: 0 4px 16px rgba(0, 100, 60, 0.4);
+  z-index: 20;
+  transition: opacity 0.3s, transform 0.3s ease;
+}
+
+.gacha-go-btn:hover:not(:disabled) {
+  transform: translate(-50%, -50%) scale(1.08) !important;
+  box-shadow: 0 6px 20px rgba(0, 100, 60, 0.5);
+}
+
+.gacha-go-btn:disabled,
+.gacha-go-btn[style*="opacity: 0.4"] {
+  opacity: 0.4;
+  cursor: not-allowed;
+  pointer-events: none;
+}
+
+/* Needle — absolute center top di wheelWrapper */
+.gacha-needle {
+  position: absolute !important;
+  top: -8px;
+  left: 50%;
+  transform-origin: center top; /* Pivot di atas tengah */
+  z-index: 10;
+  width: 26px;
+  height: 54px;
+  pointer-events: none;
+}
+
+.gacha-needle svg {
+  display: block;
+}
+
+/* Result card */
+.gacha-result-card {
+  display: flex !important;
+  flex-direction: column !important;
+  align-items: center !important;
+  gap: 8px !important;
+}
+
+.gacha-result-card div {
+  width: 100%;
+  text-align: center;
+}
+
+/* Stats grid — shared */
+.gacha-stats-grid {
+  display: grid;
+  gap: var(--s-2);
+  margin-top: var(--s-5);
+  padding: var(--s-4);
+  background: var(--c-surface-2);
+  border-radius: var(--radius-lg);
+}
+
+/* Gacha: 5-column grid */
+.gacha-page .gacha-stats-grid {
+  grid-template-columns: repeat(5, 1fr);
+}
+
+/* Rolling: 2-column grid */
+.rolling-container .gacha-stats-grid {
+  grid-template-columns: repeat(2, 1fr);
+}
+
+.rolling-stat {
+  text-align: center;
+}
+
+.rolling-stat .stat-value {
+  font-size: 20px;
+  font-weight: 700;
+}
+
+.rolling-stat div:last-child {
+  font-size: 11px;
+  color: var(--c-text-3);
+}
+
+/* History */
+.gacha-history-item {
+  transition: background-color var(--dur-fast);
+  border-radius: var(--radius) !important;
+}
+
+.gacha-history-item:hover {
+  filter: brightness(1.05);
+}
+
+.gacha-result {
+  transition: all var(--dur-slow) var(--ease);
+  background: var(--c-surface) !important;
+  border: 1px solid var(--c-border) !important;
+  border-radius: var(--radius-lg) !important;
+}
+
+/* Reset button */
+.gacha-reset-btn {
+  margin-top: var(--s-5);
+  font-size: 12px;
+}
+
+/* Mobile */
+@media (max-width: 768px) {
+  .gacha-page,
+  .rolling-container {
+    padding: var(--s-4) var(--s-2);
+  }
+
+  .gacha-go-btn {
+    width: 60px;
+    height: 60px;
+  }
+
+  .gacha-wheel-wrapper {
+    width: 220px;
+    height: 220px;
+  }
+
+  .gacha-page .gacha-stats-grid {
+    grid-template-columns: repeat(3, 1fr);
+    font-size: 11px;
+  }
+}
