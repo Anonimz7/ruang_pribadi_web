@@ -228,7 +228,7 @@ function buildWheelSVG() {
   slices.push(`<circle cx="${center}" cy="${center}" r="${radius * 0.92}" fill="rgba(0,0,0,0.2)"/>`);
 
   return `
-    <svg class="gacha-svg-wheel" width="${size}" height="${size}" viewBox="0 0 ${size} ${size}">
+   <svg class="gacha-svg-wheel" width="100%" height="100%" viewBox="0 0 ${size} ${size}">
       <defs>
         <radialGradient id="pegGradientGacha" cx="50%" cy="50%" r="50%">
           <stop offset="0%" stop-color="#aaaaaa"/>
