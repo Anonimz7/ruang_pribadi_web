@@ -362,10 +362,9 @@ export function render() {
 
     // Capture answer before reset
     const answered = answer;
-    answer = '';
 
     if (!timeout && answered) {
-      q.userAns = parseFloat(answer);
+      q.userAns = parseFloat(answered);
       q.correct = q.userAns === q.ans;
       if (q.correct) totalScore++;
     } else {
@@ -373,6 +372,8 @@ export function render() {
       q.correct = false;
       if (timeout) q.timeout = true;
     }
+
+    answer = '';
 
     // Cleanup keyboard listener
     const oldWrap = content.querySelector('.math-quiz');
