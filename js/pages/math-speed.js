@@ -189,6 +189,7 @@ export function render() {
       startBtn.addEventListener('click', () => {
         sessions = genAllSessions(settings);
         sessIdx = 0; qIdx = 0; totalScore = 0; newRecord = false;
+        answer = ''; // Reset jawaban
         switchView('quiz');
         startQuestion();
       });
@@ -359,12 +360,16 @@ export function render() {
     const q = session[qIdx];
     q.time = Math.max(0, (settings.questionTime - remaining) + (Date.now() - qStart) / 1000 - (settings.questionTime - remaining));
 
-    if (!timeout && answer) {
+    // Capture answer before reset
+    const answered = answer;
+    answer = '';
+
+    if (!timeout && answered) {
       q.userAns = parseFloat(answer);
       q.correct = q.userAns === q.ans;
       if (q.correct) totalScore++;
     } else {
-      q.userAns = answer ? parseFloat(answer) : 0;
+      q.userAns = answered ? parseFloat(answered) : 0;
       q.correct = false;
       if (timeout) q.timeout = true;
     }
@@ -487,6 +492,7 @@ export function render() {
     againBtn.textContent = 'Main Lagi';
     againBtn.addEventListener('click', () => {
       sessions = []; sessIdx = 0; qIdx = 0; totalScore = 0; newRecord = false; activeTab = 0;
+      answer = ''; // Reset jawaban
       switchView('home');
     });
     wrap.appendChild(againBtn);
