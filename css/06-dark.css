@@ -1,0 +1,20 @@
+/* 06-dark.css — Dark mode specific overrides */
+[data-theme="dark"] .card,
+[data-theme="dark"] .stat-card,
+[data-theme="dark"] .table-wrap {
+  border-color: var(--dark-border);
+}
+[data-theme="dark"] .table th {
+  background: var(--dark-surface-2);
+}
+[data-theme="dark"] .search__input,
+[data-theme="dark"] .field__input,
+[data-theme="dark"] .field__select,
+[data-theme="dark"] .field__textarea {
+  background: var(--dark-surface);
+  border-color: var(--dark-border);
+}
+[data-theme="dark"] .skeleton {
+  background: linear-gradient(90deg, var(--dark-surface-2) 25%, var(--dark-surface-3) 50%, var(--dark-surface-2) 75%);
+  background-size: 200% 100%;
+}

@@ -1,0 +1,15 @@
+/* 05-utilities.css — Minimal utility classes */
+.hide { display: none !important; }
+.sr-only {
+  position: absolute; width: 1px; height: 1px;
+  padding: 0; margin: -1px; overflow: hidden;
+  clip: rect(0,0,0,0); border: 0;
+}
+.w-full { width: 100%; }
+.h-full { height: 100%; }
+.text-center { text-align: center; }
+.overflow-auto { overflow: auto; }
+.ml-auto { margin-left: auto; }
+.mt-4 { margin-top: var(--s-4); }
+.mb-4 { margin-bottom: var(--s-4); }
+.p-4 { padding: var(--s-4); }

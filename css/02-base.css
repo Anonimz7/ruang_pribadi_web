@@ -1,0 +1,31 @@
+/* 02-base.css — Base element styles */
+h1, h2, h3, h4, h5, h6 {
+  font-weight: 600;
+  line-height: 1.25;
+  color: var(--c-text);
+  letter-spacing: -0.01em;
+}
+h1 { font-size: var(--text-xl); }
+h2 { font-size: var(--text-lg); }
+h3 { font-size: var(--text-md); }
+h4 { font-size: var(--text-base); }
+p  { color: var(--c-text-2); }
+
+code, pre {
+  font-family: var(--font-mono);
+  font-size: var(--text-sm);
+  background: var(--c-surface-2);
+  border-radius: var(--radius);
+}
+code { padding: 0.125rem 0.375rem; }
+pre  { padding: var(--s-4); overflow-x: auto; }
+
+::selection {
+  background: var(--c-primary);
+  color: #fff;
+}
+
+::-webkit-scrollbar { width: 6px; height: 6px; }
+::-webkit-scrollbar-track { background: transparent; }
+::-webkit-scrollbar-thumb { background: var(--c-border-hi); border-radius: 3px; }
+::-webkit-scrollbar-thumb:hover { background: var(--c-text-3); }
