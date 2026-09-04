@@ -103,24 +103,16 @@ function checkAccess(path) {
 }
 
 export async function navigate(path, push = true) {
-  console.log('[Router] navigate called with path:', path, '(push:', push, ')');
   const app = $('#page-root');
-  console.log('[Router] #page-root found:', !!app);
-  console.log('[Router] #app innerHTML length:', $('#app')?.innerHTML?.length || 'N/A');
-  if (!app) {
-    console.warn('[Router] #page-root not found in DOM. Current body:', document.body.innerHTML.substring(0, 500));
-    return;
-  }
+  if (!app) return;
 
   // Check access before proceeding
   const { allowed, reason } = checkAccess(path);
-  console.log('[Router] access check:', { allowed, reason });
   if (!allowed) {
     if (reason === 'login_required') {
       // Redirect to login page, preserving the original destination
       store.pendingRoute = path;
       path = '/login';
-      console.log('[Router] Redirecting to login, pendingRoute:', store.pendingRoute);
     } else {
       app.innerHTML = `<div class="empty"><div class="empty__title">Akses Dibatasi</div><div class="empty__desc">${reason}</div></div>`;
       return;
@@ -129,7 +121,6 @@ export async function navigate(path, push = true) {
 
   // Cleanup previous page module
   if (currentPageModule) {
-    console.log('[Router] Cleaning up previous page module');
     if (typeof currentPageModule.destroy === 'function') {
       currentPageModule.destroy();
     }
@@ -146,14 +137,12 @@ export async function navigate(path, push = true) {
   app.appendChild(skeleton);
 
   const loader = routes[path] || routes['/'];
-  console.log('[Router] Loading module for path:', path, '(cached:', cache.has(path), ')');
   try {
     const mod = cache.has(path) ? cache.get(path) : await loader();
     if (!cache.has(path)) cache.set(path, mod);
     currentPageModule = mod;
     app.innerHTML = '';
     const page = mod.render ? mod.render() : mod.default?.render?.();
-    console.log('[Router] Page module loaded, render result:', page ? 'DOM element' : 'null');
     if (page) {
       app.appendChild(page);
       // Store cleanup if the page provides one via _cleanup
@@ -166,7 +155,6 @@ export async function navigate(path, push = true) {
     store.currentPage = path;
     if (push) window.location.hash = path;
     window.scrollTo(0, 0);
-    console.log('[Router] Navigation complete, page rendered');
   } catch (err) {
     console.error('[Router] Page load error:', err);
     app.innerHTML = `<div class="empty"><div class="empty__title">Page Error</div><div class="empty__desc">${err.message}</div></div>`;
@@ -174,28 +162,16 @@ export async function navigate(path, push = true) {
 }
 
 export async function initRouter() {
-  console.log('[Router] Initializing router...');
-
   // Restore saved session on startup (mirrors Flutter's _client.loadSession())
-  console.log('[Router] Loading session...');
   await loadSession();
-  console.log('[Router] Session loaded, token:', store.token ? 'present' : 'none');
-
   if (store.token) {
-    console.log('[Router] Validating session with /auth/me...');
-    await Auth.me().catch((e) => console.warn('[Router] /auth/me failed:', e.message));
-    console.log('[Router] Session validated, tier:', store.tier, ', permissions:', store.permissions.length);
+    await Auth.me().catch(() => {});
   }
 
-  const hash = location.hash.slice(1) || '/';
-  console.log('[Router] Initial hash:', hash, '-> normalized path:', location.hash.slice(1));
   const handler = () => {
     const h = location.hash.slice(1) || '/';
-    console.log('[Router] Hash change to:', h);
     navigate(h, false);
   };
   window.addEventListener('hashchange', handler);
-  console.log('[Router] Starting initial navigation...');
-  await navigate(hash, false);
-  console.log('[Router] Initial navigation complete');
+  await navigate(location.hash.slice(1) || '/', false);
 }

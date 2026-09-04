@@ -33,8 +33,6 @@ function initDrawerToggle() {
  * This replaces the initial loading state with the interactive UI.
  */
 export async function initApp() {
-  console.log('[RuangPribadi] Initializing app shell...');
-
   const root = $('#app');
   if (!root) {
     console.error('[RuangPribadi] #app element not found');
@@ -56,10 +54,8 @@ export async function initApp() {
     shell.appendChild(overlay);
 
     // Drawer (async — waits for menu config)
-    console.log('[RuangPribadi] Creating drawer...');
     const drawer = await createDrawer();
     shell.appendChild(drawer);
-    console.log('[RuangPribadi] Drawer created');
 
     // Main area
     const mainArea = document.createElement('div');
@@ -67,7 +63,6 @@ export async function initApp() {
     mainArea.id = 'main-area';
 
     // AppBar
-    console.log('[RuangPribadi] Creating appbar...');
     const appbar = createAppBar();
     mainArea.appendChild(appbar);
     console.log('[RuangPribadi] AppBar created');
@@ -95,13 +90,10 @@ export async function initApp() {
       document.body.appendChild(toastContainer);
     }
 
-    console.log('[RuangPribadi] Initializing theme and drawer toggle...');
     initTheme();
     initDrawerToggle();
 
-    console.log('[RuangPribadi] Initializing router...');
     await initRouter();
-
     console.log('[RuangPribadi] App shell ready!');
   } catch (err) {
     console.error('[RuangPribadi] Failed to initialize app:', err);
@@ -120,7 +112,6 @@ export async function initApp() {
 }
 
 // Bootstrap with error handling
-console.log('[RuangPribadi] Starting app bootstrap...');
 initApp().catch((err) => {
   console.error('[RuangPribadi] Unhandled error in initApp:', err);
   document.body.innerHTML = `

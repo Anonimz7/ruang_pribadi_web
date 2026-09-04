@@ -8,6 +8,15 @@ import { icons } from './icons.js';
 let menuConfig = null;
 
 /**
+ * Map Flutter-style icon names (e.g., "Icons.book") to our icon registry keys.
+ * Falls back to 'help' icon if the mapping is unknown.
+ */
+function getIcon(flutterName) {
+  const key = flutterName.replace(/^Icons\./, '');
+  return icons[key] || icons['help'];
+}
+
+/**
  * Filter menu items based on login status, tier, and permissions.
  * Returns array of { section, label, items: [...] }
  */
@@ -23,7 +32,7 @@ function filterMenuItems() {
     .map((app) => ({
       key: app.key,
       label: app.label,
-      icon: icons[app.icon] || icons['help'],
+      icon: getIcon(app.icon),
       path: ROUTE_MAP[app.key] || '/',
     }));
   if (systemItems.length) {
@@ -64,7 +73,7 @@ function filterMenuItems() {
     const renderedItems = items.map((app) => ({
       key: app.key,
       label: app.label,
-      icon: icons[app.icon] || icons['help'],
+      icon: getIcon(app.icon),
       path: ROUTE_MAP[app.key] || '/',
     }));
 
@@ -183,31 +192,21 @@ function renderDrawer() {
   const drawerEl = document.querySelector('.drawer');
   if (!drawerEl) return;
 
-  // Clear existing nav and footer (keep user card slot managed below)
-  const existingNav = drawerEl.querySelector('.drawer__nav');
-  if (existingNav) existingNav.remove();
-  const existingFooter = drawerEl.querySelector('.drawer__footer');
-  if (existingFooter) existingFooter.remove();
+  // Clear entire drawer content to prevent duplicates
+  drawerEl.innerHTML = '';
 
-  // Re-insert user card at top
+  // Rebuild drawer cleanly
   const userCard = renderUserCard();
   userCard.className = 'drawer__user';
-  // Insert before nav if nav exists, otherwise prepend
-  const navPlaceholder = drawerEl.querySelector('.drawer__nav');
-  if (navPlaceholder) {
-    drawerEl.insertBefore(userCard, navPlaceholder);
-  } else {
-    drawerEl.insertBefore(userCard, drawerEl.firstChild);
-  }
+  drawerEl.appendChild(userCard);
 
-  // Re-insert nav
   const sections = filterMenuItems();
   const newNav = renderNav(sections);
   newNav.classList.add('drawer__nav');
-  // Insert footer before nav so footer sits at bottom
+  drawerEl.appendChild(newNav);
+
   const footer = renderFooter();
   footer.classList.add('drawer__footer');
-  drawerEl.appendChild(newNav);
   drawerEl.appendChild(footer);
 }
 

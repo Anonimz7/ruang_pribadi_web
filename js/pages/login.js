@@ -194,7 +194,12 @@ export function render() {
     }
   });
 
+  // Append card to wrapper
+  wrapper.appendChild(card);
+
+  // Initial render of form content
   renderContent();
+
   return wrapper;
 }
 
