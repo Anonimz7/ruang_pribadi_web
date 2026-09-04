@@ -3,6 +3,7 @@ import { $ } from '../utils/dom.js';
 import { store, subscribe } from './state.js';
 
 const cache = new Map();
+let currentPageModule = null;
 
 const routes = {
   '/': () => import('../pages/dashboard.js'),
@@ -29,6 +30,17 @@ export async function navigate(path, push = true) {
   const app = $('#page-root');
   if (!app) return;
 
+  // Cleanup previous page module
+  if (currentPageModule) {
+    if (typeof currentPageModule.destroy === 'function') {
+      currentPageModule.destroy();
+    }
+    if (app._cleanup) {
+      app._cleanup();
+      app._cleanup = null;
+    }
+  }
+
   app.innerHTML = '';
   const skeleton = document.createElement('div');
   skeleton.className = 'skeleton';
@@ -39,9 +51,16 @@ export async function navigate(path, push = true) {
   try {
     const mod = cache.has(path) ? cache.get(path) : await loader();
     if (!cache.has(path)) cache.set(path, mod);
+    currentPageModule = mod;
     app.innerHTML = '';
     const page = mod.render ? mod.render() : mod.default?.render?.();
-    if (page) app.appendChild(page);
+    if (page) {
+      app.appendChild(page);
+      // Store cleanup if the page provides one via _cleanup
+      if (typeof page._cleanup === 'function') {
+        app._cleanup = page._cleanup;
+      }
+    }
     store.currentPage = path;
     if (push) window.location.hash = path;
     window.scrollTo(0, 0);

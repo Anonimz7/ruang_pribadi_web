@@ -260,8 +260,8 @@ function buildNeedleSVG(tier) {
   `;
 }
 
-function buildResultCard(tier) {
-  const message = randomMessage(tier);
+function buildResultCard(tier, message) {
+  const msg = message || randomMessage(tier);
   const resultDiv = createEl('div', {
     class: 'gacha-result-card',
     style: {
@@ -281,7 +281,7 @@ function buildResultCard(tier) {
     </div>
     <div style="font-size:24px;font-weight:700;color:${tier.color};">${tier.name}</div>
     <div style="font-size:14px;color:var(--c-text-2);text-align:center;">
-      ${message.replace(/\n/g, '<br>')}
+      ${msg.replace(/\n/g, '<br>')}
     </div>
     <div style="font-size:12px;color:var(--c-text-3);margin-top:4px;">
       Probabilitas: ${tier.chance}%
@@ -375,16 +375,19 @@ function finishSpin() {
   }
   if (goBtnEl) { goBtnEl.style.opacity = '1'; goBtnEl.style.pointerEvents = 'auto'; }
 
+  // Generate message once — use same message for display and history
+  const message = randomMessage(result);
+
   // Tampilkan hasil
   const placeholder = resultPlaceholderEl;
   if (placeholder) {
     placeholder.innerHTML = '';
-    placeholder.appendChild(buildResultCard(result));
+    placeholder.appendChild(buildResultCard(result, message));
   }
 
   // Simpan riwayat
   const history = loadHistory();
-  history.unshift({ result: result.key, time: Date.now(), message: randomMessage(result) });
+  history.unshift({ result: result.key, time: Date.now(), message });
   if (history.length > 30) history.splice(30);
   saveHistory(history);
 
@@ -537,7 +540,7 @@ export function render() {
   const clearBtn = createEl('button', {
     class: 'btn btn--secondary gacha-reset-btn',
     style: { marginTop: 'var(--s-3)', fontSize: '12px' }
-  }, ['Hapus Riwayati']);
+  }, ['Hapus Riwayat']);
   clearBtn.addEventListener('click', resetHistory);
   container.appendChild(historyCard);
   container.appendChild(clearBtn);

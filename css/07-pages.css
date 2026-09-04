@@ -498,3 +498,78 @@
     font-size: 11px;
   }
 }
+
+/* ==================== */
+/* Code Diagram         */
+/* ==================== */
+
+.diagram-page {
+  max-width: 1200px;
+  margin: 0 auto;
+}
+
+.diagram-preview-wrap {
+  position: relative;
+}
+
+.diagram-preview-wrap svg {
+  max-width: 100%;
+  height: auto;
+  transition: transform var(--dur-base) var(--ease);
+  transform-origin: center center;
+}
+
+.diagram-preview-wrap svg:focus {
+  outline: 2px solid var(--c-primary);
+  outline-offset: 2px;
+}
+
+.diagram-placeholder {
+  padding: var(--s-5);
+}
+
+.diagram-zoom-controls {
+  display: flex !important;
+  align-items: center !important;
+  gap: var(--s-1) !important;
+}
+
+.diagram-zoom-controls .btn {
+  min-width: 36px;
+  height: 36px;
+  padding: 0 var(--s-2);
+  font-size: var(--text-sm);
+}
+
+/* Diagram source editor */
+.diagram-page .field__textarea {
+  font-family: var(--font-mono);
+  font-size: var(--text-sm);
+  background: var(--c-surface);
+  border: 1px solid var(--c-border);
+  border-radius: var(--radius);
+  padding: var(--s-3);
+  line-height: 1.5;
+  tab-size: 2;
+}
+
+/* Responsive layout */
+@media (max-width: 768px) {
+  .diagram-page .grid--2 {
+    grid-template-columns: 1fr;
+  }
+
+  .diagram-preview-wrap {
+    min-height: 200px;
+  }
+
+  .diagram-zoom-controls {
+    position: absolute;
+    top: var(--s-2);
+    right: var(--s-2);
+    background: var(--c-surface-2);
+    padding: var(--s-2);
+    border-radius: var(--radius);
+    z-index: 10;
+  }
+}
