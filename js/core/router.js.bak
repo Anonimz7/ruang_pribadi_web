@@ -19,7 +19,6 @@ const routes = {
   '/stocks': () => import('../pages/stocks.js'),
   '/stock-list': () => import('../pages/stock-list.js'),
   '/video': () => import('../pages/video.js'),
-  '/video-history': () => import('../pages/video-history.js'),
   '/math-speed': () => import('../pages/math-speed.js'),
   '/password': () => import('../pages/password-gen.js'),
   '/gacha': () => import('../pages/gacha.js'),
