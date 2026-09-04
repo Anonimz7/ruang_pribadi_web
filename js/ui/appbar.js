@@ -1,5 +1,7 @@
 /* ui/appbar.js — Top app bar */
 import { store, subscribe } from '../core/state.js';
+import { navigate } from '../core/router.js';
+import { Auth } from '../core/auth.js';
 import { icons } from './icons.js';
 
 export function createAppBar() {
@@ -46,14 +48,41 @@ export function createAppBar() {
   notifBtn.innerHTML += '<span class="appbar__btn-badge"></span>';
   actions.appendChild(notifBtn);
 
-  // Login
+  // Login/Logout button (reactive)
   const loginBtn = document.createElement('button');
   loginBtn.className = 'btn btn--primary btn--sm';
-  loginBtn.innerHTML = '<span class="login-text">Login</span>';
-  loginBtn.addEventListener('click', () => {
-    import('./login.js').then(m => m.showLogin());
-  });
+  loginBtn.setAttribute('aria-label', 'Login / Logout');
+
+  const updateLoginBtn = () => {
+    if (store.token) {
+      const displayName = store.username || 'User';
+      loginBtn.innerHTML = `
+        <span style="font-size:13px;font-weight:500;">${displayName}</span>
+        <span style="margin-left:4px;">${icons['log-out']}</span>
+      `;
+      loginBtn.title = 'Logout';
+      loginBtn.onclick = null;
+      loginBtn.addEventListener('click', async () => {
+        await Auth.logout();
+        window.location.hash = '/';
+        window.location.reload();
+      });
+    } else {
+      loginBtn.innerHTML = `<span class="login-text">Login</span>`;
+      loginBtn.title = 'Login';
+      loginBtn.onclick = null;
+      loginBtn.addEventListener('click', () => {
+        navigate('/login');
+      });
+    }
+  };
+
+  updateLoginBtn();
   actions.appendChild(loginBtn);
+
+  // React to auth changes
+  subscribe('token', updateLoginBtn);
+  subscribe('username', updateLoginBtn);
 
   el.appendChild(actions);
 
@@ -61,6 +90,7 @@ export function createAppBar() {
   subscribe('currentPage', (path) => {
     const map = {
       '/': 'Dashboard',
+      '/login': 'Login',
       '/news': 'News Intelligence',
       '/stocks': 'IDX Stocks',
       '/stock-list': 'Stock List',
@@ -78,6 +108,7 @@ export function createAppBar() {
       '/admin/sitemaps': 'Sitemaps',
       '/admin/proxies': 'Proxy Scraper',
       '/admin/reports': 'Reports Admin',
+      '/profile': 'Profile',
     };
     title.textContent = map[path] || 'Ruang Pribadi';
   });

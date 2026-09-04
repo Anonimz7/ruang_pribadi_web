@@ -28,59 +28,106 @@ function initDrawerToggle() {
   });
 }
 
-export function initApp() {
+/**
+ * Build the full app shell including drawer, appbar, and page container.
+ * This replaces the initial loading state with the interactive UI.
+ */
+export async function initApp() {
+  console.log('[RuangPribadi] Initializing app shell...');
+
   const root = $('#app');
-  if (!root) return;
-
-  // Build shell inside #app
-  root.innerHTML = '';
-  const shell = document.createElement('div');
-  shell.className = 'app-shell';
-
-  // Overlay for mobile drawer
-  const overlay = document.createElement('div');
-  overlay.className = 'drawer__overlay';
-  overlay.addEventListener('click', () => { store.drawerOpen = false; });
-  shell.appendChild(overlay);
-
-  // Drawer
-  const drawer = createDrawer();
-  shell.appendChild(drawer);
-
-  // Main area
-  const mainArea = document.createElement('div');
-  mainArea.className = 'main';
-  mainArea.id = 'main-area';
-
-  // AppBar
-  const appbar = createAppBar();
-  mainArea.appendChild(appbar);
-
-  // Page container — use unique ID
-  const pageContainer = document.createElement('div');
-  pageContainer.id = 'page-root';
-  pageContainer.className = 'container';
-  mainArea.appendChild(pageContainer);
-
-  shell.appendChild(mainArea);
-  root.appendChild(shell);
-
-  // Modal & Toast containers (append to body, outside app)
-  if (!document.getElementById('modal-root')) {
-    const modalContainer = document.createElement('div');
-    modalContainer.id = 'modal-root';
-    document.body.appendChild(modalContainer);
-  }
-  if (!document.getElementById('toast-root')) {
-    const toastContainer = document.createElement('div');
-    toastContainer.id = 'toast-root';
-    toastContainer.style.cssText = 'position:fixed;top:16px;right:16px;z-index:400;display:flex;flex-direction:column;gap:8px;';
-    document.body.appendChild(toastContainer);
+  if (!root) {
+    console.error('[RuangPribadi] #app element not found');
+    return;
   }
 
-  initTheme();
-  initDrawerToggle();
-  initRouter();
+  try {
+    // Build shell inside #app
+    root.innerHTML = '';
+    const shell = document.createElement('div');
+    shell.className = 'app-shell';
+
+    // Overlay for mobile drawer
+    const overlay = document.createElement('div');
+    overlay.className = 'drawer__overlay';
+    overlay.addEventListener('click', () => {
+      store.drawerOpen = false;
+    });
+    shell.appendChild(overlay);
+
+    // Drawer (async — waits for menu config)
+    console.log('[RuangPribadi] Creating drawer...');
+    const drawer = await createDrawer();
+    shell.appendChild(drawer);
+    console.log('[RuangPribadi] Drawer created');
+
+    // Main area
+    const mainArea = document.createElement('div');
+    mainArea.className = 'main';
+    mainArea.id = 'main-area';
+
+    // AppBar
+    console.log('[RuangPribadi] Creating appbar...');
+    const appbar = createAppBar();
+    mainArea.appendChild(appbar);
+    console.log('[RuangPribadi] AppBar created');
+
+    // Page container
+    const pageContainer = document.createElement('div');
+    pageContainer.id = 'page-root';
+    pageContainer.className = 'container';
+    mainArea.appendChild(pageContainer);
+
+    shell.appendChild(mainArea);
+    root.appendChild(shell);
+
+    // Modal & Toast containers (append to body, outside app)
+    if (!document.getElementById('modal-root')) {
+      const modalContainer = document.createElement('div');
+      modalContainer.id = 'modal-root';
+      document.body.appendChild(modalContainer);
+    }
+    if (!document.getElementById('toast-root')) {
+      const toastContainer = document.createElement('div');
+      toastContainer.id = 'toast-root';
+      toastContainer.style.cssText =
+        'position:fixed;top:16px;right:16px;z-index:400;display:flex;flex-direction:column;gap:8px;';
+      document.body.appendChild(toastContainer);
+    }
+
+    console.log('[RuangPribadi] Initializing theme and drawer toggle...');
+    initTheme();
+    initDrawerToggle();
+
+    console.log('[RuangPribadi] Initializing router...');
+    await initRouter();
+
+    console.log('[RuangPribadi] App shell ready!');
+  } catch (err) {
+    console.error('[RuangPribadi] Failed to initialize app:', err);
+    root.innerHTML = `
+      <div style="display:flex;align-items:center;justify-content:center;height:100vh;padding:var(--s-4);text-align:center;">
+        <div>
+          <h2 style="color:var(--c-danger);margin-bottom:var(--s-3);">Initialization Error</h2>
+          <p style="color:var(--c-text-2);margin-bottom:var(--s-2);">${err.message || err}</p>
+          <button onclick="window.location.reload()" style="padding:var(--s-2) var(--s-4);background:var(--c-primary);color:white;border:none;border-radius:var(--s-2);cursor:pointer;">
+            Reload
+          </button>
+        </div>
+      </div>
+    `;
+  }
 }
 
-initApp();
+// Bootstrap with error handling
+console.log('[RuangPribadi] Starting app bootstrap...');
+initApp().catch((err) => {
+  console.error('[RuangPribadi] Unhandled error in initApp:', err);
+  document.body.innerHTML = `
+    <div style="padding:var(--s-4);text-align:center;">
+      <h2 style="color:var(--c-danger);">Fatal Error</h2>
+      <p>${err.message || err}</p>
+      <button onclick="window.location.reload()" style="margin-top:var(--s-3);padding:var(--s-2) var(--s-4);">Reload Page</button>
+    </div>
+  `;
+});

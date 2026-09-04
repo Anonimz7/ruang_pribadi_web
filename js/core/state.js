@@ -4,6 +4,11 @@ const listeners = new Map();
 export const store = new Proxy({
   user: null,
   token: null,
+  username: '',
+  tier: 'guest',
+  permissions: [],
+  hiddenMenus: [],
+  pendingRoute: null,
   theme: localStorage.getItem('rp-theme') || 'system',
   drawerOpen: false,
   currentPage: '/',
