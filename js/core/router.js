@@ -25,6 +25,7 @@ const routes = {
   '/rolling': () => import('../pages/rolling.js'),
   '/diagram': () => import('../pages/diagram.js'),
   '/bahasa': () => import('../pages/bahasa.js'),
+  '/market': () => import('../pages/stocks.js'),
   '/reports': () => import('../pages/reports.js'),
   '/admin/dashboard': () => import('../pages/admin/dashboard.js'),
   '/admin/users': () => import('../pages/admin/users.js'),
@@ -32,6 +33,8 @@ const routes = {
   '/admin/sitemaps': () => import('../pages/admin/sitemaps.js'),
   '/admin/proxies': () => import('../pages/admin/proxies.js'),
   '/admin/reports': () => import('../pages/admin/reports.js'),
+  '/admin/stock-status': () => import('../pages/admin/stock-status.js'),
+  '/admin/idx-upload': () => import('../pages/admin/idx-upload.js'),
 };
 
 /**
@@ -56,6 +59,8 @@ function checkAccess(path) {
       proxies: 'proxies',
       backup: 'backup',
       reports: 'reports',
+      'stock-status': 'stock_status',
+      'idx-upload': 'idx_upload',
     }[adminMatch[1]];
   }
   if (!appKey) {

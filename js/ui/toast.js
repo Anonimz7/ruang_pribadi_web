@@ -2,6 +2,11 @@
 import { $ } from '../utils/dom.js';
 
 export function toast(message, type = 'info', duration = 3000) {
+  // Support object-style second arg: toast(msg, { type: 'error', duration: 5000 })
+  if (type && typeof type === 'object') {
+    duration = type.duration ?? 3000;
+    type = type.type ?? 'info';
+  }
   const root = $('#toast-root');
   if (!root) return;
 
