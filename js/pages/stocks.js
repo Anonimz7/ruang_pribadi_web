@@ -404,7 +404,7 @@ async function addCompare(ticker) {
     state.compareData[t] = analysis.data.map(d => ({...d}));
     state.compareMode = true;
   } catch (e) { toast('Gagal membandingkan: ' + (e.message || e), 'danger'); }
-  finally { state.compareLoading = false; renderCompareBar(); renderCharts(); }
+  finally { state.compareLoading = false; renderCompareBar(); renderAnalysis(); }
 }
 
 async function refreshCompare(ticker) {
@@ -421,7 +421,7 @@ function removeCompare(ticker) {
   state.compareTickers = state.compareTickers.filter(t => t !== ticker);
   delete state.compareData[ticker];
   if (!state.compareTickers.length) state.compareMode = false;
-  renderCompareBar(); renderCharts();
+  renderCompareBar(); renderAnalysis();
 }
 
 function clearCompare() {
@@ -662,6 +662,7 @@ function renderAnalysis() {
   if (!state.analysis) {
     el.innerHTML = `<div class="card" style="padding:var(--s-6);text-align:center;margin-top:var(--s-4);"><div style="font-size:var(--text-sm);color:var(--c-text-3);">Cari saham untuk melihat analisis</div></div>`;
     clearCharts();
+    if (refs.compareBar) { refs.compareBar.remove(); refs.compareBar = null; }
     return;
   }
   const a = state.analysis;
@@ -719,6 +720,8 @@ function renderAnalysis() {
       ${metricCard('Avg BII', s.avgBiiScore.toFixed(1), '#7B61FF')}
     </div>`;
   el.appendChild(metrics);
+
+  renderCompareBar();
 
   // Charts
   if (rawData.length > 0) {
