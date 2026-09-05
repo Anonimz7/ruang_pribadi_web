@@ -185,13 +185,17 @@ function renderMarket() {
   }
 
   const d = state.data;
-  const ewi = d.ewi || [];
-  const mci = d.mci || [];
-  const marketData = d.market_data || [];
+  // Backend returns { period_days, radar: { data: [], summary: {} }, top_accumulation, top_distribution, top_domination }
+  const radar = d.radar || {};
+  const radarData = radar.data || [];
+  // Extract EWI & MCI series from radar data (each data point has ewi & mci fields when include_market_indexes=true)
+  const ewi = radarData.map(point => ({ date: point.date, close: point.ewi, change: point.change || 0 }));
+  const mci = radarData.map(point => ({ date: point.date, close: point.mci, change: point.change || 0 }));
+  const marketData = radarData;
   const topAcc = d.top_accumulation || [];
   const topDist = d.top_distribution || [];
   const topDom = d.top_domination || [];
-  const summaryKpi = d.summary_kpis || [];
+  const radarSummary = radar.summary || {};
 
   el.innerHTML = '';
 
@@ -199,16 +203,16 @@ function renderMarket() {
   const kpiWrap = createEl('div', { style: { display: 'flex', gap: 'var(--s-2)', flexWrap: 'wrap', marginBottom: 'var(--s-5)' } });
   const latestEwi = ewi.length ? ewi[ewi.length - 1] : null;
   const latestMci = mci.length ? mci[mci.length - 1] : null;
-  const ewiChange = latestEwi ? (latestEwi.change || 0) : 0;
-  const mciChange = latestMci ? (latestMci.change || 0) : 0;
+  const ewiChange = radarSummary.ewi_change_pct || 0;
+  const mciChange = 0;
 
   kpiWrap.innerHTML = `
     ${kpiTile('EWI (IDX Energy Weighted)', latestEwi ? fmtPrice(latestEwi.close) : '-', ewiChange, '#00A86B')}
     ${kpiTile('MCI (IDX Mining Composite)', latestMci ? fmtPrice(latestMci.close) : '-', mciChange, '#F2B705')}
-    ${kpiTile('Total Value', d.total_value ? fmtS(d.total_value) : '-', 0, '#F6903D')}
-    ${kpiTile('Total Volume', d.total_volume ? fmtS(d.total_volume) : '-', 0, '#6DC8EC')}
-    ${kpiTile('Foreign Net', d.total_net_foreign ? fmtS(d.total_net_foreign) : '-', d.total_net_foreign || 0, '#00A86B')}
-    ${kpiTile('Avg BII', d.avg_bii ? d.avg_bii.toFixed(1) : '-', 0, '#7B61FF')}
+    ${kpiTile('Total Value', radarSummary.total_reg_value ? fmtS(radarSummary.total_reg_value) : '-', 0, '#F6903D')}
+    ${kpiTile('Total Volume', marketData.length ? fmtS(marketData.reduce((sum, p) => sum + (p.volume || 0), 0)) : '-', 0, '#6DC8EC')}
+    ${kpiTile('Foreign Net', radarSummary.total_net_foreign ? fmtS(radarSummary.total_net_foreign) : '-', radarSummary.total_net_foreign || 0, '#00A86B')}
+    ${kpiTile('Avg BII', marketData.length ? marketData[marketData.length - 1].bii_score.toFixed(1) : '-', 0, '#7B61FF')}
   `;
   el.appendChild(kpiWrap);
 
@@ -232,21 +236,27 @@ function renderMarket() {
   }
 
   // ── Tables ──
-  if (topAcc.length) el.appendChild(buildTable('TOP ACCUMULATION', ['Ticker', 'Company', 'Net Foreign', 'BII', 'Sector'], topAcc.map(r => ({
-    ticker: r.ticker, company: r.company_name, netForeign: r.net_foreign, bii: r.bii_score, sector: r.sector
+  if (topAcc.length) el.appendChild(buildTable('TOP ACCUMULATION', ['Ticker', 'Company', 'Net Foreign'], topAcc.map(r => ({
+    ticker: r.ticker, company: r.company_name, netForeign: r.net_flow_val
   }))));
 
-  if (topDist.length) el.appendChild(buildTable('TOP DISTRIBUTION', ['Ticker', 'Company', 'Net Foreign', 'BII', 'Sector'], topDist.map(r => ({
-    ticker: r.ticker, company: r.company_name, netForeign: r.net_foreign, bii: r.bii_score, sector: r.sector
+  if (topDist.length) el.appendChild(buildTable('TOP DISTRIBUTION', ['Ticker', 'Company', 'Net Foreign'], topDist.map(r => ({
+    ticker: r.ticker, company: r.company_name, netForeign: r.net_flow_val
   }))));
 
-  if (topDom.length) el.appendChild(buildTable('TOP 10 FOREIGN DOMINATION', ['Ticker', 'Company', 'Dom %', 'Sector'], topDom.map(r => ({
-    ticker: r.ticker, company: r.company_name, dom: r.domination_pct, sector: r.sector
+  if (topDom.length) el.appendChild(buildTable('TOP 10 FOREIGN DOMINATION', ['Ticker', 'Company', 'Dom %'], topDom.map(r => ({
+    ticker: r.ticker, company: r.company_name, dom: r.dom_pct
   }))));
 
-  if (summaryKpi.length) el.appendChild(buildTable('MARKET SUMMARY KPIs', ['Metric', 'Value'], summaryKpi.map(r => ({
-    metric: r.metric, value: r.value
-  }))));
+  // Build market summary KPIs from radar summary
+  const summaryKpi = [];
+  if (radarSummary.total_reg_value != null) summaryKpi.push({ metric: 'Total Regular Value', value: fmtS(radarSummary.total_reg_value) });
+  if (radarSummary.total_nego_value != null) summaryKpi.push({ metric: 'Total Nego Value', value: fmtS(radarSummary.total_nego_value) });
+  if (radarSummary.total_net_foreign != null) summaryKpi.push({ metric: 'Total Net Foreign', value: fmtS(radarSummary.total_net_foreign) });
+  if (radarSummary.ewi_latest != null) summaryKpi.push({ metric: 'EWI Latest', value: fmtPrice(radarSummary.ewi_latest) });
+  if (radarSummary.mci_latest != null) summaryKpi.push({ metric: 'MCI Latest', value: fmtPrice(radarSummary.mci_latest) });
+
+  if (summaryKpi.length) el.appendChild(buildTable('MARKET SUMMARY KPIs', ['Metric', 'Value'], summaryKpi));
 
   // Mount charts
   requestAnimationFrame(() => mountMarketCharts(ewi, mci, marketData));
