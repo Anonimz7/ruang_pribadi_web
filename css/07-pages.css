@@ -887,3 +887,145 @@
     transition: none !important;
   }
 }
+
+
+
+/* ── Stocks Page ──────────────────────────────────── */
+.stocks-page,
+.market-page {
+  max-width: 900px;
+  margin: 0 auto;
+  padding: var(--s-4);
+}
+
+/* Search dropdown */
+.stocks-page__dropdown {
+  box-shadow: 0 4px 12px rgba(0,0,0,0.08);
+  border-radius: var(--radius);
+  overflow: hidden;
+}
+
+.stocks-page__dropdown::-webkit-scrollbar { width: 4px; }
+.stocks-page__dropdown::-webkit-scrollbar-thumb { background: var(--c-border-hi); border-radius: 2px; }
+
+.stocks-page__result-item:last-child { border-bottom: none !important; }
+
+/* Period chips */
+.stocks-page__chip {
+  transition: all var(--dur-fast) var(--ease);
+  border-radius: 16px;
+}
+
+.stocks-page__chip:hover {
+  border-color: var(--c-accent);
+  color: var(--c-accent);
+}
+
+.stocks-page__chip--active:hover {
+  opacity: 0.9;
+}
+
+/* Compare bar */
+.stocks-page__compare-bar {
+  padding: var(--s-3);
+  background: var(--c-surface-2);
+  border: 1px solid var(--c-border);
+  border-radius: var(--radius);
+}
+
+/* Chart panels */
+.stocks-page__chart-panel,
+.market-page__chart-panel {
+  background: var(--c-surface);
+  border: 1px solid var(--c-border);
+  border-radius: var(--radius);
+  padding: var(--s-4);
+}
+
+.stocks-page__chart-panel:hover,
+.market-page__chart-panel:hover {
+  border-color: var(--c-border-hi);
+}
+
+/* Chart containers */
+.stocks-page__chart,
+.market-page__chart {
+  border-radius: var(--radius);
+  overflow: hidden;
+}
+
+/* Compare modal */
+.stocks-page__compare-modal {
+  animation: fadeIn var(--dur-fast) var(--ease);
+}
+
+/* Stock info card */
+.stock-info-card {
+  transition: border-color var(--dur-fast);
+}
+
+.stock-info-card:hover {
+  border-color: var(--c-border-hi);
+}
+
+/* Sector badge */
+.stock-sector-badge {
+  transition: transform var(--dur-fast);
+}
+
+.stock-sector-badge:hover {
+  transform: scale(1.05);
+}
+
+/* Delisted badge */
+.delisted-badge {
+  transition: opacity var(--dur-fast);
+}
+
+.delisted-badge:hover {
+  opacity: 0.85;
+}
+
+/* KPI tiles */
+.market-page__content > div:first-child > div {
+  transition: border-color var(--dur-fast), box-shadow var(--dur-fast);
+}
+
+.market-page__content > div:first-child > div:hover {
+  border-color: var(--c-border-hi);
+  box-shadow: 0 2px 8px rgba(0,0,0,0.04);
+}
+
+/* Table hover */
+.table tbody tr {
+  transition: background var(--dur-fast);
+}
+
+/* Responsive */
+@media (max-width: 640px) {
+  .stocks-page,
+  .market-page {
+    padding: var(--s-3);
+  }
+  .stocks-page__chart-panel,
+  .market-page__chart-panel {
+    padding: var(--s-3);
+  }
+  .stocks-page__chart,
+  .market-page__chart {
+    height: 180px !important;
+  }
+}
+
+/* Reduced motion */
+@media (prefers-reduced-motion: reduce) {
+  .stocks-page__chip,
+  .stocks-page__chart-panel,
+  .market-page__chart-panel,
+  .stock-sector-badge,
+  .delisted-badge,
+  .table tbody tr {
+    transition: none !important;
+    animation: none !important;
+  }
+}
