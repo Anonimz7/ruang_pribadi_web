@@ -1,9 +1,10 @@
-/* pages/market.js — Market Overview (Anti-Slop, Dart-parity) */
+/* pages/market.js — Market Overview (Anti-Slop, ApexCharts) */
 import { $, on, createEl } from '../utils/dom.js';
 import { icons } from '../ui/icons.js';
 import Api from '../core/api.js';
 import { toast } from '../ui/toast.js';
 import { StockSectorBadge, sectorColor } from '../ui/stock-widgets.js';
+import { loadApexCharts, buildBaseOptions, renderChart, destroyChart, normalizeDate } from '../ui/chart.js';
 
 /* ─── Helpers ─── */
 function fmtPrice(v) {
@@ -36,99 +37,71 @@ function dateLabel(dateStr) {
   return `${d.getDate()} ${months[d.getMonth()]}`;
 }
 
-/* ─── Lightweight Charts lazy loader ─── */
-let lwcPromise = null;
-async function loadLWC() {
-  if (lwcPromise) return lwcPromise;
-  lwcPromise = (async () => {
-    try {
-      const mod = await import('https://esm.sh/lightweight-charts@4.2.0');
-      return mod;
-    } catch (_) {
-      return new Promise((resolve, reject) => {
-        const script = document.createElement('script');
-        script.src = 'https://cdn.jsdelivr.net/npm/lightweight-charts@4/dist/lightweight-charts.standalone.production.js';
-        script.onload = () => resolve(window.LightweightCharts);
-        script.onerror = reject;
-        document.head.appendChild(script);
-      });
-    }
-  })();
-  return lwcPromise;
+/* ─── ApexCharts helpers ─── */
+function toTs(dateStr) {
+  const d = new Date(normalizeDate(dateStr));
+  return isNaN(d) ? 0 : d.getTime();
 }
 
-function getChartTheme() {
-  const isDark = document.documentElement.getAttribute('data-theme') === 'dark';
-  return {
-    text: isDark ? '#a3a3a3' : '#616161',
-    grid: isDark ? '#2a2a2a' : '#e0e0e0',
-    border: isDark ? '#404040' : '#bdbdbd',
+function buildLineChartApex(container, data, color) {
+  const opts = buildBaseOptions({ height: 210, type: 'line' });
+  opts.colors = [color];
+  opts.stroke.width = 2.5;
+  opts.series = [{
+    name: 'Value',
+    data: data.filter(d => d.date && d.close != null).map(d => ({ x: toTs(d.date), y: d.close })),
+  }];
+  return renderChart(container, opts);
+}
+
+function buildBarChartApex(container, data, color) {
+  const opts = buildBaseOptions({ height: 200, type: 'bar' });
+  opts.colors = [color];
+  opts.plotOptions = { bar: { columnWidth: '60%', borderRadius: 2, borderRadiusApplication: 'end' } };
+  opts.series = [{
+    name: 'Value',
+    data: data.filter(d => d.date && d.value != null).map(d => ({ x: toTs(d.date), y: d.value })),
+  }];
+  return renderChart(container, opts);
+}
+
+function buildForeignMarketChartApex(container, data) {
+  const opts = buildBaseOptions({ height: 210, type: 'bar' });
+  opts.plotOptions = {
+    bar: {
+      columnWidth: '55%',
+      borderRadius: 0,
+      colors: {
+        ranges: [
+          { from: -Infinity, to: -0.0001, color: '#D94B4B' },
+          { from: 0, to: Infinity, color: '#00A86B' },
+        ],
+      },
+    },
   };
+  opts.series = [{
+    name: 'Net Foreign',
+    data: data.filter(d => d.date && d.netForeign != null).map(d => ({ x: toTs(d.date), y: d.netForeign })),
+  }];
+  opts.tooltip.y = { formatter: (v) => (v >= 0 ? '+' : '') + fmtS(v) };
+  return renderChart(container, opts);
 }
 
-function makeChartOptions(container, height) {
-  const t = getChartTheme();
-  return {
-    width: container.clientWidth, height,
-    layout: { background: { type: 'solid', color: 'transparent' }, textColor: t.text },
-    grid: { vertLines: { visible: false }, horzLines: { color: t.grid } },
-    rightPriceScale: { borderColor: t.border },
-    timeScale: { borderColor: t.border, timeVisible: false },
-    crosshair: { mode: 0 },
-    handleScroll: { vertTouchDrag: false },
-    handleScale: { axisPressedMouseMove: false },
-  };
-}
-
-/* ─── Chart builders ─── */
-function buildLineChart(container, data, color, lwc) {
-  const chart = lwc.createChart(container, makeChartOptions(container, 210));
-  const series = chart.addSeries(lwc.LineSeries, {
-    color, lineWidth: 2.5, priceLineVisible: false, lastValueVisible: false,
-  });
-  series.setData(data.map(d => ({ time: d.date, value: d.close })));
-  chart.timeScale().fitContent();
-  return chart;
-}
-
-function buildBarChart(container, data, color, lwc) {
-  const chart = lwc.createChart(container, makeChartOptions(container, 200));
-  const series = chart.addSeries(lwc.HistogramSeries, {
-    color, priceLineVisible: false, lastValueVisible: false,
-  });
-  series.setData(data.map(d => ({ time: d.date, value: d.value })));
-  chart.timeScale().fitContent();
-  return chart;
-}
-
-function buildForeignMarketChart(container, data, lwc) {
-  const chart = lwc.createChart(container, makeChartOptions(container, 210));
-  const buyData = data.filter(d => d.netForeign >= 0).map(d => ({ time: d.date, value: d.netForeign }));
-  const sellData = data.filter(d => d.netForeign < 0).map(d => ({ time: d.date, value: Math.abs(d.netForeign) }));
-  if (buyData.length) {
-    const s = chart.addSeries(lwc.HistogramSeries, { color: '#00A86B', priceLineVisible: false, lastValueVisible: false });
-    s.setData(buyData);
-  }
-  if (sellData.length) {
-    const s = chart.addSeries(lwc.HistogramSeries, { color: '#D94B4B', priceLineVisible: false, lastValueVisible: false });
-    s.setData(sellData);
-  }
-  chart.timeScale().fitContent();
-  return chart;
-}
-
-function buildEwiMciChart(container, ewiData, mciData, lwc) {
-  const chart = lwc.createChart(container, makeChartOptions(container, 270));
-  const s1 = chart.addSeries(lwc.LineSeries, {
-    color: '#00A86B', lineWidth: 2.5, priceLineVisible: false, lastValueVisible: false,
-  });
-  s1.setData(ewiData.map(d => ({ time: d.date, value: d.close })));
-  const s2 = chart.addSeries(lwc.LineSeries, {
-    color: '#F2B705', lineWidth: 2.5, priceLineVisible: false, lastValueVisible: false,
-  });
-  s2.setData(mciData.map(d => ({ time: d.date, value: d.close })));
-  chart.timeScale().fitContent();
-  return chart;
+function buildEwiMciChartApex(container, ewiData, mciData) {
+  const opts = buildBaseOptions({ height: 270, type: 'line' });
+  opts.colors = ['#00A86B', '#F2B705'];
+  opts.stroke.width = [2.5, 2.5];
+  opts.series = [
+    {
+      name: 'EWI',
+      data: ewiData.filter(d => d.date && d.close != null).map(d => ({ x: toTs(d.date), y: d.close })),
+    },
+    {
+      name: 'MCI',
+      data: mciData.filter(d => d.date && d.close != null).map(d => ({ x: toTs(d.date), y: d.close })),
+    },
+  ];
+  return renderChart(container, opts);
 }
 
 /* ─── State ─── */
@@ -157,7 +130,7 @@ let rootEl = null;
 let refs = {};
 
 function clearCharts() {
-  state.charts.forEach(c => { try { c.remove(); } catch (_) {} });
+  state.charts.forEach(c => destroyChart(c));
   state.charts = [];
 }
 
@@ -310,20 +283,38 @@ function chartPanel(title, subtitle, legend, height) {
 async function mountMarketCharts(ewi, mci, marketData) {
   clearCharts();
   if (!marketData.length) return;
-  const lwc = await loadLWC();
+  try {
+    await loadApexCharts();
+  } catch (e) {
+    console.error('[Market] Failed to load chart library:', e);
+    rootEl.querySelectorAll('.market-page__chart').forEach(c => {
+      c.innerHTML = `<div style="display:flex;align-items:center;justify-content:center;height:100%;color:var(--c-text-3);font-size:var(--text-sm);">
+        <span style="margin-right:var(--s-2);">${icons['alert-circle']}</span> Gagal memuat chart library
+      </div>`;
+    });
+    return;
+  }
+
   const containers = rootEl.querySelectorAll('.market-page__chart');
   containers.forEach(container => {
     const type = container.dataset.chartType;
     let chart;
-    if (type === 'EWI vs MCI') chart = buildEwiMciChart(container, ewi, mci, lwc);
-    else if (type === 'Total Nilai Transaksi Pasar') chart = buildBarChart(container, marketData.map(d => ({ date: d.date, value: d.value })), '#F6903D', lwc);
-    else if (type === 'Frekuensi Transaksi Pasar') chart = buildBarChart(container, marketData.map(d => ({ date: d.date, value: d.frequency })), '#5B8FF9', lwc);
-    else if (type === 'ATV Pasar') chart = buildBarChart(container, marketData.map(d => ({ date: d.date, value: d.atv })), '#9270CA', lwc);
-    else if (type === 'Arus Dana Asing Pasar') chart = buildForeignMarketChart(container, marketData, lwc);
-    else if (type === 'BII Score Pasar') chart = buildLineChart(container, marketData.map(d => ({ date: d.date, close: d.bii_score })), '#7B61FF', lwc);
-    else if (type === 'Nilai Nego Pasar') chart = buildBarChart(container, marketData.map(d => ({ date: d.date, value: d.non_reg_value })), '#F6C022', lwc);
-    else if (type === 'Frekuensi Nego Pasar') chart = buildBarChart(container, marketData.map(d => ({ date: d.date, value: d.non_reg_freq })), '#90A4AE', lwc);
-    if (chart) state.charts.push(chart);
+    try {
+      if (type === 'EWI vs MCI') chart = buildEwiMciChartApex(container, ewi, mci);
+      else if (type === 'Total Nilai Transaksi Pasar') chart = buildBarChartApex(container, marketData.map(d => ({ date: d.date, value: d.value })), '#F6903D');
+      else if (type === 'Frekuensi Transaksi Pasar') chart = buildBarChartApex(container, marketData.map(d => ({ date: d.date, value: d.frequency })), '#5B8FF9');
+      else if (type === 'ATV Pasar') chart = buildBarChartApex(container, marketData.map(d => ({ date: d.date, value: d.atv })), '#9270CA');
+      else if (type === 'Arus Dana Asing Pasar') chart = buildForeignMarketChartApex(container, marketData);
+      else if (type === 'BII Score Pasar') chart = buildLineChartApex(container, marketData.map(d => ({ date: d.date, close: d.bii_score })), '#7B61FF');
+      else if (type === 'Nilai Nego Pasar') chart = buildBarChartApex(container, marketData.map(d => ({ date: d.date, value: d.non_reg_value })), '#F6C022');
+      else if (type === 'Frekuensi Nego Pasar') chart = buildBarChartApex(container, marketData.map(d => ({ date: d.date, value: d.non_reg_freq })), '#90A4AE');
+      if (chart) state.charts.push(chart);
+    } catch (e) {
+      console.error(`[Market] Chart "${type}" failed:`, e);
+      container.innerHTML = `<div style="display:flex;align-items:center;justify-content:center;height:100%;color:var(--c-text-3);font-size:var(--text-sm);">
+        <span style="margin-right:var(--s-2);">${icons['alert-circle']}</span> Chart error
+      </div>`;
+    }
   });
 }
 

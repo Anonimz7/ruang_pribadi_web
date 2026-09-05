@@ -1,10 +1,11 @@
-/* pages/stocks.js — Stock Analysis (Anti-Slop, Dart-parity) FIXED */
+/* pages/stocks.js — Stock Analysis (Anti-Slop, ApexCharts) */
 import { $, on, createEl } from '../utils/dom.js';
 import { icons } from '../ui/icons.js';
 import Api from '../core/api.js';
 import { toast } from '../ui/toast.js';
+import { loadApexCharts, buildBaseOptions, renderChart, destroyChart, normalizeDate } from '../ui/chart.js';
 
-/* ─── Inline Models (to avoid missing dependency files) ─── */
+/* ─── Inline Models ─── */
 class StockListItem {
   constructor(data = {}) {
     this.ticker = data.ticker || '';
@@ -221,137 +222,93 @@ function dateLabel(dateStr) {
   return `${d.getDate()} ${months[d.getMonth()]}`;
 }
 
-/* ─── Lightweight Charts lazy loader ─── */
-let lwcPromise = null;
-async function loadLWC() {
-  if (lwcPromise) return lwcPromise;
-  lwcPromise = (async () => {
-    // Try esm.sh first
-    try {
-      const mod = await import('https://esm.sh/lightweight-charts@4.2.0');
-      if (mod && mod.createChart) {
-        console.log('[Stocks] LWC loaded via esm.sh');
-        return mod;
-      }
-    } catch (e) {
-      console.warn('[Stocks] esm.sh LWC failed:', e.message);
-    }
-    // Fallback: script tag from jsDelivr
-    try {
-      await new Promise((resolve, reject) => {
-        const script = document.createElement('script');
-        script.src = 'https://cdn.jsdelivr.net/npm/lightweight-charts@4/dist/lightweight-charts.standalone.production.js';
-        script.onload = () => resolve();
-        script.onerror = () => reject(new Error('jsDelivr LWC failed'));
-        document.head.appendChild(script);
-      });
-      if (window.LightweightCharts && window.LightweightCharts.createChart) {
-        console.log('[Stocks] LWC loaded via jsDelivr');
-        return window.LightweightCharts;
-      }
-      throw new Error('window.LightweightCharts not available after script load');
-    } catch (e) {
-      console.error('[Stocks] All LWC loaders failed:', e.message);
-      throw e;
-    }
-  })();
-  return lwcPromise;
+/* ─── ApexCharts helpers ─── */
+function toTs(dateStr) {
+  const d = new Date(normalizeDate(dateStr));
+  return isNaN(d) ? 0 : d.getTime();
 }
 
-function getChartTheme() {
-  const isDark = document.documentElement.getAttribute('data-theme') === 'dark';
-  return {
-    text: isDark ? '#a3a3a3' : '#616161',
-    grid: isDark ? '#2a2a2a' : '#e0e0e0',
-    border: isDark ? '#404040' : '#bdbdbd',
+function buildPriceChartApex(container, data) {
+  const opts = buildBaseOptions({ height: 270, type: 'line' });
+  opts.colors = ['#00A86B'];
+  opts.stroke.width = 2.5;
+  opts.series = [{
+    name: 'Harga Penutupan',
+    data: data.filter(d => d.date && d.close != null).map(d => ({ x: toTs(d.date), y: d.close })),
+  }];
+  return renderChart(container, opts);
+}
+
+function buildBarChartApex(container, data, color) {
+  const opts = buildBaseOptions({ height: 200, type: 'bar' });
+  opts.colors = [color];
+  opts.plotOptions = { bar: { columnWidth: '60%', borderRadius: 2, borderRadiusApplication: 'end' } };
+  opts.series = [{
+    name: 'Value',
+    data: data.filter(d => d.time && d.value != null).map(d => ({ x: toTs(d.time), y: d.value })),
+  }];
+  return renderChart(container, opts);
+}
+
+function buildForeignChartApex(container, data) {
+  const opts = buildBaseOptions({ height: 210, type: 'bar' });
+  opts.plotOptions = {
+    bar: {
+      columnWidth: '55%',
+      borderRadius: 0,
+      colors: {
+        ranges: [
+          { from: -Infinity, to: -0.0001, color: '#D94B4B' },
+          { from: 0, to: Infinity, color: '#00A86B' },
+        ],
+      },
+    },
   };
+  opts.series = [{
+    name: 'Net Foreign',
+    data: data.filter(d => d.date && d.netForeign != null).map(d => ({ x: toTs(d.date), y: d.netForeign })),
+  }];
+  opts.tooltip.y = { formatter: (v) => (v >= 0 ? '+' : '') + fmtS(v) };
+  return renderChart(container, opts);
 }
 
-function makeChartOptions(container, height) {
-  const t = getChartTheme();
-  return {
-    width: container.clientWidth, height,
-    layout: { background: { type: 'solid', color: 'transparent' }, textColor: t.text },
-    grid: { vertLines: { visible: false }, horzLines: { color: t.grid } },
-    rightPriceScale: { borderColor: t.border },
-    timeScale: { borderColor: t.border, timeVisible: false },
-    crosshair: { mode: 0 },
-    handleScroll: { vertTouchDrag: false },
-    handleScale: { axisPressedMouseMove: false },
+function buildLineChartApex(container, data, color) {
+  const opts = buildBaseOptions({ height: 210, type: 'line' });
+  opts.colors = [color];
+  opts.stroke.width = 2.5;
+  opts.series = [{
+    name: 'Value',
+    data: data.filter(d => d.time && d.close != null).map(d => ({ x: toTs(d.time), y: d.close })),
+  }];
+  return renderChart(container, opts);
+}
+
+function buildCompareChartApex(container, primaryData, compareData, compareTickers, primaryTicker) {
+  const opts = buildBaseOptions({ height: 300, type: 'line' });
+  opts.colors = COMPARE_COLORS;
+  opts.stroke.width = [2.5, 2, 2, 2, 2, 2, 2, 2];
+  opts.yaxis.labels.formatter = (v) => {
+    if (v == null) return '';
+    return v.toFixed(1) + '%';
   };
-}
-
-function buildPriceChart(container, data, lwc) {
-  const chart = lwc.createChart(container, makeChartOptions(container, 270));
-  const series = chart.addLineSeries({
-    color: '#00A86B', lineWidth: 2.5, lastValueVisible: false, priceLineVisible: false,
-  });
-  const chartData = data.filter(d => d.date && d.close != null).map(d => ({ time: d.date, value: d.close }));
-  if (chartData.length) series.setData(chartData);
-  chart.timeScale().fitContent();
-  return chart;
-}
-
-function buildBarChart(container, data, color, lwc) {
-  const chart = lwc.createChart(container, makeChartOptions(container, 200));
-  const series = chart.addHistogramSeries({
-    color, priceLineVisible: false, lastValueVisible: false,
-  });
-  const chartData = data.filter(d => d.date && d.value != null).map(d => ({ time: d.date, value: d.value }));
-  if (chartData.length) series.setData(chartData);
-  chart.timeScale().fitContent();
-  return chart;
-}
-
-function buildForeignChart(container, data, lwc) {
-  const chart = lwc.createChart(container, makeChartOptions(container, 210));
-  const validData = data.filter(d => d.date && d.netForeign != null);
-  const buyData = validData.filter(d => d.netForeign >= 0).map(d => ({ time: d.date, value: d.netForeign }));
-  const sellData = validData.filter(d => d.netForeign < 0).map(d => ({ time: d.date, value: Math.abs(d.netForeign) }));
-  if (buyData.length) {
-    const s = chart.addHistogramSeries({ color: '#00A86B', priceLineVisible: false, lastValueVisible: false });
-    s.setData(buyData);
-  }
-  if (sellData.length) {
-    const s = chart.addHistogramSeries({ color: '#D94B4B', priceLineVisible: false, lastValueVisible: false });
-    s.setData(sellData);
-  }
-  chart.timeScale().fitContent();
-  return chart;
-}
-
-function buildLineChart(container, data, color, lwc) {
-  const chart = lwc.createChart(container, makeChartOptions(container, 210));
-  const series = chart.addLineSeries({
-    color, lineWidth: 2.5, priceLineVisible: false, lastValueVisible: false,
-  });
-  const chartData = data.filter(d => d.date && d.close != null).map(d => ({ time: d.date, value: d.close }));
-  if (chartData.length) series.setData(chartData);
-  chart.timeScale().fitContent();
-  return chart;
-}
-
-function buildCompareChart(container, primaryData, compareData, compareTickers, lwc) {
-  const chart = lwc.createChart(container, makeChartOptions(container, 300));
   const validPrimary = primaryData.filter(d => d.date && d.close != null);
   const base1 = validPrimary[0]?.close || 1;
-  const s1 = chart.addLineSeries({
-    color: COMPARE_COLORS[0], lineWidth: 2.5, priceLineVisible: false, lastValueVisible: false,
-  });
-  s1.setData(validPrimary.map(d => ({ time: d.date, value: ((d.close - base1) / base1) * 100 })));
-  compareTickers.forEach((t, idx) => {
+  const series = [{
+    name: primaryTicker,
+    data: validPrimary.map(d => ({ x: toTs(d.date), y: ((d.close - base1) / base1) * 100 })),
+  }];
+  compareTickers.forEach((t) => {
     const cd = compareData[t];
     if (!cd || !cd.length) return;
     const validCd = cd.filter(d => d.date && d.close != null);
     const base = validCd[0]?.close || 1;
-    const s = chart.addLineSeries({
-      color: COMPARE_COLORS[(idx + 1) % COMPARE_COLORS.length],
-      lineWidth: 2, priceLineVisible: false, lastValueVisible: false,
+    series.push({
+      name: t,
+      data: validCd.map(d => ({ x: toTs(d.date), y: ((d.close - base) / base) * 100 })),
     });
-    s.setData(validCd.map(d => ({ time: d.date, value: ((d.close - base) / base) * 100 })));
   });
-  chart.timeScale().fitContent();
-  return chart;
+  opts.series = series;
+  return renderChart(container, opts);
 }
 
 /* ─── State ─── */
@@ -369,7 +326,6 @@ async function doSearch(q) {
   renderSearchDropdown();
   try {
     const res = await Api.get('/idx/stocks', { q, limit: 8 });
-    // FIX: Api returns raw response. Search endpoint returns either List or {stocks:[]}
     let list = [];
     if (Array.isArray(res)) {
       list = res;
@@ -388,8 +344,6 @@ async function loadAnalysis(ticker) {
   updateUI();
   try {
     const res = await Api.get(`/idx/stocks/${t}/analysis`, { days: state.days });
-    // FIX: Api returns raw response body directly. res IS the analysis object.
-    // DON'T use res?.data — that would get the "data" array inside the analysis!
     state.analysis = new StockAnalysis(res);
     for (const ct of state.compareTickers) { await refreshCompare(ct); }
   } catch (e) {
@@ -439,7 +393,7 @@ let rootEl = null;
 let refs = {};
 
 function clearCharts() {
-  state.charts.forEach(c => { try { c.remove(); } catch (_) {} });
+  state.charts.forEach(c => destroyChart(c));
   state.charts = [];
 }
 
@@ -760,30 +714,12 @@ function chartPanel(title, subtitle, legend, height) {
   return panel;
 }
 
-/* ─── Normalize date for LWC (YYYY-MM-DD) ─── */
-function normalizeDate(dateStr) {
-  if (!dateStr) return '';
-  // Handle ISO format: 2024-01-15T00:00:00 or 2024-01-15 00:00:00
-  const clean = String(dateStr).split('T')[0].split(' ')[0];
-  // Validate YYYY-MM-DD
-  if (/^\d{4}-\d{2}-\d{2}$/.test(clean)) return clean;
-  // Try parsing
-  const d = new Date(dateStr);
-  if (!isNaN(d.getTime())) {
-    const pad = n => String(n).padStart(2, '0');
-    return `${d.getFullYear()}-${pad(d.getMonth()+1)}-${pad(d.getDate())}`;
-  }
-  return dateStr;
-}
-
 async function mountCharts(rawData) {
   clearCharts();
-  let lwc;
   try {
-    lwc = await loadLWC();
+    await loadApexCharts();
   } catch (e) {
     console.error('[Stocks] Failed to load chart library:', e);
-    // Show fallback message in all chart containers
     rootEl.querySelectorAll('.stocks-page__chart').forEach(c => {
       c.innerHTML = `<div style="display:flex;align-items:center;justify-content:center;height:100%;color:var(--c-text-3);font-size:var(--text-sm);">
         <span style="margin-right:var(--s-2);">${icons['alert-circle']}</span> Gagal memuat chart library
@@ -793,41 +729,34 @@ async function mountCharts(rawData) {
   }
 
   const containers = rootEl.querySelectorAll('.stocks-page__chart');
-  if (!containers.length) {
-    console.warn('[Stocks] No chart containers found');
-    return;
-  }
+  if (!containers.length) return;
 
-  // Normalize dates once
   const normData = rawData.map(d => ({...d, date: normalizeDate(d.date)}));
 
-  containers.forEach((container, idx) => {
+  containers.forEach((container) => {
     const type = container.dataset.chartType;
     let chart = null;
     try {
-      if (type === 'Pergerakan Harga' || type === 'Perbandingan Harga (Normalisasi)') {
-        chart = state.compareMode && state.compareTickers.length
-          ? buildCompareChart(container, normData, state.compareData, state.compareTickers, lwc)
-          : buildPriceChart(container, normData, lwc);
+      if (type === 'Pergerakan Harga') {
+        chart = buildPriceChartApex(container, normData);
+      } else if (type === 'Perbandingan Harga (Normalisasi)') {
+        chart = buildCompareChartApex(container, normData, state.compareData, state.compareTickers, state.analysis.ticker);
       } else if (type === 'Total Nilai Transaksi') {
-        chart = buildBarChart(container, normData.map(d => ({ time: d.date, value: d.value })), '#F6903D', lwc);
+        chart = buildBarChartApex(container, normData.map(d => ({ time: d.date, value: d.value })), '#F6903D');
       } else if (type === 'Volume Perdagangan') {
-        chart = buildBarChart(container, normData.map(d => ({ time: d.date, value: d.volume })), '#6DC8EC', lwc);
+        chart = buildBarChartApex(container, normData.map(d => ({ time: d.date, value: d.volume })), '#6DC8EC');
       } else if (type === 'Arus Dana Asing') {
-        chart = buildForeignChart(container, normData, lwc);
+        chart = buildForeignChartApex(container, normData);
       } else if (type === 'BII Score (Buying Intensity Index)') {
-        chart = buildLineChart(container, normData.map(d => ({ time: d.date, close: d.biiScore })), '#7B61FF', lwc);
+        chart = buildLineChartApex(container, normData.map(d => ({ time: d.date, close: d.biiScore })), '#7B61FF');
       } else if (type === 'ATV (Avg Transaction Value)') {
-        chart = buildBarChart(container, normData.map(d => ({ time: d.date, value: d.atv })), '#9270CA', lwc);
+        chart = buildBarChartApex(container, normData.map(d => ({ time: d.date, value: d.atv })), '#9270CA');
       } else if (type === 'Nilai Nego (Non-Regular)') {
-        chart = buildBarChart(container, normData.map(d => ({ time: d.date, value: d.nonRegValue })), '#F6C022', lwc);
+        chart = buildBarChartApex(container, normData.map(d => ({ time: d.date, value: d.nonRegValue })), '#F6C022');
       } else if (type === 'Frekuensi Nego') {
-        chart = buildBarChart(container, normData.map(d => ({ time: d.date, value: d.nonRegFreq })), '#90A4AE', lwc);
+        chart = buildBarChartApex(container, normData.map(d => ({ time: d.date, value: d.nonRegFreq })), '#90A4AE');
       }
-      if (chart) {
-        state.charts.push(chart);
-        console.log(`[Stocks] Chart "${type}" mounted successfully`);
-      }
+      if (chart) state.charts.push(chart);
     } catch (e) {
       console.error(`[Stocks] Chart "${type}" failed:`, e);
       container.innerHTML = `<div style="display:flex;align-items:center;justify-content:center;height:100%;color:var(--c-text-3);font-size:var(--text-sm);">
