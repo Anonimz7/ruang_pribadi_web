@@ -222,6 +222,13 @@ function dateLabel(dateStr) {
   return `${d.getDate()} ${months[d.getMonth()]}`;
 }
 
+function fullDate(dateStr) {
+  const d = new Date(dateStr);
+  if (isNaN(d)) return dateStr;
+  const months = ['Januari', 'Februari', 'Maret', 'April', 'Mei', 'Juni', 'Juli', 'Agustus', 'September', 'Oktober', 'November', 'Desember'];
+  return `${d.getDate()} ${months[d.getMonth()]} ${d.getFullYear()}`;
+}
+
 /* ─── ApexCharts helpers ─── */
 function toTs(dateStr) {
   const d = new Date(normalizeDate(dateStr));
@@ -287,27 +294,55 @@ function buildCompareChartApex(container, primaryData, compareData, compareTicke
   const opts = buildBaseOptions({ height: 300, type: 'line' });
   opts.colors = COMPARE_COLORS;
   opts.stroke.width = [2.5, 2, 2, 2, 2, 2, 2, 2];
+  opts.yaxis = opts.yaxis || {};
+  opts.yaxis.labels = opts.yaxis.labels || {};
   opts.yaxis.labels.formatter = (v) => {
     if (v == null) return '';
     return v.toFixed(1) + '%';
   };
-  const validPrimary = primaryData.filter(d => d.date && d.close != null);
+
+  const validPrimary = primaryData.filter(d => d.close != null);
   const base1 = validPrimary[0]?.close || 1;
+  const dateMap = validPrimary.map(d => d.date);
+
   const series = [{
     name: primaryTicker,
-    data: validPrimary.map(d => ({ x: toTs(d.date), y: ((d.close - base1) / base1) * 100 })),
+    data: validPrimary.map((d, i) => ({ x: i, y: ((d.close - base1) / base1) * 100 })),
   }];
+
   compareTickers.forEach((t) => {
     const cd = compareData[t];
     if (!cd || !cd.length) return;
-    const validCd = cd.filter(d => d.date && d.close != null);
+    const validCd = cd.filter(d => d.close != null);
     const base = validCd[0]?.close || 1;
     series.push({
       name: t,
-      data: validCd.map(d => ({ x: toTs(d.date), y: ((d.close - base) / base) * 100 })),
+      data: validCd.map((d, i) => ({ x: i, y: ((d.close - base) / base) * 100 })),
     });
   });
+
   opts.series = series;
+
+  opts.xaxis = opts.xaxis || {};
+  opts.xaxis.type = 'numeric';
+  opts.xaxis.tickAmount = 5;
+  opts.xaxis.labels = {
+    formatter: (val) => {
+      const idx = Math.round(val);
+      if (idx < 0 || idx >= dateMap.length) return '';
+      return dateLabel(dateMap[idx]);
+    }
+  };
+
+  opts.tooltip = opts.tooltip || {};
+  opts.tooltip.x = {
+    formatter: (val) => {
+      const idx = Math.round(val);
+      const date = dateMap[idx];
+      return date ? fullDate(date) : String(idx);
+    }
+  };
+
   return renderChart(container, opts);
 }
 
@@ -341,6 +376,7 @@ async function loadAnalysis(ticker) {
   const t = ticker.toUpperCase();
   state.loading = true; state.searchResults = []; state.selectedTicker = t;
   state.analysis = null;
+  clearCompare();
   updateUI();
   try {
     const res = await Api.get(`/idx/stocks/${t}/analysis`, { days: state.days });
@@ -386,6 +422,16 @@ function removeCompare(ticker) {
   delete state.compareData[ticker];
   if (!state.compareTickers.length) state.compareMode = false;
   renderCompareBar(); renderCharts();
+}
+
+function clearCompare() {
+  state.compareTickers = [];
+  state.compareData = {};
+  state.compareMode = false;
+  if (refs.compareBar) {
+    refs.compareBar.remove();
+    refs.compareBar = null;
+  }
 }
 
 /* ─── DOM ─── */
@@ -837,6 +883,14 @@ export function render() {
   renderToolbarOnce();
   renderAnalysis();
   renderCompareBar();
+
+  const initialTicker = localStorage.getItem('stocks_initial_ticker');
+  if (initialTicker) {
+    localStorage.removeItem('stocks_initial_ticker');
+    state.searchTerm = initialTicker;
+    if (refs.searchInput) refs.searchInput.value = initialTicker;
+    loadAnalysis(initialTicker);
+  }
 
   const outsideClick = (e) => {
     if (refs.searchDropdown && !refs.searchDropdown.contains(e.target) && !refs.searchInput.contains(e.target)) {

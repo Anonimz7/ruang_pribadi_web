@@ -104,6 +104,9 @@ function buildEwiMciChartApex(container, ewiData, mciData) {
   return renderChart(container, opts);
 }
 
+/* ─── Constants ─── */
+const PERIODS = [30, 60, 90, 180, 365];
+
 /* ─── State ─── */
 const state = {
   days: 30, loading: false, data: null, charts: [],
@@ -151,6 +154,38 @@ function renderHeader() {
   `;
   on(header.querySelector('#market-refresh'), 'click', loadMarket);
   rootEl.appendChild(header);
+}
+
+function renderPeriodChips() {
+  let el = refs.periodChips;
+  if (!el) {
+    el = createEl('div', {
+      style: {
+        display: 'flex', gap: 'var(--s-1)', flexWrap: 'wrap',
+        marginTop: 'var(--s-3)', marginBottom: 'var(--s-4)',
+      }
+    });
+    refs.periodChips = el;
+    rootEl.appendChild(el);
+  }
+  el.innerHTML = '';
+  PERIODS.forEach(d => {
+    const chip = createEl('button', {
+      class: `btn btn--sm ${state.days === d ? 'btn--primary' : 'btn--secondary'}`,
+      style: {
+        padding: 'var(--s-1) var(--s-3)', fontSize: 'var(--text-xs)', fontWeight: 600,
+        borderRadius: '16px',
+      }
+    });
+    chip.textContent = d + 'H';
+    on(chip, 'click', () => {
+      if (state.days === d) return;
+      state.days = d;
+      renderPeriodChips();
+      loadMarket();
+    });
+    el.appendChild(chip);
+  });
 }
 
 /* ─── Render: Loading ─── */
@@ -204,7 +239,7 @@ function renderMarket() {
   const latestEwi = ewi.length ? ewi[ewi.length - 1] : null;
   const latestMci = mci.length ? mci[mci.length - 1] : null;
   const ewiChange = radarSummary.ewi_change_pct || 0;
-  const mciChange = 0;
+  const mciChange = radarSummary.mci_change_pct || 0;
 
   kpiWrap.innerHTML = `
     ${kpiTile('EWI (IDX Energy Weighted)', latestEwi ? fmtPrice(latestEwi.close) : '-', ewiChange, '#00A86B')}
@@ -372,6 +407,7 @@ export function render() {
   }
 
   renderHeader();
+  renderPeriodChips();
   renderLoading();
   loadMarket();
 
