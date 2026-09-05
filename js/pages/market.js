@@ -81,7 +81,7 @@ function buildForeignMarketChartApex(container, data) {
   };
   opts.series = [{
     name: 'Net Foreign',
-    data: data.filter(d => d.date && d.netForeign != null).map(d => ({ x: toTs(d.date), y: d.netForeign })),
+    data: data.filter(d => d.date && d.net_foreign != null).map(d => ({ x: toTs(d.date), y: d.net_foreign })),
   }];
   opts.tooltip.y = { formatter: (v) => (v >= 0 ? '+' : '') + fmtS(v) };
   return renderChart(container, opts);
