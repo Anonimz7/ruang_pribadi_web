@@ -226,17 +226,33 @@ let lwcPromise = null;
 async function loadLWC() {
   if (lwcPromise) return lwcPromise;
   lwcPromise = (async () => {
+    // Try esm.sh first
     try {
       const mod = await import('https://esm.sh/lightweight-charts@4.2.0');
-      return mod;
-    } catch (_) {
-      return new Promise((resolve, reject) => {
+      if (mod && mod.createChart) {
+        console.log('[Stocks] LWC loaded via esm.sh');
+        return mod;
+      }
+    } catch (e) {
+      console.warn('[Stocks] esm.sh LWC failed:', e.message);
+    }
+    // Fallback: script tag from jsDelivr
+    try {
+      await new Promise((resolve, reject) => {
         const script = document.createElement('script');
         script.src = 'https://cdn.jsdelivr.net/npm/lightweight-charts@4/dist/lightweight-charts.standalone.production.js';
-        script.onload = () => resolve(window.LightweightCharts);
-        script.onerror = reject;
+        script.onload = () => resolve();
+        script.onerror = () => reject(new Error('jsDelivr LWC failed'));
         document.head.appendChild(script);
       });
+      if (window.LightweightCharts && window.LightweightCharts.createChart) {
+        console.log('[Stocks] LWC loaded via jsDelivr');
+        return window.LightweightCharts;
+      }
+      throw new Error('window.LightweightCharts not available after script load');
+    } catch (e) {
+      console.error('[Stocks] All LWC loaders failed:', e.message);
+      throw e;
     }
   })();
   return lwcPromise;
@@ -267,34 +283,37 @@ function makeChartOptions(container, height) {
 
 function buildPriceChart(container, data, lwc) {
   const chart = lwc.createChart(container, makeChartOptions(container, 270));
-  const series = chart.addSeries(lwc.LineSeries, {
+  const series = chart.addLineSeries({
     color: '#00A86B', lineWidth: 2.5, lastValueVisible: false, priceLineVisible: false,
   });
-  series.setData(data.map(d => ({ time: d.date, value: d.close })));
+  const chartData = data.filter(d => d.date && d.close != null).map(d => ({ time: d.date, value: d.close }));
+  if (chartData.length) series.setData(chartData);
   chart.timeScale().fitContent();
   return chart;
 }
 
 function buildBarChart(container, data, color, lwc) {
   const chart = lwc.createChart(container, makeChartOptions(container, 200));
-  const series = chart.addSeries(lwc.HistogramSeries, {
+  const series = chart.addHistogramSeries({
     color, priceLineVisible: false, lastValueVisible: false,
   });
-  series.setData(data.map(d => ({ time: d.date, value: d.value })));
+  const chartData = data.filter(d => d.date && d.value != null).map(d => ({ time: d.date, value: d.value }));
+  if (chartData.length) series.setData(chartData);
   chart.timeScale().fitContent();
   return chart;
 }
 
 function buildForeignChart(container, data, lwc) {
   const chart = lwc.createChart(container, makeChartOptions(container, 210));
-  const buyData = data.filter(d => d.netForeign >= 0).map(d => ({ time: d.date, value: d.netForeign }));
-  const sellData = data.filter(d => d.netForeign < 0).map(d => ({ time: d.date, value: Math.abs(d.netForeign) }));
+  const validData = data.filter(d => d.date && d.netForeign != null);
+  const buyData = validData.filter(d => d.netForeign >= 0).map(d => ({ time: d.date, value: d.netForeign }));
+  const sellData = validData.filter(d => d.netForeign < 0).map(d => ({ time: d.date, value: Math.abs(d.netForeign) }));
   if (buyData.length) {
-    const s = chart.addSeries(lwc.HistogramSeries, { color: '#00A86B', priceLineVisible: false, lastValueVisible: false });
+    const s = chart.addHistogramSeries({ color: '#00A86B', priceLineVisible: false, lastValueVisible: false });
     s.setData(buyData);
   }
   if (sellData.length) {
-    const s = chart.addSeries(lwc.HistogramSeries, { color: '#D94B4B', priceLineVisible: false, lastValueVisible: false });
+    const s = chart.addHistogramSeries({ color: '#D94B4B', priceLineVisible: false, lastValueVisible: false });
     s.setData(sellData);
   }
   chart.timeScale().fitContent();
@@ -303,30 +322,33 @@ function buildForeignChart(container, data, lwc) {
 
 function buildLineChart(container, data, color, lwc) {
   const chart = lwc.createChart(container, makeChartOptions(container, 210));
-  const series = chart.addSeries(lwc.LineSeries, {
+  const series = chart.addLineSeries({
     color, lineWidth: 2.5, priceLineVisible: false, lastValueVisible: false,
   });
-  series.setData(data.map(d => ({ time: d.date, value: d.close })));
+  const chartData = data.filter(d => d.date && d.close != null).map(d => ({ time: d.date, value: d.close }));
+  if (chartData.length) series.setData(chartData);
   chart.timeScale().fitContent();
   return chart;
 }
 
 function buildCompareChart(container, primaryData, compareData, compareTickers, lwc) {
   const chart = lwc.createChart(container, makeChartOptions(container, 300));
-  const base1 = primaryData[0]?.close || 1;
-  const s1 = chart.addSeries(lwc.LineSeries, {
+  const validPrimary = primaryData.filter(d => d.date && d.close != null);
+  const base1 = validPrimary[0]?.close || 1;
+  const s1 = chart.addLineSeries({
     color: COMPARE_COLORS[0], lineWidth: 2.5, priceLineVisible: false, lastValueVisible: false,
   });
-  s1.setData(primaryData.map(d => ({ time: d.date, value: ((d.close - base1) / base1) * 100 })));
+  s1.setData(validPrimary.map(d => ({ time: d.date, value: ((d.close - base1) / base1) * 100 })));
   compareTickers.forEach((t, idx) => {
     const cd = compareData[t];
     if (!cd || !cd.length) return;
-    const base = cd[0]?.close || 1;
-    const s = chart.addSeries(lwc.LineSeries, {
+    const validCd = cd.filter(d => d.date && d.close != null);
+    const base = validCd[0]?.close || 1;
+    const s = chart.addLineSeries({
       color: COMPARE_COLORS[(idx + 1) % COMPARE_COLORS.length],
       lineWidth: 2, priceLineVisible: false, lastValueVisible: false,
     });
-    s.setData(cd.map(d => ({ time: d.date, value: ((d.close - base) / base) * 100 })));
+    s.setData(validCd.map(d => ({ time: d.date, value: ((d.close - base) / base) * 100 })));
   });
   chart.timeScale().fitContent();
   return chart;
@@ -738,25 +760,80 @@ function chartPanel(title, subtitle, legend, height) {
   return panel;
 }
 
+/* ─── Normalize date for LWC (YYYY-MM-DD) ─── */
+function normalizeDate(dateStr) {
+  if (!dateStr) return '';
+  // Handle ISO format: 2024-01-15T00:00:00 or 2024-01-15 00:00:00
+  const clean = String(dateStr).split('T')[0].split(' ')[0];
+  // Validate YYYY-MM-DD
+  if (/^\d{4}-\d{2}-\d{2}$/.test(clean)) return clean;
+  // Try parsing
+  const d = new Date(dateStr);
+  if (!isNaN(d.getTime())) {
+    const pad = n => String(n).padStart(2, '0');
+    return `${d.getFullYear()}-${pad(d.getMonth()+1)}-${pad(d.getDate())}`;
+  }
+  return dateStr;
+}
+
 async function mountCharts(rawData) {
   clearCharts();
-  const lwc = await loadLWC();
+  let lwc;
+  try {
+    lwc = await loadLWC();
+  } catch (e) {
+    console.error('[Stocks] Failed to load chart library:', e);
+    // Show fallback message in all chart containers
+    rootEl.querySelectorAll('.stocks-page__chart').forEach(c => {
+      c.innerHTML = `<div style="display:flex;align-items:center;justify-content:center;height:100%;color:var(--c-text-3);font-size:var(--text-sm);">
+        <span style="margin-right:var(--s-2);">${icons['alert-circle']}</span> Gagal memuat chart library
+      </div>`;
+    });
+    return;
+  }
+
   const containers = rootEl.querySelectorAll('.stocks-page__chart');
-  containers.forEach(container => {
+  if (!containers.length) {
+    console.warn('[Stocks] No chart containers found');
+    return;
+  }
+
+  // Normalize dates once
+  const normData = rawData.map(d => ({...d, date: normalizeDate(d.date)}));
+
+  containers.forEach((container, idx) => {
     const type = container.dataset.chartType;
-    let chart;
-    if (type === 'Pergerakan Harga' || type === 'Perbandingan Harga (Normalisasi)') {
-      chart = state.compareMode && state.compareTickers.length
-        ? buildCompareChart(container, rawData, state.compareData, state.compareTickers, lwc)
-        : buildPriceChart(container, rawData, lwc);
-    } else if (type === 'Total Nilai Transaksi') chart = buildBarChart(container, rawData.map(d => ({ time: d.date, value: d.value })), '#F6903D', lwc);
-    else if (type === 'Volume Perdagangan') chart = buildBarChart(container, rawData.map(d => ({ time: d.date, value: d.volume })), '#6DC8EC', lwc);
-    else if (type === 'Arus Dana Asing') chart = buildForeignChart(container, rawData, lwc);
-    else if (type === 'BII Score (Buying Intensity Index)') chart = buildLineChart(container, rawData.map(d => ({ time: d.date, close: d.biiScore })), '#7B61FF', lwc);
-    else if (type === 'ATV (Avg Transaction Value)') chart = buildBarChart(container, rawData.map(d => ({ time: d.date, value: d.atv })), '#9270CA', lwc);
-    else if (type === 'Nilai Nego (Non-Regular)') chart = buildBarChart(container, rawData.map(d => ({ time: d.date, value: d.nonRegValue })), '#F6C022', lwc);
-    else if (type === 'Frekuensi Nego') chart = buildBarChart(container, rawData.map(d => ({ time: d.date, value: d.nonRegFreq })), '#90A4AE', lwc);
-    if (chart) state.charts.push(chart);
+    let chart = null;
+    try {
+      if (type === 'Pergerakan Harga' || type === 'Perbandingan Harga (Normalisasi)') {
+        chart = state.compareMode && state.compareTickers.length
+          ? buildCompareChart(container, normData, state.compareData, state.compareTickers, lwc)
+          : buildPriceChart(container, normData, lwc);
+      } else if (type === 'Total Nilai Transaksi') {
+        chart = buildBarChart(container, normData.map(d => ({ time: d.date, value: d.value })), '#F6903D', lwc);
+      } else if (type === 'Volume Perdagangan') {
+        chart = buildBarChart(container, normData.map(d => ({ time: d.date, value: d.volume })), '#6DC8EC', lwc);
+      } else if (type === 'Arus Dana Asing') {
+        chart = buildForeignChart(container, normData, lwc);
+      } else if (type === 'BII Score (Buying Intensity Index)') {
+        chart = buildLineChart(container, normData.map(d => ({ time: d.date, close: d.biiScore })), '#7B61FF', lwc);
+      } else if (type === 'ATV (Avg Transaction Value)') {
+        chart = buildBarChart(container, normData.map(d => ({ time: d.date, value: d.atv })), '#9270CA', lwc);
+      } else if (type === 'Nilai Nego (Non-Regular)') {
+        chart = buildBarChart(container, normData.map(d => ({ time: d.date, value: d.nonRegValue })), '#F6C022', lwc);
+      } else if (type === 'Frekuensi Nego') {
+        chart = buildBarChart(container, normData.map(d => ({ time: d.date, value: d.nonRegFreq })), '#90A4AE', lwc);
+      }
+      if (chart) {
+        state.charts.push(chart);
+        console.log(`[Stocks] Chart "${type}" mounted successfully`);
+      }
+    } catch (e) {
+      console.error(`[Stocks] Chart "${type}" failed:`, e);
+      container.innerHTML = `<div style="display:flex;align-items:center;justify-content:center;height:100%;color:var(--c-text-3);font-size:var(--text-sm);">
+        <span style="margin-right:var(--s-2);">${icons['alert-circle']}</span> Chart error
+      </div>`;
+    }
   });
 }
 
