@@ -164,14 +164,6 @@
   display: flex; align-items: center; justify-content: center;
 }
 .appbar__btn:hover { background: var(--c-surface-2); color: var(--c-text); }
-.appbar__btn-badge {
-  position: absolute;
-  top: 2px; right: 2px;
-  width: 8px; height: 8px;
-  background: var(--c-danger);
-  border-radius: 50%;
-  border: 2px solid var(--c-surface);
-}
 
 /* Main Content */
 .main {

@@ -1,13 +1,8 @@
 /* pages/stock-list.js — Stock List with API integration */
 import { createEl } from '../utils/dom.js';
 import { icons } from '../ui/icons.js';
-import Api, { ApiError } from '../core/api.js';
-import { toast } from '../ui/toast.js';
-
-function formatPrice(v) {
-  if (v == null) return '-';
-  return new Intl.NumberFormat('id-ID').format(v);
-}
+import Api from '../core/api.js';
+import { DelistedBadge, StockSectorBadge } from '../ui/stock-widgets.js';
 
 export function render() {
   const state = {
@@ -24,14 +19,17 @@ export function render() {
     subOptions: [],
   };
 
-  const container = createEl('div', {}, []);
+  const container = createEl('div', {
+    class: 'stock-list-page',
+    style: { maxWidth: '900px', margin: '0 auto', padding: 'var(--s-4)' },
+  });
 
   container.appendChild(createEl('h1', {}, ['Stock List']));
   container.appendChild(createEl('p', { style: { color: 'var(--c-text-2)', marginBottom: 'var(--s-5)' } },
     ['Browse all IDX stocks with advanced filters.']));
 
   // Filters
-  const filters = createEl('div', { class: 'card', style: { marginBottom: 'var(--s-5)' } });
+  const filters = createEl('div', { class: 'card', style: { marginBottom: 'var(--s-4)' } });
   container.appendChild(filters);
 
   // Table
@@ -39,9 +37,7 @@ export function render() {
   container.appendChild(tableWrap);
 
   // Pagination
-  const pagination = createEl('div', {
-    style: { display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginTop: 'var(--s-4)', flexWrap: 'wrap', gap: 'var(--s-3)' }
-  });
+  const pagination = createEl('div', { class: 'stock-list-page__pagination' });
   container.appendChild(pagination);
 
   // ---- Functions ----
@@ -59,12 +55,12 @@ export function render() {
   }
 
   function renderFilters() {
-    filters.innerHTML = '';
     filters.innerHTML = `
       <div style="display:flex;gap:var(--s-3);flex-wrap:wrap;align-items:flex-end;">
-        <div class="search" style="flex:1;min-width:200px;">
+        <div class="search${state.searchTerm ? ' has-clear' : ''}" style="flex:1;min-width:200px;">
           <span class="search__icon">${icons['search']}</span>
           <input type="text" class="search__input" placeholder="Search ticker or name..." value="${state.searchTerm}">
+          <button type="button" class="search__clear" aria-label="Bersihkan pencarian">${icons['x']}</button>
         </div>
         <div class="field" style="width:140px;min-width:140px;">
           <label class="field__label">Sector</label>
@@ -73,33 +69,50 @@ export function render() {
             ${state.sectors.map(s => `<option value="${s}" ${s === state.sector ? 'selected' : ''}>${s}</option>`).join('')}
           </select>
         </div>
-        <div class="field" style="width:140px;min-width:140px;">
+        <div class="field" style="width:150px;min-width:150px;">
           <label class="field__label">Primary</label>
-          <select class="field__select" id="filter-primary">
+          <select class="field__select" id="filter-primary" ${state.sector ? '' : 'disabled'}>
             <option value="">All</option>
             ${state.primaryOptions.map(s => `<option value="${s}" ${s === state.primary ? 'selected' : ''}>${s}</option>`).join('')}
           </select>
         </div>
-        <div class="field" style="width:140px;min-width:140px;">
+        <div class="field" style="width:150px;min-width:150px;">
           <label class="field__label">Sub Sector</label>
-          <select class="field__select" id="filter-sub">
+          <select class="field__select" id="filter-sub" ${(state.sector && state.primary) ? '' : 'disabled'}>
             <option value="">All</option>
             ${state.subOptions.map(s => `<option value="${s}" ${s === state.subSector ? 'selected' : ''}>${s}</option>`).join('')}
           </select>
         </div>
-        <button class="btn btn--primary" id="apply-filters">${icons['search']} Filter</button>
+        ${(state.sector || state.primary || state.subSector)
+          ? `<button class="btn btn--ghost btn--sm" id="reset-filters" aria-label="Reset filter sektor">${icons['x']} Reset</button>`
+          : ''}
       </div>
     `;
 
-    const searchInput = filters.querySelector('.search__input');
+    const searchWrap = filters.querySelector('.search');
+    const searchInput = searchWrap.querySelector('.search__input');
+    const clearBtn = searchWrap.querySelector('.search__clear');
     let debounce;
+
+    // Sync state langsung per ketikan (selamat dari re-render filter),
+    // reload jaringan di-debounce.
     searchInput.addEventListener('input', (e) => {
+      state.searchTerm = e.target.value;
+      searchWrap.classList.toggle('has-clear', state.searchTerm !== '');
       clearTimeout(debounce);
       debounce = setTimeout(() => {
-        state.searchTerm = e.target.value;
         state.page = 1;
         loadStocks();
       }, 400);
+    });
+
+    clearBtn.addEventListener('click', () => {
+      state.searchTerm = '';
+      searchInput.value = '';
+      searchWrap.classList.remove('has-clear');
+      state.page = 1;
+      loadStocks();
+      searchInput.focus();
     });
 
     const sectorSel = filters.querySelector('#filter-sector');
@@ -107,25 +120,35 @@ export function render() {
       state.sector = e.target.value;
       state.primary = '';
       state.subSector = '';
-      loadSubOptions();
+      state.page = 1;
+      loadSubOptions().then(loadStocks);
     });
 
     const primarySel = filters.querySelector('#filter-primary');
     primarySel.addEventListener('change', (e) => {
       state.primary = e.target.value;
       state.subSector = '';
-      loadSubOptions();
+      state.page = 1;
+      loadSubOptions().then(loadStocks);
     });
 
     const subSel = filters.querySelector('#filter-sub');
     subSel.addEventListener('change', (e) => {
       state.subSector = e.target.value;
-    });
-
-    filters.querySelector('#apply-filters').addEventListener('click', () => {
       state.page = 1;
       loadStocks();
     });
+
+    const resetBtn = filters.querySelector('#reset-filters');
+    if (resetBtn) {
+      resetBtn.addEventListener('click', () => {
+        state.sector = '';
+        state.primary = '';
+        state.subSector = '';
+        state.page = 1;
+        loadSubOptions().then(loadStocks);
+      });
+    }
   }
 
   async function loadSubOptions() {
@@ -199,45 +222,69 @@ export function render() {
         <th>Ticker</th><th>Name</th><th>Sector</th><th>Sub Sector</th><th>Status</th><th></th>
       </tr></thead>
       <tbody>
-        ${state.stocks.map(s => `
-          <tr>
-            <td><span class="badge badge--primary">${s.ticker}</span></td>
-            <td style="font-weight:500;">${s.company_name}</td>
-            <td><span class="badge badge--neutral">${s.sector || '-'}</span></td>
-            <td style="font-size:var(--text-sm);color:var(--c-text-3);">${s.sub_sector || '-'}</td>
-            <td>
-              ${s.stock_status ? `<span class="badge badge--${s.stock_status === 'blacklist' ? 'danger' : 'success'}">${s.stock_status}</span>` : '<span class="badge badge--neutral">default</span>'}
-            </td>
-            <td class="table__actions">
-              <button class="btn btn--ghost btn--sm" onclick="window.viewStockDetail('${s.ticker}')">${icons['eye']}</button>
-            </td>
-          </tr>
-        `).join('')}
+        ${state.stocks.map(s => {
+          const delisted = s.label_delisted === 1;
+          const statusBadge = DelistedBadge({
+            labelDelisted: s.label_delisted,
+            stockStatus: s.stock_status,
+            statusReason: s.status_reason,
+            small: true,
+            nowrap: true
+          });
+          const sectorBadge = StockSectorBadge(s.sector, true);
+          const eyeTitle = delisted ? 'Saham telah delisted' : `Analisis ${s.ticker}`;
+          return `
+            <tr class="stock-list-page__row${delisted ? ' stock-list-page__row--delisted' : ''}" data-ticker="${s.ticker}"${delisted ? '' : ' data-open="1"'}>
+              <td>${delisted
+                ? `<span class="stock-list-page__ticker stock-list-page__ticker--delisted">${s.ticker}</span>`
+                : `<a href="#/stocks" class="stock-list-page__ticker" onclick="localStorage.setItem('stocks_initial_ticker','${s.ticker}')">${s.ticker}</a>`}
+              </td>
+              <td style="font-weight:500;">${s.company_name}</td>
+              <td>${sectorBadge ? sectorBadge.outerHTML : '<span class="badge badge--neutral">-</span>'}</td>
+              <td style="font-size:var(--text-sm);color:var(--c-text-3);">${s.sub_sector || '-'}</td>
+              <td style="white-space:nowrap;">${statusBadge.outerHTML}</td>
+              <td class="table__actions">
+                <button class="btn btn--ghost btn--sm" ${delisted ? 'disabled' : ''} title="${eyeTitle}" aria-label="${eyeTitle}">${icons['eye']}</button>
+              </td>
+            </tr>`;
+        }).join('')}
       </tbody>
     `;
     tableWrap.appendChild(table);
+
+    // Klik baris → buka analisis saham (kecuali sudah delisted).
+    // Ticker juga link langsung (pola sama dengan halaman Market).
+    table.addEventListener('click', (e) => {
+      const tr = e.target.closest('tr[data-open]');
+      if (!tr) return;
+      localStorage.setItem('stocks_initial_ticker', tr.dataset.ticker);
+      location.hash = '#/stocks';
+    });
   }
 
   function renderPagination() {
     const totalPages = Math.ceil(state.total / state.perPage);
     if (state.total === 0) return;
 
+    const first = (state.page - 1) * state.perPage + 1;
+    const last = Math.min(state.page * state.perPage, state.total);
+    const filterActive = state.searchTerm || state.sector || state.primary || state.subSector;
+    const badges = [state.sector, state.primary, state.subSector]
+      .filter(Boolean)
+      .map(l => { const b = StockSectorBadge(l, true); return b ? b.outerHTML : ''; })
+      .join('');
+
     pagination.innerHTML = `
-      <span style="font-size:var(--text-sm);color:var(--c-text-3);">
-        Showing ${(state.page - 1) * state.perPage + 1}-${Math.min(state.page * state.perPage, state.total)} of ${state.total} stocks
+      <span style="display:inline-flex;align-items:center;gap:var(--s-2);flex-wrap:wrap;font-size:var(--text-sm);color:var(--c-text-3);">
+        Menampilkan ${first}–${last} dari ${state.total} saham${filterActive ? ' (filter aktif)' : ''}${badges ? ' ' + badges : ''}
       </span>
-      <div style="display:flex;gap:var(--s-2);">
+      <div style="display:flex;gap:var(--s-2);align-items:center;">
         <button class="btn btn--ghost btn--sm" ${state.page <= 1 ? 'disabled' : ''} onclick="window.stockListPrev()">Prev</button>
-        <button class="btn btn--primary btn--sm">${state.page}</button>
+        <span class="stock-list-page__page-indicator" aria-label="Halaman ${state.page} dari ${totalPages}">${state.page} / ${totalPages}</span>
         <button class="btn btn--ghost btn--sm" ${state.page >= totalPages ? 'disabled' : ''} onclick="window.stockListNext()">Next</button>
       </div>
     `;
   }
-
-  window.viewStockDetail = (ticker) => {
-    // Open stock analysis in a simple modal or navigate
-    toast(`Menampilkan detail ${ticker}`, { type: 'info' });
-  };
 
   window.stockListPrev = () => {
     if (state.page > 1) { state.page--; loadStocks(); }
@@ -248,7 +295,6 @@ export function render() {
   };
 
   container._cleanup = () => {
-    delete window.viewStockDetail;
     delete window.stockListPrev;
     delete window.stockListNext;
   };

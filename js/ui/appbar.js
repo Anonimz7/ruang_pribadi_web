@@ -40,14 +40,6 @@ export function createAppBar() {
   });
   actions.appendChild(themeBtn);
 
-  // Notification
-  const notifBtn = document.createElement('button');
-  notifBtn.className = 'appbar__btn tooltip';
-  notifBtn.innerHTML = icons['bell'];
-  notifBtn.setAttribute('aria-label', 'Notifications');
-  notifBtn.innerHTML += '<span class="appbar__btn-badge"></span>';
-  actions.appendChild(notifBtn);
-
   // Login/Logout button (reactive)
   const loginBtn = document.createElement('button');
   loginBtn.className = 'btn btn--primary btn--sm';

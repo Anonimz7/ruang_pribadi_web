@@ -1083,6 +1083,39 @@
   box-shadow: 0 2px 8px rgba(0,0,0,0.04);
 }
 
+/* Stock List page */
+.stock-list-page__row { cursor: pointer; }
+.stock-list-page__row--delisted { cursor: default; opacity: 0.55; }
+.stock-list-page__row--delisted:hover { background: inherit; }
+.stock-list-page__ticker {
+  color: var(--c-primary);
+  font-weight: 600;
+  text-decoration: none;
+}
+.stock-list-page__ticker:hover { text-decoration: underline; }
+.stock-list-page__ticker--delisted { color: var(--c-text-3); }
+.stock-list-page__pagination {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  margin-top: var(--s-4);
+  flex-wrap: wrap;
+  gap: var(--s-3);
+}
+.stock-list-page__page-indicator {
+  font-size: var(--text-sm);
+  color: var(--c-text-2);
+  padding: 0 var(--s-1);
+  white-space: nowrap;
+}
+
+/* Badge di dalam tabel: jangan wrap ke baris baru ("bocor") —
+   biarkan kolom melebar, tabel tetap punya scroll horizontal */
+.table .stock-sector-badge,
+.table .delisted-badge {
+  white-space: nowrap;
+}
+
 /* Table hover */
 .table tbody tr {
   transition: background var(--dur-fast);
@@ -1091,7 +1124,8 @@
 /* Responsive */
 @media (max-width: 640px) {
   .stocks-page,
-  .market-page {
+  .market-page,
+  .stock-list-page {
     padding: var(--s-3);
   }
   .stocks-page__chart-panel,

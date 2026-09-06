@@ -42,12 +42,12 @@ export function StockSectorBadge(label, small = false) {
   return el;
 }
 
-export function DelistedBadge({ labelDelisted, stockStatus, statusReason, small = false }) {
+export function DelistedBadge({ labelDelisted, stockStatus, statusReason, small = false, nowrap = false }) {
   const isBlacklisted = stockStatus === 'blacklist';
   const isDelisted = labelDelisted === 1;
   const wrap = createEl('span', {
     class: 'delisted-badge',
-    style: { display: 'inline-flex', alignItems: 'center', gap: '4px', flexWrap: 'wrap' }
+    style: { display: 'inline-flex', alignItems: 'center', gap: '4px', flexWrap: nowrap ? 'nowrap' : 'wrap' }
   });
 
   // Badge blacklist (jika ditetapkan admin)

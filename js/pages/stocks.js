@@ -378,6 +378,58 @@ function buildCompareChartApex(container, primaryData, compareData, compareTicke
   return renderChart(container, opts);
 }
 
+/* BII Score comparison: plot nilai mentah 0-100 tiap saham (sudah ter-normalisasi per saham di backend) */
+function buildCompareBiiChartApex(container, primaryData, compareData, compareTickers, primaryTicker) {
+  const opts = buildBaseOptions({ height: 210, type: 'line' });
+  opts.colors = COMPARE_COLORS;
+  opts.stroke.width = [2.5, 2, 2, 2, 2, 2, 2, 2];
+  opts.yaxis = opts.yaxis || {};
+  opts.yaxis.min = 0;
+  opts.yaxis.max = 100;
+
+  const validPrimary = primaryData.filter(d => d.biiScore != null);
+  const dateMap = validPrimary.map(d => d.date);
+
+  const series = [{
+    name: primaryTicker,
+    data: validPrimary.map((d, i) => ({ x: i, y: d.biiScore })),
+  }];
+
+  compareTickers.forEach((t) => {
+    const cd = compareData[t];
+    if (!cd || !cd.length) return;
+    const validCd = cd.filter(d => d.biiScore != null);
+    series.push({
+      name: t,
+      data: validCd.map((d, i) => ({ x: i, y: d.biiScore })),
+    });
+  });
+
+  opts.series = series;
+
+  opts.xaxis = opts.xaxis || {};
+  opts.xaxis.type = 'numeric';
+  opts.xaxis.tickAmount = 5;
+  opts.xaxis.labels = {
+    formatter: (val) => {
+      const idx = Math.round(val);
+      if (idx < 0 || idx >= dateMap.length) return '';
+      return dateLabel(dateMap[idx]);
+    }
+  };
+
+  opts.tooltip = opts.tooltip || {};
+  opts.tooltip.x = {
+    formatter: (val) => {
+      const idx = Math.round(val);
+      const date = dateMap[idx];
+      return date ? fullDate(date) : String(idx);
+    }
+  };
+
+  return renderChart(container, opts);
+}
+
 /* ─── State ─── */
 const state = {
   searchTerm: '', searchResults: [], searching: false,
@@ -764,7 +816,9 @@ function renderAnalysis() {
   if (rawData.length > 0) {
     const chartsWrap = createEl('div', { class: 'stocks-page__charts', style: { marginTop: 'var(--s-5)' } });
     if (state.compareMode && state.compareTickers.length > 0) {
-      chartsWrap.appendChild(chartPanel('Perbandingan Harga (Normalisasi)', 'Persentase perubahan dari hari pertama', [{ label: a.ticker, color: COMPARE_COLORS[0] }, ...state.compareTickers.map((t, i) => ({ label: t, color: COMPARE_COLORS[(i + 1) % COMPARE_COLORS.length] }))], 300));
+      const compareLegend = [{ label: a.ticker, color: COMPARE_COLORS[0] }, ...state.compareTickers.map((t, i) => ({ label: t, color: COMPARE_COLORS[(i + 1) % COMPARE_COLORS.length] }))];
+      chartsWrap.appendChild(chartPanel('Perbandingan Harga (Normalisasi)', 'Persentase perubahan dari hari pertama', compareLegend, 300));
+      chartsWrap.appendChild(chartPanel('Perbandingan BII Score', 'Skor akumulasi (0-100) relatif tiap saham', compareLegend, 210));
     } else {
       chartsWrap.appendChild(chartPanel('Pergerakan Harga', 'Harga penutupan harian', [{ label: 'Harga penutupan', color: '#00A86B' }], 270));
     }
@@ -827,6 +881,8 @@ async function mountCharts(rawData) {
         chart = buildPriceChartApex(container, normData);
       } else if (type === 'Perbandingan Harga (Normalisasi)') {
         chart = buildCompareChartApex(container, normData, state.compareData, state.compareTickers, state.analysis.ticker);
+      } else if (type === 'Perbandingan BII Score') {
+        chart = buildCompareBiiChartApex(container, normData, state.compareData, state.compareTickers, state.analysis.ticker);
       } else if (type === 'Total Nilai Transaksi') {
         chart = buildBarChartApex(container, normData.map(d => ({ time: d.date, value: d.value })), '#F6903D');
       } else if (type === 'Volume Perdagangan') {
