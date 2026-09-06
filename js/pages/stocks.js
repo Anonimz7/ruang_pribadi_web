@@ -103,20 +103,24 @@ function StockSectorBadge(label, small = false) {
 function DelistedBadge({ labelDelisted, stockStatus, statusReason, small = false }) {
   const isBlacklisted = stockStatus === 'blacklist';
   const isDelisted = labelDelisted === 1;
-  const el = createEl('span', {
-    style: {
-      display: 'inline-flex', alignItems: 'center', gap: '2px',
-      padding: small ? '1px 4px' : '2px 6px', borderRadius: '8px',
-      fontSize: small ? 'var(--text-xs)' : 'var(--text-sm)', fontWeight: 600,
-      cursor: isBlacklisted && statusReason ? 'pointer' : 'default',
-    }
+  const wrap = createEl('span', {
+    style: { display: 'inline-flex', alignItems: 'center', gap: '4px', flexWrap: 'wrap' }
   });
+
+  // Badge blacklist (jika ditetapkan admin)
   if (isBlacklisted) {
-    el.style.background = 'rgba(217, 119, 6, 0.12)';
-    el.style.color = 'var(--c-warn)';
-    el.innerHTML = `${icons['alert-circle']} <span>Blacklist</span>`;
+    const bl = createEl('span', {
+      style: {
+        display: 'inline-flex', alignItems: 'center', gap: '2px',
+        padding: small ? '1px 4px' : '2px 6px', borderRadius: '8px',
+        fontSize: small ? 'var(--text-xs)' : 'var(--text-sm)', fontWeight: 600,
+        cursor: statusReason ? 'pointer' : 'default',
+        background: 'rgba(217, 119, 6, 0.12)', color: 'var(--c-warn)',
+      }
+    });
+    bl.innerHTML = `${icons['alert-circle']} <span>Blacklist</span>`;
     if (statusReason) {
-      on(el, 'click', () => {
+      on(bl, 'click', () => {
         const overlay = createEl('div', {
           style: {
             position: 'fixed', inset: 0, background: 'rgba(0,0,0,0.5)',
@@ -138,16 +142,27 @@ function DelistedBadge({ labelDelisted, stockStatus, statusReason, small = false
         document.body.appendChild(overlay);
       });
     }
-  } else {
-    const color = isDelisted ? 'var(--c-danger)' : 'var(--c-accent)';
-    const bg = isDelisted ? 'rgba(220, 38, 38, 0.12)' : 'rgba(5, 150, 105, 0.12)';
-    el.style.background = bg; el.style.color = color;
-    const iconSvg = isDelisted
-      ? '<svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><line x1="18" y1="6" x2="6" y2="18"/><line x1="6" y1="6" x2="18" y2="18"/></svg>'
-      : icons['check'];
-    el.innerHTML = `${iconSvg} <span>${isDelisted ? 'Delisted' : 'Aktif'}</span>`;
+    wrap.appendChild(bl);
   }
-  return el;
+
+  // Badge status listing: Aktif / Delisted (selalu tampil)
+  const st = createEl('span', {
+    style: {
+      display: 'inline-flex', alignItems: 'center', gap: '2px',
+      padding: small ? '1px 4px' : '2px 6px', borderRadius: '8px',
+      fontSize: small ? 'var(--text-xs)' : 'var(--text-sm)', fontWeight: 600,
+    }
+  });
+  const color = isDelisted ? 'var(--c-danger)' : 'var(--c-accent)';
+  const bg = isDelisted ? 'rgba(220, 38, 38, 0.12)' : 'rgba(5, 150, 105, 0.12)';
+  st.style.background = bg; st.style.color = color;
+  const iconSvg = isDelisted
+    ? '<svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><line x1="18" y1="6" x2="6" y2="18"/><line x1="6" y1="6" x2="18" y2="18"/></svg>'
+    : icons['check'];
+  st.innerHTML = `${iconSvg} <span>${isDelisted ? 'Delisted' : 'Aktif'}</span>`;
+  wrap.appendChild(st);
+
+  return wrap;
 }
 
 function StockInfoCard(stock) {

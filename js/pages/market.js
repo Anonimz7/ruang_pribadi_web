@@ -246,7 +246,7 @@ function renderMarket() {
     ${kpiTile('MCI (IDX Mining Composite)', latestMci ? fmtPrice(latestMci.close) : '-', mciChange, '#F2B705')}
     ${kpiTile('Total Value', radarSummary.total_reg_value ? fmtS(radarSummary.total_reg_value) : '-', 0, '#F6903D')}
     ${kpiTile('Total Volume', marketData.length ? fmtS(marketData.reduce((sum, p) => sum + (p.volume || 0), 0)) : '-', 0, '#6DC8EC')}
-    ${kpiTile('Foreign Net', radarSummary.total_net_foreign ? fmtS(radarSummary.total_net_foreign) : '-', radarSummary.total_net_foreign || 0, '#00A86B')}
+    ${kpiTile('Foreign Net', radarSummary.total_net_foreign ? fmtS(radarSummary.total_net_foreign) : '-', 0, radarSummary.total_net_foreign >= 0 ? '#00A86B' : '#D94B4B')}
     ${kpiTile('Avg BII', marketData.length ? marketData[marketData.length - 1].bii_score.toFixed(1) : '-', 0, '#7B61FF')}
   `;
   el.appendChild(kpiWrap);
