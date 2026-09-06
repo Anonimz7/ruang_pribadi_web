@@ -45,8 +45,10 @@ async function _request(method, path, { params, body, isMultipart = false, file,
     if (body) {
       for (const [k, v] of Object.entries(body)) form.append(k, v);
     }
-    options = { method, body: form }; // Browser sets correct multipart headers
-    delete options.headers['Content-Type'];
+    // Keep headers (Authorization) but drop Content-Type —
+    // the browser sets the correct multipart/form-data boundary.
+    options.headers.delete('Content-Type');
+    options.body = form; // Browser sets correct multipart headers
   } else if (body) {
     options.body = JSON.stringify(body);
   }

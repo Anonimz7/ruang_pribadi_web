@@ -3,9 +3,7 @@ import { icons } from '../ui/icons.js';
 
 // Maps Flutter IconData names to our icon registry keys
 const iconMap = {
-  'Icons.settings': 'settings',
   'Icons.person': 'user',
-  'Icons.book': 'book',
   'Icons.calculate': 'calculate',
   'Icons.password': 'key',
   'Icons.casino': 'dice',
@@ -54,9 +52,7 @@ export const MENU_SECTIONS = [
 
 // Menu key -> route path (mirrors Flutter drawer paths)
 export const ROUTE_MAP = {
-  settings: '/',
   profile: '/profile',
-  japanese_alphabet: '/japanese',
   math_speed: '/math-speed',
   password_generator: '/password',
   gacha_luck: '/gacha',

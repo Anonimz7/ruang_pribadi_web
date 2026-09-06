@@ -87,8 +87,8 @@ function checkAccess(path) {
     return { allowed: false, reason: 'login_required' };
   }
 
-  if (path === '/profile' || path === '/' || appKey === 'settings') {
-    // Dashboard, Login, Profile, and Settings accessible by all logged-in users
+  if (path === '/profile' || path === '/') {
+    // Dashboard and Profile accessible by all logged-in users
     return { allowed: true, reason: null };
   }
 

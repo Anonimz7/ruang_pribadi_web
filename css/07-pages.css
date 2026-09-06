@@ -1116,6 +1116,280 @@
   white-space: nowrap;
 }
 
+/* Reports page */
+.reports-page__periods {
+  display: flex;
+  gap: var(--s-1);
+  flex-wrap: wrap;
+}
+.reports-page__chip {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  min-height: 32px;
+  padding: var(--s-1) var(--s-3);
+  font-family: inherit;
+  font-size: var(--text-xs);
+  font-weight: 600;
+  border: 1px solid var(--c-border);
+  border-radius: 16px;
+  background: transparent;
+  color: var(--c-text-2);
+  cursor: pointer;
+  transition: all var(--dur-fast) var(--ease);
+}
+.reports-page__chip:hover {
+  border-color: var(--c-accent);
+  color: var(--c-accent);
+}
+.reports-page__chip--active,
+.reports-page__chip--active:hover {
+  background: var(--c-accent);
+  border-color: var(--c-accent);
+  color: #fff;
+}
+.reports-page__last-status {
+  display: flex;
+  align-items: center;
+  gap: var(--s-3);
+  margin-bottom: var(--s-4);
+}
+.reports-page__last-icon {
+  width: 40px;
+  height: 40px;
+  flex-shrink: 0;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  border-radius: var(--radius);
+  background: rgba(5, 150, 105, 0.12);
+  color: var(--c-accent);
+}
+.reports-page__autosend {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: var(--s-3);
+  padding-top: var(--s-3);
+  border-top: 1px solid var(--c-border);
+  cursor: pointer;
+}
+.reports-page__autosend-title {
+  display: block;
+  font-size: var(--text-sm);
+  font-weight: 600;
+}
+.reports-page__autosend-sub {
+  display: block;
+  font-size: var(--text-xs);
+  color: var(--c-text-3);
+}
+.reports-page__result-head {
+  display: flex;
+  align-items: center;
+  gap: var(--s-2);
+  font-weight: 700;
+  font-size: var(--text-sm);
+  margin-bottom: var(--s-3);
+}
+.reports-page__category {
+  border: 1px solid var(--c-border);
+  border-radius: var(--radius);
+  padding: var(--s-3);
+  margin-bottom: var(--s-3);
+}
+.reports-page__file {
+  display: flex;
+  align-items: center;
+  gap: var(--s-3);
+  padding: var(--s-2) 0;
+}
+.reports-page__file-icon {
+  width: 32px;
+  height: 32px;
+  flex-shrink: 0;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  border-radius: var(--radius);
+  background: rgba(5, 150, 105, 0.12);
+  color: var(--c-accent);
+}
+.reports-page__file-info {
+  flex: 1;
+  min-width: 0;
+}
+.reports-page__file-info > div:first-child {
+  font-size: var(--text-sm);
+  font-weight: 500;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+.reports-page__file-info > div:last-child {
+  font-size: var(--text-xs);
+  color: var(--c-text-3);
+}
+.reports-page__group {
+  margin-bottom: var(--s-4);
+}
+.reports-page__group:last-child { margin-bottom: 0; }
+.reports-page__group-head {
+  display: flex;
+  align-items: center;
+  gap: var(--s-2);
+  font-weight: 700;
+  font-size: var(--text-sm);
+  padding-bottom: var(--s-2);
+  margin-bottom: var(--s-1);
+  border-bottom: 1px solid var(--c-border);
+}
+.reports-page__group-count {
+  margin-left: auto;
+  font-size: var(--text-xs);
+  color: var(--c-text-3);
+  font-weight: 400;
+}
+
+/* Admin: IDX Upload */
+.admin-idx-upload { max-width: 560px; margin: 0 auto; }
+.admin-idx-upload .card + .card { margin-top: var(--s-4); }
+.admin-idx-upload .card__head { justify-content: space-between; }
+
+.idx-upload__status-grid {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: var(--s-3);
+}
+.idx-upload__status-item {
+  display: flex;
+  align-items: center;
+  gap: var(--s-3);
+  padding: var(--s-3);
+  background: var(--c-surface-2);
+  border: 1px solid var(--c-border);
+  border-radius: var(--radius);
+}
+.idx-upload__status-icon {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  width: 36px;
+  height: 36px;
+  flex-shrink: 0;
+  background: var(--c-surface-3);
+  border-radius: var(--radius-sm);
+  color: var(--c-primary);
+}
+.idx-upload__status-icon svg { width: 18px; height: 18px; }
+.idx-upload__status-label {
+  font-size: var(--text-xs);
+  color: var(--c-text-3);
+}
+.idx-upload__status-value {
+  font-size: var(--text-sm);
+  font-weight: 600;
+  color: var(--c-text);
+}
+
+.idx-upload__loading {
+  display: flex;
+  align-items: center;
+  gap: var(--s-3);
+  padding: var(--s-2) 0;
+  color: var(--c-text-2);
+  font-size: var(--text-sm);
+}
+.idx-upload__spinner {
+  width: 16px;
+  height: 16px;
+  flex-shrink: 0;
+  border: 2px solid var(--c-surface-3);
+  border-top-color: var(--c-primary);
+  border-radius: 50%;
+  animation: spin 0.8s linear infinite;
+}
+.idx-upload__spinner--light {
+  border-color: rgba(255, 255, 255, 0.4);
+  border-top-color: #fff;
+}
+
+.idx-upload__format-list {
+  margin: 0;
+  padding-left: var(--s-4);
+  display: flex;
+  flex-direction: column;
+  gap: var(--s-2);
+  color: var(--c-text-2);
+  font-size: var(--text-sm);
+}
+
+.idx-upload__actions {
+  display: flex;
+  flex-direction: column;
+  gap: var(--s-3);
+}
+.idx-upload__btn-block { width: 100%; }
+
+.idx-upload__file {
+  display: flex;
+  align-items: center;
+  gap: var(--s-3);
+  padding: var(--s-3);
+  background: var(--c-surface-2);
+  border: 1px solid var(--c-border);
+  border-radius: var(--radius);
+}
+.idx-upload__file-icon {
+  display: flex;
+  flex-shrink: 0;
+  color: var(--c-primary);
+}
+.idx-upload__file-icon svg { width: 18px; height: 18px; }
+.idx-upload__file-name {
+  flex: 1;
+  min-width: 0;
+  font-size: var(--text-sm);
+  font-weight: 500;
+  color: var(--c-text);
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+
+.idx-upload__result {
+  display: flex;
+  align-items: flex-start;
+  gap: var(--s-3);
+  padding: var(--s-4);
+  border-radius: var(--radius);
+  font-size: var(--text-sm);
+}
+.idx-upload__result--success {
+  background: var(--c-success-bg);
+  color: var(--c-accent);
+}
+.idx-upload__result--error {
+  background: var(--c-error-bg);
+  color: var(--c-danger);
+}
+.idx-upload__result-icon {
+  display: flex;
+  flex-shrink: 0;
+  margin-top: 2px;
+}
+.idx-upload__result-icon svg { width: 18px; height: 18px; }
+.idx-upload__result-title {
+  font-weight: 600;
+  margin-bottom: var(--s-1);
+}
+.idx-upload__result-body { min-width: 0; }
+.idx-upload__result-meta {
+  margin-top: var(--s-1);
+  font-size: var(--text-xs);
+  opacity: 0.8;
+}
+
 /* Table hover */
 .table tbody tr {
   transition: background var(--dur-fast);
@@ -1125,7 +1399,9 @@
 @media (max-width: 640px) {
   .stocks-page,
   .market-page,
-  .stock-list-page {
+  .stock-list-page,
+  .reports-page,
+  .admin-idx-upload {
     padding: var(--s-3);
   }
   .stocks-page__chart-panel,

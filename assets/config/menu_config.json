@@ -1,25 +1,11 @@
 {
   "apps": [
     {
-      "key": "settings",
-      "icon": "Icons.settings",
-      "label": "Settings",
-      "section": "system",
-      "defaultPermission": false
-    },
-    {
       "key": "profile",
       "icon": "Icons.person",
       "label": "Profile",
       "section": "system",
       "defaultPermission": false
-    },
-    {
-      "key": "japanese_alphabet",
-      "icon": "Icons.book",
-      "label": "Learn Japanese Alphabet",
-      "section": "menu",
-      "defaultPermission": true
     },
     {
       "key": "math_speed",

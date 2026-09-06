@@ -162,6 +162,7 @@
   position: relative;
   min-width: 44px; min-height: 44px;
   display: flex; align-items: center; justify-content: center;
+  cursor: pointer;
 }
 .appbar__btn:hover { background: var(--c-surface-2); color: var(--c-text); }
 

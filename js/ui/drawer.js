@@ -26,7 +26,7 @@ function filterMenuItems() {
   const isLoggedIn = !!store.token;
   const sections = [];
 
-  // System section (settings, profile) — always visible
+  // System section — always visible
   const systemItems = menuConfig
     .filter((app) => app.section === 'system')
     .map((app) => ({

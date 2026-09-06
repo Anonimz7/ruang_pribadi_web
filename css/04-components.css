@@ -88,12 +88,28 @@
   min-height: 40px;
   touch-action: manipulation;
   -webkit-tap-highlight-color: transparent;
+  cursor: pointer;
+  user-select: none;
+  -webkit-user-select: none;
+}
+/* Ikon SVG di dalam tombol: ukuran eksplisit agar tidak kolaps ke 0×0
+   (reset global svg memakai max-width:100% tanpa ukuran dasar) */
+.btn svg {
+  width: 16px;
+  height: 16px;
+  max-width: none;
+  flex-shrink: 0;
 }
 .btn--primary {
   background: var(--c-primary);
   color: #fff;
 }
 .btn--primary:hover { background: var(--c-primary-d); }
+.btn--accent {
+  background: var(--c-accent);
+  color: #fff;
+}
+.btn--accent:hover { background: var(--c-accent-d); }
 .btn--secondary {
   background: var(--c-surface-2);
   color: var(--c-text);
