@@ -243,9 +243,9 @@ export function render() {
               <td>${sectorBadge ? sectorBadge.outerHTML : '<span class="badge badge--neutral">-</span>'}</td>
               <td style="font-size:var(--text-sm);color:var(--c-text-3);">${s.sub_sector || '-'}</td>
               <td style="white-space:nowrap;">${statusBadge.outerHTML}</td>
-              <td class="table__actions">
+              <td><div class="table__actions">
                 <button class="btn btn--ghost btn--sm" ${delisted ? 'disabled' : ''} title="${eyeTitle}" aria-label="${eyeTitle}">${icons['eye']}</button>
-              </td>
+              </div></td>
             </tr>`;
         }).join('')}
       </tbody>

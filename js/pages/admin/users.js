@@ -119,10 +119,10 @@ export function render() {
             </td>
             <td style="font-size:var(--text-sm);color:var(--c-text-3);">${formatDate(u.last_login)}</td>
             <td>${u.hidden_menus?.length ? `<span class="badge badge--warn">${u.hidden_menus.length} hidden</span>` : '<span class="badge badge--success">visible</span>'}</td>
-            <td class="table__actions">
+            <td><div class="table__actions">
               <button class="btn btn--ghost btn--sm" title="Edit" onclick="window.adminEditUser(${u.id})">${icons['edit']}</button>
               <button class="btn btn--ghost btn--sm" title="Delete" onclick="window.adminDeleteUser(${u.id}, '${u.username}')" style="color:var(--c-danger);">${icons['trash']}</button>
-            </td>
+            </div></td>
           </tr>
         `).join('')}
       </tbody>

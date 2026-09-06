@@ -121,9 +121,9 @@ export function render() {
             <td><span class="badge badge--neutral">${s.domain}</span></td>
             <td style="font-size:var(--text-sm);color:var(--c-text-2);font-family:var(--font-mono);">${s.url}</td>
             <td><span class="badge badge--primary">${s.language || state.langMap[s.domain] || 'en'}</span></td>
-            <td class="table__actions">
+            <td><div class="table__actions">
               <button class="btn btn--ghost btn--sm" title="Delete" onclick="window.sitemapDelete(${s.index})" style="color:var(--c-danger);">${icons['trash']}</button>
-            </td>
+            </div></td>
           </tr>
         `).join('')}
       </tbody>

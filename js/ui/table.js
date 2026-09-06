@@ -38,14 +38,16 @@ export function createTable({ columns, rows, actions } = {}) {
     });
     if (actions) {
       const td = document.createElement('td');
-      td.className = 'table__actions';
+      const wrapActions = document.createElement('div');
+      wrapActions.className = 'table__actions';
       actions.forEach(act => {
         const btn = document.createElement('button');
         btn.className = 'btn btn--ghost btn--sm';
         btn.innerHTML = act.icon || act.label;
         btn.addEventListener('click', () => act.onClick(row));
-        td.appendChild(btn);
+        wrapActions.appendChild(btn);
       });
+      td.appendChild(wrapActions);
       tr.appendChild(td);
     }
     tbody.appendChild(tr);
