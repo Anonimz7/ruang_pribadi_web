@@ -372,11 +372,11 @@ async function doSearch(q) {
   finally { state.searching = false; renderSearchDropdown(); }
 }
 
-async function loadAnalysis(ticker) {
+async function loadAnalysis(ticker, { keepCompare = false } = {}) {
   const t = ticker.toUpperCase();
   state.loading = true; state.searchResults = []; state.selectedTicker = t;
   state.analysis = null;
-  clearCompare();
+  if (!keepCompare) clearCompare();
   updateUI();
   try {
     const res = await Api.get(`/idx/stocks/${t}/analysis`, { days: state.days });
@@ -496,7 +496,7 @@ function renderToolbarOnce() {
       }
     });
     chip.textContent = d + 'H';
-    on(chip, 'click', () => { state.days = d; updatePeriodChips(); if (state.selectedTicker) loadAnalysis(state.selectedTicker); });
+    on(chip, 'click', () => { state.days = d; updatePeriodChips(); if (state.selectedTicker) loadAnalysis(state.selectedTicker, { keepCompare: true }); });
     chips.appendChild(chip);
   });
   refs.periodChips = chips;
