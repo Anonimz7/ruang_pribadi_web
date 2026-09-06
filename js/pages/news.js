@@ -63,10 +63,7 @@ export function render() {
 
   // Tabs
   const tabs = createEl('div', { class: 'tabs' });
-  ['All Articles', 'Grouped by Domain', 'Trending'].forEach((t, i) => {
-    const tab = createEl('button', { class: 'tabs__item' + (i === 0 ? ' tabs__item--active' : '') }, [t]);
-    tabs.appendChild(tab);
-  });
+  tabs.appendChild(createEl('button', { class: 'tabs__item tabs__item--active' }, ['All Articles']));
   container.appendChild(tabs);
 
   // Articles list container
