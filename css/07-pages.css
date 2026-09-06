@@ -962,9 +962,88 @@
   overflow: hidden;
 }
 
-/* Compare modal */
+/* Compare modal — bottom sheet (mobile) → dialog (desktop ≥640px) */
 .stocks-page__compare-modal {
+  position: fixed;
+  inset: 0;
+  background: rgba(0,0,0,0.5);
+  display: flex;
+  align-items: flex-end;
+  justify-content: center;
+  z-index: 100;
   animation: fadeIn var(--dur-fast) var(--ease);
+}
+
+.stocks-page__compare-sheet {
+  background: var(--c-surface);
+  width: 100%;
+  max-width: 560px;
+  border-radius: 16px 16px 0 0;
+  max-height: 70vh;
+  overflow-y: auto;
+  padding: var(--s-4);
+}
+
+/* Drag handle — hanya relevan untuk bottom sheet (mobile) */
+.stocks-page__compare-handle {
+  width: 40px;
+  height: 4px;
+  background: var(--c-border);
+  border-radius: 2px;
+  margin: 0 auto var(--s-4);
+}
+
+.stocks-page__compare-head {
+  position: relative;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  margin-bottom: var(--s-3);
+}
+
+.stocks-page__compare-head h3 {
+  font-size: var(--text-md);
+  font-weight: 700;
+  text-align: center;
+}
+
+.stocks-page__compare-close {
+  position: absolute;
+  right: 0;
+  top: 50%;
+  transform: translateY(-50%);
+  padding: var(--s-2);
+  width: 32px;
+  height: 32px;
+  min-width: 32px;
+  min-height: 32px;
+  border-radius: var(--radius);
+  color: var(--c-text-3);
+}
+
+.stocks-page__compare-search {
+  margin-bottom: var(--s-3);
+}
+
+.stocks-page__compare-results {
+  max-height: 250px;
+  overflow-y: auto;
+}
+
+/* Desktop: dialog terpusat */
+@media (min-width: 640px) {
+  .stocks-page__compare-modal {
+    align-items: center;
+    padding: var(--s-4);
+  }
+  .stocks-page__compare-sheet {
+    border-radius: var(--radius-lg);
+    box-shadow: 0 8px 32px rgba(0,0,0,0.18);
+    max-height: 80vh;
+  }
+  .stocks-page__compare-handle {
+    display: none;
+  }
 }
 
 /* Stock info card */

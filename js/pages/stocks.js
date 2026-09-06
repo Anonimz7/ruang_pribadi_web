@@ -588,20 +588,25 @@ function showCompareModal() {
   if (document.querySelector('.stocks-page__compare-modal')) return;
   const overlay = createEl('div', {
     class: 'stocks-page__compare-modal',
-    style: { position: 'fixed', inset: 0, background: 'rgba(0,0,0,0.5)', display: 'flex', alignItems: 'flex-end', justifyContent: 'center', zIndex: 100 }
+    role: 'dialog', 'aria-modal': 'true', 'aria-label': 'Tambah Saham untuk Dibandingkan',
   });
-  const sheet = createEl('div', {
-    style: { background: 'var(--c-surface)', width: '100%', maxWidth: '560px', borderRadius: '16px 16px 0 0', maxHeight: '70vh', overflow: 'auto', padding: 'var(--s-4)' }
-  });
+  const sheet = createEl('div', { class: 'stocks-page__compare-sheet' });
   sheet.innerHTML = `
-    <div style="width:40px;height:4px;background:var(--c-border);border-radius:2px;margin:0 auto var(--s-4);"></div>
-    <h3 style="font-size:var(--text-md);font-weight:700;margin-bottom:var(--s-3);text-align:center;">Tambah Saham untuk Dibandingkan</h3>
-    <div class="search" style="margin-bottom:var(--s-3);"><span class="search__icon">${icons['search']}</span><input type="text" class="search__input stocks-page__compare-input" placeholder="Cari ticker (BBCA, GOTO...)" autofocus></div>
-    <div class="stocks-page__compare-results" style="max-height:250px;overflow:auto;"></div>
+    <div class="stocks-page__compare-handle"></div>
+    <div class="stocks-page__compare-head">
+      <h3>Tambah Saham untuk Dibandingkan</h3>
+      <button type="button" class="btn btn--ghost stocks-page__compare-close" aria-label="Tutup">${icons['x']}</button>
+    </div>
+    <div class="search stocks-page__compare-search"><span class="search__icon">${icons['search']}</span><input type="text" class="search__input stocks-page__compare-input" placeholder="Cari ticker (BBCA, GOTO...)" autofocus></div>
+    <div class="stocks-page__compare-results"></div>
   `;
   overlay.appendChild(sheet);
   document.body.appendChild(overlay);
-  const close = () => overlay.remove();
+  const onKey = (e) => { if (e.key === 'Escape') close(); };
+  const close = () => { document.removeEventListener('keydown', onKey); overlay.remove(); };
+  document.addEventListener('keydown', onKey);
+  const closeBtn = sheet.querySelector('.stocks-page__compare-close');
+  if (closeBtn) on(closeBtn, 'click', close);
   overlay.onclick = (e) => { if (e.target === overlay) close(); };
   const input = sheet.querySelector('.stocks-page__compare-input');
   const resultsEl = sheet.querySelector('.stocks-page__compare-results');
