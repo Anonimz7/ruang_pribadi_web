@@ -87,6 +87,23 @@ export function DelistedBadge({ labelDelisted, stockStatus, statusReason, small 
   return wrap;
 }
 
+/* Format status reason: tiap "- " item jadi baris terpisah agar mudah dibaca */
+function formatReasonLines(text) {
+  if (!text) return '';
+  let lines = text.split(/\r?\n/).map(s => s.trim()).filter(Boolean);
+  if (lines.length === 1 && lines[0].includes('- ')) {
+    lines = lines[0].split(/(?<=\.)\s+(?=- )/).map(s => s.trim()).filter(Boolean);
+  }
+  return lines.map((l, i) => {
+    const isBullet = l.startsWith('- ');
+    const body = isBullet ? l.slice(2) : l;
+    return `<div style="display:flex;align-items:flex-start;gap:var(--s-2);${i < lines.length - 1 ? 'margin-bottom:var(--s-2);' : ''}">
+      ${isBullet ? '<span style="flex-shrink:0;font-size:var(--text-sm);line-height:1.6;color:var(--c-text-3);">•</span>' : ''}
+      <span style="flex:1;font-size:var(--text-sm);line-height:1.6;color:var(--c-text);">${body}</span>
+    </div>`;
+  }).join('');
+}
+
 function showReasonModal(reason) {
   const overlay = createEl('div', {
     class: 'modal-overlay',
@@ -102,7 +119,7 @@ function showReasonModal(reason) {
         <h3 style="font-size:var(--text-md);font-weight:600;">Alasan Blacklist</h3>
         <button class="btn btn--ghost btn--sm modal__close" style="padding:var(--s-1);width:28px;height:28px;min-width:28px;min-height:28px;" aria-label="Tutup">${icons['x']}</button>
       </div>
-      <div class="modal__body" style="padding:var(--s-4);"><p style="font-size:var(--text-sm);line-height:1.6;color:var(--c-text);">${reason}</p></div>
+      <div class="modal__body" style="padding:var(--s-4);">${formatReasonLines(reason)}</div>
     </div>
   `;
   document.body.appendChild(overlay);

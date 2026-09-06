@@ -129,12 +129,12 @@ function DelistedBadge({ labelDelisted, stockStatus, statusReason, small = false
           }
         });
         overlay.innerHTML = `
-          <div style="background:var(--c-surface);border:1px solid var(--c-border);border-radius:var(--radius);max-width:420px;width:100%;">
+          <div style="background:var(--c-surface);border:1px solid var(--c-border);border-radius:var(--radius);max-width:420px;width:100%;max-height:80vh;overflow-y:auto;">
             <div style="display:flex;align-items:center;justify-content:space-between;padding:var(--s-4);border-bottom:1px solid var(--c-border);">
               <h3 style="font-size:var(--text-md);font-weight:600;">Alasan Blacklist</h3>
               <button class="btn btn--ghost btn--sm" style="padding:var(--s-1);width:28px;height:28px;min-width:28px;min-height:28px;" onclick="this.closest('.modal-overlay').remove()">${icons['x']}</button>
             </div>
-            <div style="padding:var(--s-4);"><p style="font-size:var(--text-sm);line-height:1.6;color:var(--c-text);">${statusReason}</p></div>
+            <div style="padding:var(--s-4);">${formatReasonLines(statusReason)}</div>
           </div>
         `;
         overlay.className = 'modal-overlay';
@@ -163,6 +163,23 @@ function DelistedBadge({ labelDelisted, stockStatus, statusReason, small = false
   wrap.appendChild(st);
 
   return wrap;
+}
+
+/* Format status reason: tiap "- " item jadi baris terpisah agar mudah dibaca */
+function formatReasonLines(text) {
+  if (!text) return '';
+  let lines = text.split(/\r?\n/).map(s => s.trim()).filter(Boolean);
+  if (lines.length === 1 && lines[0].includes('- ')) {
+    lines = lines[0].split(/(?<=\.)\s+(?=- )/).map(s => s.trim()).filter(Boolean);
+  }
+  return lines.map((l, i) => {
+    const isBullet = l.startsWith('- ');
+    const body = isBullet ? l.slice(2) : l;
+    return `<div style="display:flex;align-items:flex-start;gap:var(--s-2);${i < lines.length - 1 ? 'margin-bottom:var(--s-2);' : ''}">
+      ${isBullet ? '<span style="flex-shrink:0;font-size:var(--text-sm);line-height:1.6;color:var(--c-text-3);">•</span>' : ''}
+      <span style="flex:1;font-size:var(--text-sm);line-height:1.6;color:var(--c-text);">${body}</span>
+    </div>`;
+  }).join('');
 }
 
 function StockInfoCard(stock) {
