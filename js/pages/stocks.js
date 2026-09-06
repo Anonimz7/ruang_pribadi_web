@@ -176,7 +176,7 @@ function StockInfoCard(stock) {
       <p style="font-size:var(--text-sm);line-height:1.5;color:var(--c-text-2);">${stock.coreBusiness}</p>
     </div>`;
     const query = encodeURIComponent(`Apa itu saham ${stock.ticker} (${stock.companyName})?`);
-    html += `<a href="https://www.google.com/search?udm=50&q=${query}" target="_blank" rel="noopener" class="btn btn--secondary" style="margin-top:var(--s-3);width:100%;font-size:var(--text-sm);justify-content:center;">${icons['search']} Pelajari ${stock.companyName}</a>`;
+    html += `<a href="https://www.google.com/search?udm=50&q=${query}" target="_blank" rel="noopener" class="btn btn--secondary stocks-page__learn-btn" style="margin-top:var(--s-3);font-size:var(--text-sm);">${icons['search']} Pelajari ${stock.companyName}</a>`;
   }
   card.innerHTML = html;
   const headSpan = card.querySelector('span:last-child');
