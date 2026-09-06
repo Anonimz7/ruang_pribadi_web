@@ -170,19 +170,44 @@ export function render() {
     const delisted = s.label_delisted === 1;
     const tr = createEl('tr', {});
 
-    // Ticker
+    const goAnalysis = () => {
+      localStorage.setItem('stocks_initial_ticker', s.ticker);
+      location.hash = '#/stocks';
+    };
+
+    // Ticker — link ke analisis (kecuali delisted, pola stock-list)
     const tdTicker = createEl('td');
-    const tickerEl = createEl('span', { class: 'badge badge--primary' }, [s.ticker]);
-    if (delisted) tickerEl.style.opacity = 0.5;
-    tdTicker.appendChild(tickerEl);
+    if (delisted) {
+      const tickerEl = createEl('span', { class: 'badge badge--primary' }, [s.ticker]);
+      tickerEl.style.opacity = 0.5;
+      tdTicker.appendChild(tickerEl);
+    } else {
+      const tickerLink = createEl('a', { class: 'badge badge--primary admin-stock-status__ticker' }, [s.ticker]);
+      tickerLink.href = '#/stocks';
+      tickerLink.addEventListener('click', (e) => {
+        e.preventDefault();
+        goAnalysis();
+      });
+      tdTicker.appendChild(tickerLink);
+    }
     tr.appendChild(tdTicker);
 
-    // Company
+    // Company — link ke analisis (kecuali delisted)
     const tdCompany = createEl('td');
-    const companyEl = createEl('div', {
-      class: 'admin-stock-status__company' + (delisted ? ' admin-stock-status__company--muted' : ''),
-    }, [s.company_name || '-']);
-    tdCompany.appendChild(companyEl);
+    if (delisted) {
+      const companyEl = createEl('div', {
+        class: 'admin-stock-status__company admin-stock-status__company--muted',
+      }, [s.company_name || '-']);
+      tdCompany.appendChild(companyEl);
+    } else {
+      const companyLink = createEl('a', { class: 'admin-stock-status__company admin-stock-status__company-link' }, [s.company_name || '-']);
+      companyLink.href = '#/stocks';
+      companyLink.addEventListener('click', (e) => {
+        e.preventDefault();
+        goAnalysis();
+      });
+      tdCompany.appendChild(companyLink);
+    }
     tr.appendChild(tdCompany);
 
     // Sector badges

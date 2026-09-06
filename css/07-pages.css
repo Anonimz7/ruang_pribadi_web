@@ -1434,6 +1434,22 @@
   color: var(--c-text-3);
   font-weight: 400;
 }
+/* Ticker & company sebagai link ke halaman analisis (pola stock-list) */
+a.admin-stock-status__ticker,
+a.admin-stock-status__company-link {
+  cursor: pointer;
+}
+a.admin-stock-status__company-link {
+  color: var(--c-text);
+  text-decoration: none;
+}
+a.admin-stock-status__company-link:hover {
+  text-decoration: underline;
+  color: var(--c-primary);
+}
+a.admin-stock-status__ticker:hover {
+  text-decoration: underline;
+}
 .admin-stock-status__sectors {
   display: flex;
   gap: 2px;
