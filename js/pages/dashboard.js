@@ -1,103 +1,124 @@
-/* pages/dashboard.js — Dashboard home page */
+/* pages/dashboard.js — Dashboard home (dynamic grid from menu config) */
 import { store, subscribe } from '../core/state.js';
+import { Auth } from '../core/auth.js';
 import { navigate } from '../core/router.js';
+import { fetchMenuConfig, MENU_SECTIONS, ROUTE_MAP } from '../core/menu-config.js';
+import { createEl } from '../utils/dom.js';
 import { icons } from '../ui/icons.js';
 
 export function render() {
-  const container = document.createElement('section');
-  container.className = 'dashboard-page';
-  container.style.cssText = `
-    padding: var(--s-4);
-    max-width: 900px;
-    margin: 0 auto;
-  `;
+  const container = createEl('div', { class: 'dashboard-page' });
 
-  const grid = document.createElement('div');
-  grid.className = 'dashboard-grid';
-  grid.style.cssText = `
-    display: grid;
-    grid-template-columns: repeat(auto-fill, minmax(220px, 1fr));
-    gap: var(--s-3);
-  `;
+  let menuConfig = [];
 
-  const cards = [
-    { key: 'math_speed', label: 'Math Speed', icon: 'calculate', path: '/math-speed', desc: 'Latihan hitung cepat' },
-    { key: 'gacha_luck', label: 'Gacha Luck', icon: 'dice', path: '/gacha', desc: 'Roulette keberuntungan' },
-    { key: 'rolling', label: 'Rolling Yes/No', icon: 'target', path: '/rolling', desc: 'Keputusan acak' },
-    { key: 'password_generator', label: 'Password Generator', icon: 'key', path: '/password', desc: 'Buat password kuat' },
-    { key: 'code_diagram', label: 'Render Diagram', icon: 'git-branch', path: '/diagram', desc: 'PlantUML & Graphviz' },
-    { key: 'language', label: 'Language', icon: 'globe', path: '/bahasa', desc: 'Paket bahasa' },
-    { key: 'video_downloader', label: 'Video Downloader', icon: 'download', path: '/video', desc: 'Unduh video' },
-    { key: 'news', label: 'News', icon: 'newspaper', path: '/news', desc: 'Berita terbaru' },
-    { key: 'stocks', label: 'IDX Stocks', icon: 'trending-up', path: '/stocks', desc: 'Saham & pasar' },
-    { key: 'stock_list', label: 'Stock List', icon: 'list', path: '/stock-list', desc: 'Daftar saham' },
-  ];
+  const renderContent = () => {
+    container.innerHTML = '';
 
-  cards.forEach((card) => {
-    const isAccessible = store.token && canAccessCard(card.key);
-    const el = document.createElement('div');
-    el.className = 'dashboard-card';
-    el.style.cssText = `
-      background: var(--card-bg, #fff);
-      border: 1px solid var(--border-color, #e0e0e0);
-      border-radius: var(--s-3);
-      padding: var(--s-4);
-      cursor: ${isAccessible ? 'pointer' : 'not-allowed'};
-      opacity: ${isAccessible ? 1 : 0.5};
-      transition: transform 0.15s ease, box-shadow 0.15s ease;
-    `;
-    el.dataset.key = card.key;
+    // Greeting
+    const hero = createEl('div', { class: 'dashboard-hero' });
+    const isLoggedIn = !!store.token;
+    const name = isLoggedIn && store.username ? store.username : null;
+    hero.appendChild(createEl('h1', {}, [name ? `Halo, ${name} 👋` : 'Selamat Datang 👋']));
+    hero.appendChild(createEl('p', {}, [
+      isLoggedIn
+        ? 'Pilih fitur yang ingin kamu gunakan.'
+        : 'Login untuk mengakses semua fitur Ruang Pribadi.',
+    ]));
+    container.appendChild(hero);
 
-    if (isAccessible) {
-      el.addEventListener('click', () => navigate(card.path));
-      el.addEventListener('mouseenter', () => {
-        el.style.transform = 'translateY(-2px)';
-        el.style.boxShadow = '0 6px 20px rgba(0,0,0,0.12)';
-      });
-      el.addEventListener('mouseleave', () => {
-        el.style.transform = '';
-        el.style.boxShadow = '';
-      });
+    if (!isLoggedIn) {
+      container.appendChild(buildGuestCta());
+      return;
     }
 
-    el.innerHTML = `
-      <div class="dashboard-card__icon" style="font-size: 28px; margin-bottom: var(--s-2);">
-        ${icons[card.icon] || ''}
-      </div>
-      <h3 class="dashboard-card__title" style="margin: 0 0 var(--s-2); font-size: 16px; font-weight: 600;">
-        ${card.label}
-      </h3>
-      <p class="dashboard-card__desc" style="margin: 0; font-size: 13px; color: var(--text-secondary, #666);">
-        ${card.desc}
-      </p>
-    `;
+    // Section grids (filtering identik drawer.js)
+    let renderedAny = false;
+    for (const { value: sec, label: secLabel } of MENU_SECTIONS) {
+      let items = menuConfig.filter(app => app.section === sec);
 
-    grid.appendChild(el);
-  });
+      if (sec === 'admin') {
+        if (store.tier !== 'admin') continue;
+        items = items.filter(app => Auth.canAccess(app.key));
+      } else {
+        items = items.filter(app => {
+          if (app.defaultPermission && sec !== 'admin') return true;
+          if (Auth.isMenuHidden(app.key)) return false;
+          return Auth.canAccess(app.key);
+        });
+      }
 
-  container.appendChild(grid);
+      if (items.length === 0) continue;
+      renderedAny = true;
 
-  // Subscribe to auth changes to re-render access state
-  const unsub = subscribe('token', () => {
-    // Mark container for cleanup
-    container._cleanup = unsub;
-    // Re-render cards on auth change
-    const newCards = render();
-    // This is a simplified approach — in practice we'd update in place
-  });
+      container.appendChild(createEl('div', { class: 'dashboard-section' }, [secLabel]));
+      container.appendChild(buildGrid(items));
+    }
 
-  // Expose cleanup
-  container._cleanup = unsub;
+    if (!renderedAny) {
+      container.appendChild(buildEmpty());
+    }
+  };
 
+  function buildGrid(items) {
+    const grid = createEl('div', { class: 'dashboard-grid' });
+    items.forEach(app => {
+      const path = ROUTE_MAP[app.key] || '/';
+      const card = createEl('a', {
+        class: 'dashboard-card',
+        href: '#' + path,
+        title: path,
+        'aria-label': app.label,
+      }, []);
+      card.addEventListener('click', (e) => {
+        e.preventDefault();
+        navigate(path);
+      });
+
+      const icon = createEl('span', { class: 'dashboard-card__icon' });
+      icon.innerHTML = icons[app.icon] || '';
+      card.appendChild(icon);
+      card.appendChild(createEl('span', { class: 'dashboard-card__label' }, [app.label]));
+      grid.appendChild(card);
+    });
+    return grid;
+  }
+
+  function buildGuestCta() {
+    const card = createEl('div', { class: 'card dashboard-cta' }, []);
+    const icon = createEl('div', { class: 'dashboard-cta__icon' });
+    icon.innerHTML = icons['user'];
+    card.appendChild(icon);
+    card.appendChild(createEl('p', { class: 'dashboard-cta__text' },
+      ['Masuk untuk membuka semua aplikasi: latihan hitung, gacha, downloader video, berita, saham, dan lainnya.']));
+    const btn = createEl('button', { class: 'btn btn--primary' }, ['Login']);
+    btn.addEventListener('click', () => navigate('/login'));
+    card.appendChild(btn);
+    return card;
+  }
+
+  function buildEmpty() {
+    const card = createEl('div', { class: 'card dashboard-cta' }, []);
+    card.appendChild(createEl('p', { class: 'dashboard-cta__text' }, ['Tidak ada fitur yang bisa diakses.']));
+    return card;
+  }
+
+  // Load menu config (lagi), lalu render ulang
+  fetchMenuConfig()
+    .then(cfg => {
+      menuConfig = cfg;
+      renderContent();
+    })
+    .catch(() => { /* renderContent tetap jalan dengan grid kosong */ });
+
+  // Re-render saat auth state berubah
+  const unsubs = ['token', 'username', 'tier', 'permissions', 'hiddenMenus'].map(k =>
+    subscribe(k, () => renderContent())
+  );
+
+  container._cleanup = () => {
+    unsubs.forEach(u => u());
+  };
+
+  renderContent();
   return container;
-}
-
-function canAccessCard(key) {
-  // Mirror Flutter's canAccess logic
-  const defaultPermitted = ['math_speed', 'gacha_luck', 'rolling', 'password_generator', 'code_diagram', 'language', 'video_downloader', 'news', 'stocks', 'stock_list'];
-  return store.token && (store.tier === 'admin' || defaultPermitted.includes(key));
-}
-
-export function destroy() {
-  // Cleanup handled via _cleanup
 }
