@@ -1,4 +1,5 @@
 /* pages/password-gen.js — Password Generator (complete) */
+import { calcStrength } from '../ui/password-strength.js';
 
 const UPPER = 'ABCDEFGHIJKLMNOPQRSTUVWXYZ';
 const LOWER = 'abcdefghijklmnopqrstuvwxyz';
@@ -16,22 +17,6 @@ function generatePassword(length, incUpper, incLower, incNum, incSpecial) {
   const arr = new Uint32Array(length);
   crypto.getRandomValues(arr);
   return Array.from(arr, n => chars[n % chars.length]).join('');
-}
-
-function calcStrength(password) {
-  let score = 0;
-  if (password.length >= 8) score++;
-  if (password.length >= 12) score++;
-  if (password.length >= 16) score++;
-  if (/[A-Z]/.test(password)) score++;
-  if (/[a-z]/.test(password)) score++;
-  if (/[0-9]/.test(password)) score++;
-  if (/[^A-Za-z0-9]/.test(password)) score++;
-
-  if (score <= 2) return { label: 'Lemah', pct: 25, cls: 'pw-strength__text--weak' };
-  if (score <= 4) return { label: 'Cukup', pct: 50, cls: 'pw-strength__text--fair' };
-  if (score <= 6) return { label: 'Bagus', pct: 75, cls: 'pw-strength__text--good' };
-  return { label: 'Kuat', pct: 100, cls: 'pw-strength__text--strong' };
 }
 
 const CHECK_SVG = '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="3" stroke-linecap="round" stroke-linejoin="round"><polyline points="20 6 9 17 4 12"/></svg>';

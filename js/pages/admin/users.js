@@ -1,9 +1,12 @@
-/* pages/admin/users.js — User Permissions Management with API */
+/* pages/admin/users.js — User Permissions Management (Flutter parity) */
 import { createEl } from '../../utils/dom.js';
 import { icons } from '../../ui/icons.js';
-import Api, { ApiError } from '../../core/api.js';
+import Api from '../../core/api.js';
 import { toast } from '../../ui/toast.js';
 import { createModal } from '../../ui/modal.js';
+import { fetchMenuConfig } from '../../core/menu-config.js';
+
+const MAIN_ADMIN = 'xoot';
 
 function formatDate(iso) {
   if (!iso) return '-';
@@ -15,9 +18,11 @@ function formatDate(iso) {
 export function render() {
   const state = {
     users: [],
-    allApps: [],
+    apps: [],              // [{ key, label }]
+    defaultPerms: [],      // [key, ...]
     loading: true,
     searchTerm: '',
+    searchDebounce: null,
   };
 
   const container = createEl('div', { class: 'admin-users' }, []);
@@ -26,12 +31,17 @@ export function render() {
   container.appendChild(createEl('p', { style: { color: 'var(--c-text-2)', marginBottom: 'var(--s-5)' } },
     ['Manage users, tiers, and app access.']));
 
+  // ── Default for New Users card ──
+  const defaultCard = createEl('div', { class: 'card admin-users__default' });
+  container.appendChild(defaultCard);
+
   // Toolbar
   const toolbar = createEl('div', { style: { display: 'flex', gap: 'var(--s-3)', marginBottom: 'var(--s-4)', flexWrap: 'wrap' } });
   toolbar.innerHTML = `
     <div class="search" style="flex:1;min-width:200px;">
       <span class="search__icon">${icons['search']}</span>
-      <input type="text" class="search__input" placeholder="Search users...">
+      <input type="text" class="search__input" placeholder="Cari username...">
+      <button type="button" class="search__clear" aria-label="Bersihkan pencarian">${icons['x']}</button>
     </div>
     <button class="btn btn--primary" id="create-user">${icons['plus']} Create User</button>
   `;
@@ -41,30 +51,101 @@ export function render() {
   const tableWrap = createEl('div', { class: 'table-wrap' });
   container.appendChild(tableWrap);
 
-  // ---- Functions ----
+  // ---- Toolbar wiring ----
+  const searchWrap = toolbar.querySelector('.search');
+  const searchInput = searchWrap.querySelector('.search__input');
+  const searchClear = searchWrap.querySelector('.search__clear');
 
-  const searchInput = toolbar.querySelector('.search__input');
-  let searchDebounce;
   searchInput.addEventListener('input', (e) => {
-    clearTimeout(searchDebounce);
-    searchDebounce = setTimeout(() => {
-      state.searchTerm = e.target.value;
-      loadUsers();
-    }, 400);
+    state.searchTerm = e.target.value;
+    searchWrap.classList.toggle('has-clear', state.searchTerm !== '');
+    clearTimeout(state.searchDebounce);
+    state.searchDebounce = setTimeout(loadUsers, 300);
   });
 
-  toolbar.querySelector('#create-user').addEventListener('click', () => openCreateModal());
+  searchClear.addEventListener('click', () => {
+    searchInput.value = '';
+    state.searchTerm = '';
+    searchWrap.classList.remove('has-clear');
+    loadUsers();
+    searchInput.focus();
+  });
 
+  toolbar.querySelector('#create-user').addEventListener('click', openCreateModal);
+
+  // ---- Apps & default permissions ----
   async function loadApps() {
     try {
       const res = await Api.get('/admin/apps');
-      state.allApps = res?.apps || [];
+      const keys = res?.apps || [];
+
+      let labels = {};
+      try {
+        const cfg = await fetchMenuConfig();
+        cfg.forEach(a => { labels[a.key] = a.label; });
+      } catch { /* fallback: pakai key sebagai label */ }
+
+      state.apps = keys.map(k => ({ key: k, label: labels[k] || k }));
     } catch (e) {
       console.error('[AdminUsers] Failed to load apps:', e);
-      state.allApps = [];
+      state.apps = [];
+    }
+    renderDefaultCard();
+  }
+
+  async function loadDefaultPerms() {
+    try {
+      const res = await Api.get('/admin/default-permissions');
+      if (Array.isArray(res?.default_permissions)) state.defaultPerms = res.default_permissions;
+      if (Array.isArray(res?.all_apps) && state.apps.length === 0) {
+        state.apps = res.all_apps.map(k => ({ key: k, label: k }));
+      }
+    } catch (e) {
+      console.error('[AdminUsers] Failed to load default perms:', e);
+    }
+    renderDefaultCard();
+  }
+
+  function appLabel(key) {
+    return state.apps.find(a => a.key === key)?.label || key;
+  }
+
+  function renderDefaultCard() {
+    defaultCard.innerHTML = '';
+    defaultCard.appendChild(createEl('div', { class: 'card__head' }, [], []));
+    defaultCard.querySelector('.card__head').innerHTML = `
+      <div>
+        <div class="card__title">Default for New Users</div>
+        <div class="card__subtitle">${state.defaultPerms.length} dari ${state.apps.length} fitur aktif — diterapkan otomatis saat user baru dibuat.</div>
+      </div>
+    `;
+
+    const chips = createEl('div', { class: 'admin-users__chips' });
+    state.apps.forEach(({ key }) => {
+      const chip = createEl('button', {
+        type: 'button',
+        class: 'admin-users__chip' + (state.defaultPerms.includes(key) ? ' admin-users__chip--active' : ''),
+      }, [appLabel(key)]);
+      chip.addEventListener('click', () => toggleDefaultPerm(key));
+      chips.appendChild(chip);
+    });
+    defaultCard.appendChild(chips);
+  }
+
+  async function toggleDefaultPerm(key) {
+    const next = state.defaultPerms.includes(key)
+      ? state.defaultPerms.filter(k => k !== key)
+      : [...state.defaultPerms, key];
+    try {
+      const res = await Api.put('/admin/default-permissions', { permissions: next });
+      state.defaultPerms = res?.default_permissions || next;
+      renderDefaultCard();
+    } catch (e) {
+      toast('Gagal simpan default: ' + (e.message || e), { type: 'error' });
     }
   }
 
+  // ---- Users list ----
   async function loadUsers() {
     state.loading = true;
     renderLoading();
@@ -94,121 +175,126 @@ export function render() {
     tableWrap.innerHTML = '';
 
     if (state.users.length === 0) {
-      tableWrap.innerHTML = `
-        <div class="empty-state" style="text-align:center;padding:var(--s-6);">
-          <div style="font-size:48px;margin-bottom:var(--s-4);opacity:0.3;">${icons['users']}</div>
-          <p style="color:var(--c-text-2);">Tidak ada pengguna.</p>
-        </div>
+      const empty = createEl('div', { class: 'admin-users__empty' }, []);
+      empty.innerHTML = `
+        <div class="admin-users__empty-icon">${icons['users']}</div>
+        <p style="color:var(--c-text-2);font-size:var(--text-sm);">Tidak ada pengguna ditemukan.</p>
       `;
+      tableWrap.appendChild(empty);
       return;
     }
 
     const table = createEl('table', { class: 'table' });
     table.innerHTML = `
       <thead><tr>
-        <th>ID</th><th>Username</th><th>Tier</th><th>Permissions</th><th>Last Login</th><th>Status</th><th></th>
+        <th>Username</th><th>Tier</th><th>Permissions</th><th>Last Login</th><th>Status</th><th></th>
       </tr></thead>
-      <tbody>
-        ${state.users.map(u => `
-          <tr>
-            <td>#${u.id}</td>
-            <td style="font-weight:500;">${u.username}</td>
-            <td><span class="badge badge--${u.tier === 'admin' ? 'danger' : 'neutral'}">${u.tier}</span></td>
-            <td style="font-size:var(--text-sm);color:var(--c-text-2);">
-              ${u.permissions?.length ? u.permissions.join(', ') : 'none'}
-            </td>
-            <td style="font-size:var(--text-sm);color:var(--c-text-3);">${formatDate(u.last_login)}</td>
-            <td>${u.hidden_menus?.length ? `<span class="badge badge--warn">${u.hidden_menus.length} hidden</span>` : '<span class="badge badge--success">visible</span>'}</td>
-            <td><div class="table__actions">
-              <button class="btn btn--ghost btn--sm" title="Edit" onclick="window.adminEditUser(${u.id})">${icons['edit']}</button>
-              <button class="btn btn--ghost btn--sm" title="Delete" onclick="window.adminDeleteUser(${u.id}, '${u.username}')" style="color:var(--c-danger);">${icons['trash']}</button>
-            </div></td>
-          </tr>
-        `).join('')}
-      </tbody>
     `;
+    const tbody = createEl('tbody');
+    state.users.forEach(u => tbody.appendChild(buildRow(u)));
+    table.appendChild(tbody);
     tableWrap.appendChild(table);
   }
 
-  async function openCreateModal(id = null) {
-    const isEdit = id !== null;
-    let user = null;
+  function buildRow(u) {
+    const isMain = u.username === MAIN_ADMIN;
+    const tr = createEl('tr', {});
 
-    if (isEdit) {
-      try {
-        user = await Api.get(`/admin/users/${id}`);
-      } catch (e) {
-        toast('Gagal memuat user', { type: 'error' });
-        return;
-      }
+    const tdUser = createEl('td');
+    tdUser.innerHTML = `<span style="font-weight:500;white-space:nowrap;">${u.username}</span>${isMain ? ' <span class="badge badge--neutral" title="Main admin">main</span>' : ''}`;
+    tr.appendChild(tdUser);
+
+    const tdTier = createEl('td');
+    tdTier.innerHTML = `<span class="badge badge--${u.tier === 'admin' ? 'danger' : 'neutral'}">${u.tier}</span>`;
+    tr.appendChild(tdTier);
+
+    const tdPerms = createEl('td');
+    const permCount = u.permissions?.length || 0;
+    const permList = u.permissions?.join(', ') || 'tidak ada';
+    tdPerms.innerHTML = u.tier === 'admin'
+      ? '<span class="badge badge--success">full access</span>'
+      : `<span class="badge badge--neutral" title="${permList}">${permCount} / ${state.apps.length} fitur</span>`;
+    tr.appendChild(tdPerms);
+
+    const tdLogin = createEl('td');
+    tdLogin.appendChild(createEl('span', { style: { fontSize: 'var(--text-sm)', color: 'var(--c-text-3)' } }, [formatDate(u.last_login)]));
+    tr.appendChild(tdLogin);
+
+    const tdStatus = createEl('td');
+    tdStatus.innerHTML = u.hidden_menus?.length
+      ? `<span class="badge badge--warn" title="${u.hidden_menus.join(', ')}">${u.hidden_menus.length} hidden</span>`
+      : '<span class="badge badge--success">visible</span>';
+    tr.appendChild(tdStatus);
+
+    // Actions — div wrapper agar td tetap table-cell
+    const tdActions = createEl('td');
+    const actionsWrap = createEl('div', { class: 'table__actions' });
+
+    const editBtn = createEl('button', { class: 'btn btn--ghost btn--sm', title: 'Edit' }, []);
+    editBtn.innerHTML = icons['edit'];
+    editBtn.addEventListener('click', () => openEditModal(u.id));
+    actionsWrap.appendChild(editBtn);
+
+    const deleteBtn = createEl('button', {
+      class: 'btn btn--ghost btn--sm',
+      title: isMain ? 'Main admin tidak bisa dihapus' : 'Delete',
+    }, []);
+    deleteBtn.innerHTML = icons['trash'];
+    deleteBtn.style.color = 'var(--c-danger)';
+    if (isMain) {
+      deleteBtn.disabled = true;
+      deleteBtn.style.opacity = 0.35;
+    } else {
+      deleteBtn.addEventListener('click', () => openDeleteConfirm(u));
     }
+    actionsWrap.appendChild(deleteBtn);
 
+    tdActions.appendChild(actionsWrap);
+    tr.appendChild(tdActions);
+
+    return tr;
+  }
+
+  // ---- Create modal (parity Flutter: username + password + tier) ----
+  function openCreateModal() {
     const form = createEl('form', { style: { display: 'flex', flexDirection: 'column', gap: 'var(--s-3)' } });
     form.innerHTML = `
       <div class="field">
         <label class="field__label">Username</label>
-        <input type="text" name="username" class="field__input" value="${user?.username || ''}" ${isEdit ? 'readonly' : ''} required>
+        <input type="text" name="username" class="field__input" required>
       </div>
-      ${!isEdit ? `
       <div class="field">
         <label class="field__label">Password</label>
-        <input type="password" name="password" class="field__input" required>
-      </div>` : ''}
+        <input type="password" name="password" class="field__input" placeholder="Minimal 4 karakter" required>
+      </div>
       <div class="field">
         <label class="field__label">Tier</label>
         <select name="tier" class="field__select">
-          <option value="admin" ${user?.tier === 'admin' ? 'selected' : ''}>Admin</option>
-          <option value="guest" ${user?.tier === 'guest' ? 'selected' : ''}>Guest</option>
+          <option value="admin">Admin</option>
+          <option value="guest" selected>Guest</option>
         </select>
       </div>
-      <div class="field">
-        <label class="field__label">Permissions (comma-separated app keys)</label>
-        <input type="text" name="permissions" class="field__input" value="${user?.permissions?.join(', ') || ''}" placeholder="e.g. news,stocks,math_speed">
-      </div>
-      <div class="field">
-        <label class="field__label">Hidden Menus (comma-separated)</label>
-        <input type="text" name="hidden_menus" class="field__input" value="${user?.hidden_menus?.join(', ') || ''}" placeholder="e.g. news,stocks">
-      </div>
-      <div class="field field--inline" style="justify-content:space-between;">
-        <button type="button" class="btn btn--ghost" id="cancel">Batal</button>
-        <button type="submit" class="btn btn--primary">${icons['plus']} ${isEdit ? 'Update' : 'Buat'}</button>
+      <p class="admin-users__hint">Permissions mengikuti "Default for New Users" (${state.defaultPerms.length} fitur aktif) — atur lewat kartu di atas.</p>
+      <div class="field field--inline" style="justify-content:space-between;margin-top:var(--s-2);">
+        <button type="button" class="btn btn--secondary" id="cancel">Batal</button>
+        <button type="submit" class="btn btn--primary">${icons['plus']} Buat</button>
       </div>
     `;
 
-    const modal = createModal({
-      title: isEdit ? 'Edit User' : 'Create User',
-      content: form,
-      width: '480px',
-    });
-
+    const modal = createModal({ title: 'Create New User', content: form, width: '420px' });
     form.querySelector('#cancel').addEventListener('click', () => modal.close());
 
     form.addEventListener('submit', async (e) => {
       e.preventDefault();
-      const formData = new FormData(form);
-      const perms = formData.get('permissions').split(',').map(p => p.trim()).filter(Boolean);
-      const hidden = formData.get('hidden_menus').split(',').map(p => p.trim()).filter(Boolean);
-
-      if (!isEdit && !formData.get('password')) {
-        toast('Password wajib diisi untuk user baru', { type: 'error' });
-        return;
-      }
-
+      const fd = new FormData(form);
+      const data = {
+        username: fd.get('username').trim(),
+        password: fd.get('password'),
+        tier: fd.get('tier'),
+      };
       try {
-        if (isEdit) {
-          // Update tier
-          await Api.put(`/admin/users/${id}/permissions`, { permissions: perms });
-          await Api.put(`/admin/users/${id}/visibility`, { hidden_menus: hidden });
-          toast('User berhasil diupdate', { type: 'success' });
-        } else {
-          await Api.post('/admin/users', {
-            username: formData.get('username'),
-            password: formData.get('password'),
-            tier: formData.get('tier'),
-            permissions: perms,
-          });
-          toast('User berhasil dibuat', { type: 'success' });
-        }
+        await Api.post('/admin/users', data);
+        toast(`User ${data.username} berhasil dibuat`, { type: 'success' });
         modal.close();
         loadUsers();
       } catch (err) {
@@ -217,33 +303,133 @@ export function render() {
     });
   }
 
-  async function deleteUser(id, username) {
-    if (!confirm(`Yakin ingin menghapus user "${username}"?`)) return;
+  // ---- Edit modal (tier + permissions chips + hidden menus chips) ----
+  async function openEditModal(userId) {
+    let user;
     try {
-      await Api.delete(`/admin/users/${id}`);
-      toast(`User ${username} berhasil dihapus`, { type: 'success' });
-      loadUsers();
+      user = await Api.get(`/admin/users/${userId}`);
     } catch (e) {
-      toast('Error: ' + (e.message || e), { type: 'error' });
+      toast('Gagal memuat user: ' + (e.message || e), { type: 'error' });
+      return;
     }
+
+    const isMain = user.username === MAIN_ADMIN;
+    const permsSet = new Set(user.permissions || []);
+    const hiddenSet = new Set(user.hidden_menus || []);
+    const tierVal = user.tier || 'guest';
+
+    const form = createEl('form', { style: { display: 'flex', flexDirection: 'column', gap: 'var(--s-3)' } });
+    form.innerHTML = `
+      <div class="field">
+        <label class="field__label">Username</label>
+        <input type="text" class="field__input" value="${user.username}" readonly>
+      </div>
+      <div class="field">
+        <label class="field__label">Tier</label>
+        <select class="field__select" id="edit-tier" ${isMain ? 'disabled title="Main admin tidak bisa diubah tier-nya"' : ''}>
+          <option value="admin" ${tierVal === 'admin' ? 'selected' : ''}>Admin</option>
+          <option value="guest" ${tierVal === 'guest' ? 'selected' : ''}>Guest</option>
+        </select>
+      </div>
+      <div class="field">
+        <label class="field__label">Permissions</label>
+        <div class="admin-users__chips" id="edit-perms-chips"></div>
+      </div>
+      <div class="field">
+        <label class="field__label">Sembunyikan dari drawer</label>
+        <div class="admin-users__chips" id="edit-hidden-chips"></div>
+      </div>
+      <div class="field field--inline" style="justify-content:space-between;margin-top:var(--s-2);">
+        <button type="button" class="btn btn--secondary" id="cancel">Batal</button>
+        <button type="submit" class="btn btn--primary">${icons['check']} Simpan</button>
+      </div>
+    `;
+
+    const permsChipsEl = form.querySelector('#edit-perms-chips');
+    const hiddenChipsEl = form.querySelector('#edit-hidden-chips');
+
+    state.apps.forEach(({ key }) => buildToggleChip(key, permsSet, permsChipsEl));
+    state.apps.forEach(({ key }) => buildToggleChip(key, hiddenSet, hiddenChipsEl, 'Sembunyikan'));
+
+    const modal = createModal({
+      title: `Edit User: ${user.username}`,
+      content: form,
+      width: '480px',
+    });
+    form.querySelector('#cancel').addEventListener('click', () => modal.close());
+
+    form.addEventListener('submit', async (e) => {
+      e.preventDefault();
+      try {
+        const tier = form.querySelector('#edit-tier').value;
+        if (tier !== user.tier) {
+          await Api.put(`/admin/users/${userId}/tier`, { tier });
+        }
+        await Api.put(`/admin/users/${userId}/permissions`, { permissions: [...permsSet] });
+        await Api.put(`/admin/users/${userId}/visibility`, { hidden_menus: [...hiddenSet] });
+        toast('User berhasil diupdate', { type: 'success' });
+        modal.close();
+        loadUsers();
+      } catch (err) {
+        toast('Error: ' + (err.message || err), { type: 'error' });
+      }
+    });
   }
 
-  // Expose for inline onclick
-  window.adminEditUser = (id) => openCreateModal(id);
-  window.adminDeleteUser = (id, username) => deleteUser(id, username);
+  function buildToggleChip(key, valueSet, containerEl, activeTitle) {
+    const chip = createEl('button', {
+      type: 'button',
+      class: 'admin-users__chip' + (valueSet.has(key) ? ' admin-users__chip--active' : ''),
+      ...(activeTitle ? { title: activeTitle } : {}),
+    }, [appLabel(key)]);
+    chip.addEventListener('click', () => {
+      if (valueSet.has(key)) {
+        valueSet.delete(key);
+        chip.classList.remove('admin-users__chip--active');
+      } else {
+        valueSet.add(key);
+        chip.classList.add('admin-users__chip--active');
+      }
+    });
+    containerEl.appendChild(chip);
+  }
+
+  // ---- Delete confirm (modal, bukan confirm() native) ----
+  function openDeleteConfirm(user) {
+    const content = createEl('div', { style: { display: 'flex', flexDirection: 'column', gap: 'var(--s-3)' } });
+    content.appendChild(createEl('p', { style: { color: 'var(--c-text-2)', fontSize: 'var(--text-sm)' } },
+      [`Yakin ingin menghapus user "${user.username}"? Tindakan ini tidak bisa dibatalkan.`]));
+
+    const footer = createEl('div', { style: { display: 'flex', justifyContent: 'flex-end', gap: 'var(--s-2)', marginTop: 'var(--s-2)' } });
+    const modal = createModal({ title: 'Hapus User', content, width: '400px' });
+
+    const cancelBtn = createEl('button', { class: 'btn btn--secondary' }, ['Batal']);
+    cancelBtn.addEventListener('click', () => modal.close());
+
+    const delBtn = createEl('button', { class: 'btn btn--danger' }, ['Hapus']);
+    delBtn.addEventListener('click', async () => {
+      try {
+        await Api.delete(`/admin/users/${user.id}`);
+        toast(`User ${user.username} berhasil dihapus`, { type: 'success' });
+        modal.close();
+        loadUsers();
+      } catch (e) {
+        toast('Error: ' + (e.message || e), { type: 'error' });
+      }
+    });
+
+    footer.append(cancelBtn, delBtn);
+    content.appendChild(footer);
+  }
 
   container._cleanup = () => {
-    delete window.adminEditUser;
-    delete window.adminDeleteUser;
-    if (state._searchDebounce) clearTimeout(state._searchDebounce);
+    clearTimeout(state.searchDebounce);
   };
 
   // Init
-  async function init() {
-    await loadApps();
-    await loadUsers();
-  }
-  init();
+  loadApps();
+  loadDefaultPerms();
+  loadUsers();
 
   return container;
 }

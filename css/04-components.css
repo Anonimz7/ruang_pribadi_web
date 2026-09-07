@@ -110,6 +110,11 @@
   color: #fff;
 }
 .btn--accent:hover { background: var(--c-accent-d); }
+.btn--warn {
+  background: var(--c-warn);
+  color: #fff;
+}
+.btn--warn:hover { background: #b45309; }
 .btn--secondary {
   background: var(--c-surface-2);
   color: var(--c-text);
