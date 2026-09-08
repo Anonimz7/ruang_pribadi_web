@@ -127,7 +127,7 @@ function renderHeader() {
       <button class="btn btn--secondary" id="vh-refresh" aria-label="Refresh">
         ${icons.refresh} <span>Refresh</span>
       </button>
-      <a href="#/video" class="btn btn--ghost" style="font-size:var(--text-sm);">
+      <a href="#/saham/video" class="btn btn--ghost" style="font-size:var(--text-sm);">
         ${icons.download} <span>Downloader</span>
       </a>
     </div>
@@ -158,7 +158,7 @@ function renderList() {
         <div class="empty__icon">${icons.download}</div>
         <div class="empty__title">Belum ada download</div>
         <div class="empty__desc">Video yang berhasil diunduh akan muncul di sini.</div>
-        <a href="#/video" class="btn btn--primary">Mulai Download</a>
+        <a href="#/saham/video" class="btn btn--primary">Mulai Download</a>
       </div>
     `;
     return;

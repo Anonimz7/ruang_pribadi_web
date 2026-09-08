@@ -12,6 +12,7 @@ export const store = new Proxy({
   theme: localStorage.getItem('rp-theme') || 'system',
   drawerOpen: false,
   currentPage: '/',
+  activePortal: null,
   isLoading: false,
   toast: null,
   modal: null,

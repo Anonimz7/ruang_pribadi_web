@@ -148,7 +148,7 @@ function renderHeader() {
       </div>
       <div style="display:flex;gap:var(--s-2);">
         <button class="btn btn--secondary btn--sm" id="market-refresh" aria-label="Refresh">${icons['refresh']} <span>Refresh</span></button>
-        <a href="#/stocks" class="btn btn--ghost btn--sm">${icons['trending-up']} <span>Analisis</span></a>
+        <a href="#/saham/stocks" class="btn btn--ghost btn--sm">${icons['trending-up']} <span>Analisis</span></a>
       </div>
     </div>
   `;
@@ -374,7 +374,7 @@ function buildTable(title, headers, rows) {
           ${rows.map(r => `<tr>
             ${Object.values(r).map((v, i) => {
               if (i === 0 && typeof v === 'string' && v.length <= 5) {
-                return `<td style="font-weight:600;font-size:var(--text-sm);"><a href="#/stocks" style="color:var(--c-primary);" onclick="localStorage.setItem('stocks_initial_ticker','${v}')">${v}</a></td>`;
+                return `<td style="font-weight:600;font-size:var(--text-sm);"><a href="#/saham/stocks" style="color:var(--c-primary);" onclick="localStorage.setItem('stocks_initial_ticker','${v}')">${v}</a></td>`;
               }
               if (typeof v === 'number' && Math.abs(v) >= 1e6) return `<td style="font-size:var(--text-sm);">${fmtS(v)}</td>`;
               if (typeof v === 'number') return `<td style="font-size:var(--text-sm);">${v.toFixed(1)}</td>`;

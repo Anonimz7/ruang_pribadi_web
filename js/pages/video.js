@@ -374,11 +374,11 @@ function renderToolbarOnce() {
     style: { display: 'flex', gap: 'var(--s-3)', marginTop: 'var(--s-3)', flexWrap: 'wrap' }
   });
   const historyLink = createEl('a', {
-    href: '#/video-history',
+    href: '#/saham/video-history',
     class: 'btn btn--ghost',
     style: { padding: 'var(--s-2) var(--s-3)', fontSize: 'var(--text-sm)' },
   });
-  historyLink.innerHTML = `${icons.book} <span>Riwayat Download</span>`;
+  historyLink.innerHTML = `${icons['history']} <span>Riwayat Download</span>`;
   navRow.appendChild(historyLink);
   toolbar.appendChild(navRow);
 
@@ -453,7 +453,7 @@ function renderActiveDownloads() {
         <span class="spinner" style="width:16px;height:16px;border:2px solid var(--c-border);border-top-color:var(--c-primary);border-radius:50%;animation:spin 1s linear infinite;display:inline-block;"></span>
         ${state.activeDownloads.length} download sedang berjalan
       </div>
-      <a href="#/video-history" class="btn btn--ghost btn--sm" style="font-size:var(--text-xs);">Lihat Riwayat</a>
+      <a href="#/saham/video-history" class="btn btn--ghost btn--sm" style="font-size:var(--text-xs);">Lihat Riwayat</a>
     </div>
     ${itemsHtml}`;
 

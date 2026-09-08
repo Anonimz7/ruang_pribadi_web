@@ -1,7 +1,7 @@
-/* ui/drawer.js — Dynamic side navigation driven by server permissions */
+/* ui/drawer.js — Dynamic side navigation driven by server permissions (portal-aware) */
 import { store, subscribe } from '../core/state.js';
 import { Auth } from '../core/auth.js';
-import { fetchMenuConfig, ROUTE_MAP, MENU_SECTIONS } from '../core/menu-config.js';
+import { fetchMenuConfig, ROUTE_MAP, MENU_SECTIONS, getPortal } from '../core/menu-config.js';
 import { navigate } from '../core/router.js';
 import { icons } from './icons.js';
 
@@ -16,6 +16,15 @@ function getIcon(flutterName) {
   return icons[key] || icons['help'];
 }
 
+function toNavItem(app) {
+  return {
+    key: app.key,
+    label: app.label,
+    icon: getIcon(app.icon),
+    path: ROUTE_MAP[app.key] || '/',
+  };
+}
+
 /**
  * Filter menu items based on login status, tier, and permissions.
  * Returns array of { section, label, items: [...] }
@@ -24,17 +33,46 @@ function filterMenuItems() {
   if (!menuConfig) return [];
 
   const isLoggedIn = !!store.token;
-  const sections = [];
+  const activePortal = store.activePortal;
 
+  // === Mode Portal Saham: hanya item yang `portal === 'saham'` ===
+  if (activePortal === 'saham') {
+    const portal = getPortal('saham');
+    const sections = [];
+
+    for (const sec of portal.sections) {
+      let items = menuConfig.filter((app) => app.portal === 'saham' && app.section === sec);
+
+      if (sec === 'admin') {
+        // Admin section requires admin tier
+        if (store.tier !== 'admin') continue;
+        items = items.filter((app) => Auth.canAccess(app.key));
+      } else {
+        items = items.filter((app) => {
+          if (app.defaultPermission) return true;
+          if (Auth.isMenuHidden(app.key)) return false;
+          return Auth.canAccess(app.key);
+        });
+      }
+
+      if (items.length === 0) continue;
+
+      const secLabel = MENU_SECTIONS.find((s) => s.value === sec)?.label || sec;
+      sections.push({
+        label: secLabel,
+        items: items.map(toNavItem),
+      });
+    }
+
+    return sections;
+  }
+
+  // === Mode non-portal (dashboard & tools/quiz): perilaku lama ===
   // System section — always visible
   const systemItems = menuConfig
     .filter((app) => app.section === 'system')
-    .map((app) => ({
-      key: app.key,
-      label: app.label,
-      icon: getIcon(app.icon),
-      path: ROUTE_MAP[app.key] || '/',
-    }));
+    .map(toNavItem);
+  const sections = [];
   if (systemItems.length) {
     sections.push({ label: 'System', items: systemItems });
   }
@@ -43,13 +81,7 @@ function filterMenuItems() {
     return sections; // Only system section visible for guests
   }
 
-  // For logged-in users: filter menu, market, admin sections
-  const sectionFilters = {
-    menu: 'menu',
-    market: 'market',
-    admin: 'admin',
-  };
-
+  // For logged-in users: filter menu, media, market, admin sections
   for (const { value: sec, label: secLabel } of MENU_SECTIONS) {
     if (sec === 'system') continue;
 
@@ -60,7 +92,7 @@ function filterMenuItems() {
       if (store.tier !== 'admin') continue;
       items = items.filter((app) => Auth.canAccess(app.key));
     } else {
-      // Menu and market sections: check permissions
+      // Menu, media, market sections: check permissions
       items = items.filter((app) => {
         if (app.defaultPermission && sec !== 'admin') return true;
         if (Auth.isMenuHidden(app.key)) return false;
@@ -70,16 +102,9 @@ function filterMenuItems() {
 
     if (items.length === 0) continue;
 
-    const renderedItems = items.map((app) => ({
-      key: app.key,
-      label: app.label,
-      icon: getIcon(app.icon),
-      path: ROUTE_MAP[app.key] || '/',
-    }));
-
     sections.push({
       label: secLabel,
-      items: renderedItems,
+      items: items.map(toNavItem),
     });
   }
 
@@ -146,13 +171,31 @@ function renderNav(sections) {
 }
 
 /**
- * Render the footer section with Logout or Login button.
+ * Render the footer section: "Beranda" (portal mode), logout/login.
  */
 function renderFooter() {
+  const inPortal = store.activePortal === 'saham';
   const isLoggedIn = !!store.token;
   const logoutWrap = document.createElement('div');
   logoutWrap.style.marginTop = 'auto';
   logoutWrap.style.padding = 'var(--s-3) var(--s-4)';
+
+  // Di dalam portal: tombol kembali ke beranda
+  if (inPortal) {
+    const homeBtn = document.createElement('button');
+    homeBtn.className = 'drawer__item';
+    homeBtn.style.width = '100%';
+    homeBtn.style.margin = '0';
+    homeBtn.innerHTML = `
+      <span class="drawer__icon">${icons['grid']}</span>
+      <span class="drawer__label">Beranda</span>
+    `;
+    homeBtn.addEventListener('click', () => {
+      navigate('/');
+      if (window.innerWidth <= 768) store.drawerOpen = false;
+    });
+    logoutWrap.appendChild(homeBtn);
+  }
 
   const btn = document.createElement('button');
   btn.className = 'drawer__item';
@@ -243,6 +286,9 @@ export async function createDrawer() {
     renderDrawer();
   });
   subscribe('tier', () => {
+    renderDrawer();
+  });
+  subscribe('activePortal', () => {
     renderDrawer();
   });
 

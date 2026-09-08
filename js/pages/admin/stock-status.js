@@ -172,7 +172,7 @@ export function render() {
 
     const goAnalysis = () => {
       localStorage.setItem('stocks_initial_ticker', s.ticker);
-      location.hash = '#/stocks';
+      location.hash = '#/saham/stocks';
     };
 
     // Ticker — link ke analisis (kecuali delisted, pola stock-list)
@@ -183,7 +183,7 @@ export function render() {
       tdTicker.appendChild(tickerEl);
     } else {
       const tickerLink = createEl('a', { class: 'badge badge--primary admin-stock-status__ticker' }, [s.ticker]);
-      tickerLink.href = '#/stocks';
+      tickerLink.href = '#/saham/stocks';
       tickerLink.addEventListener('click', (e) => {
         e.preventDefault();
         goAnalysis();
@@ -201,7 +201,7 @@ export function render() {
       tdCompany.appendChild(companyEl);
     } else {
       const companyLink = createEl('a', { class: 'admin-stock-status__company admin-stock-status__company-link' }, [s.company_name || '-']);
-      companyLink.href = '#/stocks';
+      companyLink.href = '#/saham/stocks';
       companyLink.addEventListener('click', (e) => {
         e.preventDefault();
         goAnalysis();

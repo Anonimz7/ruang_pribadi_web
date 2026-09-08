@@ -237,7 +237,7 @@ export function render() {
             <tr class="stock-list-page__row${delisted ? ' stock-list-page__row--delisted' : ''}" data-ticker="${s.ticker}"${delisted ? '' : ' data-open="1"'}>
               <td>${delisted
                 ? `<span class="stock-list-page__ticker stock-list-page__ticker--delisted">${s.ticker}</span>`
-                : `<a href="#/stocks" class="stock-list-page__ticker" onclick="localStorage.setItem('stocks_initial_ticker','${s.ticker}')">${s.ticker}</a>`}
+                : `<a href="#/saham/stocks" class="stock-list-page__ticker" onclick="localStorage.setItem('stocks_initial_ticker','${s.ticker}')">${s.ticker}</a>`}
               </td>
               <td style="font-weight:500;">${s.company_name}</td>
               <td>${sectorBadge ? sectorBadge.outerHTML : '<span class="badge badge--neutral">-</span>'}</td>
@@ -258,7 +258,7 @@ export function render() {
       const tr = e.target.closest('tr[data-open]');
       if (!tr) return;
       localStorage.setItem('stocks_initial_ticker', tr.dataset.ticker);
-      location.hash = '#/stocks';
+      location.hash = '#/saham/stocks';
     });
   }
 

@@ -29,6 +29,18 @@ function initDrawerToggle() {
 }
 
 /**
+ * Landing (#'/') adalah full-screen tanpa drawer & appbar.
+ * Mode lain memakai shell normal.
+ */
+function initLayoutMode() {
+  const apply = (path) => {
+    document.body.classList.toggle('landing-mode', path === '/');
+  };
+  subscribe('currentPage', apply);
+  apply(store.currentPage);
+}
+
+/**
  * Build the full app shell including drawer, appbar, and page container.
  * This replaces the initial loading state with the interactive UI.
  */
@@ -92,6 +104,7 @@ export async function initApp() {
 
     initTheme();
     initDrawerToggle();
+    initLayoutMode();
 
     await initRouter();
     console.log('[RuangPribadi] App shell ready!');

@@ -23,8 +23,25 @@ const iconMap = {
   'Icons.backup': 'database',
   'Icons.shield': 'shield',
   'Icons.upload_file': 'upload',
+  'Icons.history': 'history',
   'Icons.help': 'help-circle',
 };
+
+/** Portal registry — single source of truth for portal ids */
+export const PORTALS = {
+  saham: {
+    id: 'saham',
+    label: 'Saham',
+    icon: 'trending-up',
+    route: '/saham',
+    defaultPage: '/saham/news',
+    sections: ['market', 'media', 'admin'],
+  },
+};
+
+export function getPortal(portalId) {
+  return PORTALS[portalId] || null;
+}
 
 let cached = null;
 
@@ -37,6 +54,7 @@ export async function fetchMenuConfig() {
     icon: iconMap[app.icon] || 'help-circle',
     label: app.label,
     section: app.section,
+    portal: app.portal || null,
     defaultPermission: app.defaultPermission,
   }));
   return cached;
@@ -46,8 +64,9 @@ export async function fetchMenuConfig() {
 export const MENU_SECTIONS = [
   { value: 'system', label: 'System', path: '/' },
   { value: 'menu', label: 'Menu', path: '/math-speed' },
-  { value: 'market', label: 'Market', path: '/news' },
-  { value: 'admin', label: 'Admin', path: '/admin/dashboard' },
+  { value: 'media', label: 'Media', path: '/saham/video' },
+  { value: 'market', label: 'Market', path: '/saham/news' },
+  { value: 'admin', label: 'Admin', path: '/saham/admin/dashboard' },
 ];
 
 // Menu key -> route path (mirrors Flutter drawer paths)
@@ -59,17 +78,18 @@ export const ROUTE_MAP = {
   rolling: '/rolling',
   code_diagram: '/diagram',
   language: '/bahasa',
-  video_downloader: '/video',
-  news: '/news',
-  stocks: '/stocks',
-  stock_list: '/stock-list',
-  ihsg_radar: '/market',
-  reports: '/reports',
-  user_permissions: '/admin/users',
-  server_dashboard: '/admin/dashboard',
-  sitemaps: '/admin/sitemaps',
-  proxies: '/admin/proxies',
-  backup: '/admin/backup',
-  stock_status: '/admin/stock-status',
-  idx_upload: '/admin/idx-upload',
+  news: '/saham/news',
+  stocks: '/saham/stocks',
+  stock_list: '/saham/stock-list',
+  ihsg_radar: '/saham/market',
+  reports: '/saham/reports',
+  video_downloader: '/saham/video',
+  video_history: '/saham/video-history',
+  user_permissions: '/saham/admin/users',
+  server_dashboard: '/saham/admin/dashboard',
+  sitemaps: '/saham/admin/sitemaps',
+  proxies: '/saham/admin/proxies',
+  backup: '/saham/admin/backup',
+  stock_status: '/saham/admin/stock-status',
+  idx_upload: '/saham/admin/idx-upload',
 };
