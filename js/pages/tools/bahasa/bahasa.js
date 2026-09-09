@@ -6,12 +6,12 @@
  *   3. DETAIL → 3-mode Vinculum reader (bahasa_detail_screen.dart)
  *   4. FORM   → create/edit dengan validasi & panduan (bahasa_form_screen.dart)
  */
-import { createEl } from '../utils/dom.js';
-import { icons } from '../ui/icons.js';
-import Api, { ApiError } from '../core/api.js';
-import { toast } from '../ui/toast.js';
-import { createModal } from '../ui/modal.js';
-import { store } from '../core/state.js';
+import { createEl } from '../../../utils/dom.js';
+import { icons } from '../../../ui/icons.js';
+import Api, { ApiError } from '../../../core/api.js';
+import { toast } from '../../../ui/toast.js';
+import { createModal } from '../../../ui/modal.js';
+import { store } from '../../../core/state.js';
 
 // ═══════════════════════════════════════════════════════════════════════════════
 //  CONSTANTS

@@ -35,7 +35,7 @@ export const PORTALS = {
     icon: 'trending-up',
     route: '/saham',
     defaultPage: '/saham/news',
-    sections: ['market', 'media', 'admin'],
+    sections: ['market', 'admin'],
   },
 };
 
@@ -64,7 +64,6 @@ export async function fetchMenuConfig() {
 export const MENU_SECTIONS = [
   { value: 'system', label: 'System', path: '/' },
   { value: 'menu', label: 'Menu', path: '/math-speed' },
-  { value: 'media', label: 'Media', path: '/saham/video' },
   { value: 'market', label: 'Market', path: '/saham/news' },
   { value: 'admin', label: 'Admin', path: '/saham/admin/dashboard' },
 ];
@@ -83,8 +82,7 @@ export const ROUTE_MAP = {
   stock_list: '/saham/stock-list',
   ihsg_radar: '/saham/market',
   reports: '/saham/reports',
-  video_downloader: '/saham/video',
-  video_history: '/saham/video-history',
+  video_downloader: '/video',
   user_permissions: '/saham/admin/users',
   server_dashboard: '/saham/admin/dashboard',
   sitemaps: '/saham/admin/sitemaps',

@@ -1,28 +1,15 @@
-/* pages/gacha.js — Gacha Luck (Roulette Wheel) — konsisten dengan rolling.js */
-import { createEl } from '../utils/dom.js';
+/* pages/rolling.js — Rolling Yes/No (Meja Rollet) */
+import { createEl } from '../../../utils/dom.js';
 
 // ═══════════════════════════════════════════════════════
-// KONFIGURASI — Mencerminkan gacha_luck/gacha_screen.dart & roulette_ticker.dart
+// KONFIGURASI — Mencerminkan rolling_screen.dart & roulette_ticker.dart
 // ═══════════════════════════════════════════════════════
-const LUCK_TIERS = [
-  { key: 'veryUnlucky', name: 'Sangat Sial',        color: '#8B0000', icon: '😈', chance: 5 },
-  { key: 'unlucky',     name: 'Sial',              color: '#E67E22', icon: '😞', chance: 25 },
-  { key: 'normal',      name: 'Normal',            color: '#7F8C8D', icon: '😐', chance: 40 },
-  { key: 'lucky',       name: 'Beruntung',         color: '#2ECC71', icon: '😊', chance: 25 },
-  { key: 'veryLucky',   name: 'Sangat Beruntung',  color: '#F1C40F', icon: '🌟', chance: 5 },
-];
-
-const LUCK_MESSAGES = {
-  veryUnlucky: ['Hati-hati! Hari ini bukan harimu. Jangan ambil keputusan besar.', 'Sial! Keberuntungan sedang menjauh.', 'Awas! Jalan licin menunggu.'],
-  unlucky:     ['Hari ini agak kurang beruntung.', 'Sial ringan. Jangan beli lotre.', 'Ada yang tak berjalan mulus. Tetap tenang.'],
-  normal:      ['Hari biasa, keberuntungan biasa.', 'Tidak istimewat, tidak buruk.', 'Normal saja. Cocok untuk rutinitas.'],
-  lucky:       ['Hari ini hoki! Manfaatkan momentum.', 'Keberuntungan berpihak padamu.', 'Beruntung! Coba hal baru.'],
-  veryLucky:   ['JACKPOT! Hari paling beruntungmu!', 'Sangat beruntung! Coba lotre!', 'Keberuntungan besar menghampirimu.'],
+const YES_NO = {
+  yes: { label: 'YES', color: '#00C87A', icon: '✓' },
+  no:  { label: 'NO',  color: '#E74C3C', icon: '✕' }
 };
 
-const STORAGE_KEY = 'gacha_history';
-
-const SECTOR_COUNT = LUCK_TIERS.length;
+const SECTOR_COUNT = 10; // YES, NO, YES, NO ... (5 each)
 const SECTOR_ANGLE = 360 / SECTOR_COUNT;
 const SPIN_TIME_MIN = 10;
 const SPIN_TIME_MAX = 30;
@@ -31,72 +18,39 @@ const SPEED_SCALE = 8;
 const V0_MIN_FACTOR = 0.95;
 const V0_MAX_FACTOR = 1.00;
 
-const K_STIFFNESS = 120;
-const K_DAMPING = 8;
-const K_MIN_KICK = 2.2;
-const K_SPEED_KICK = 0.35;
-const K_MAX_AMPLITUDE = 0.6;
+// Fisika jarum (damped spring oscillator) — sama seperti Dart source
+const K_STIFFNESS = 120;  // rad/s² per rad
+const K_DAMPING = 8;      // per detik
+const K_MIN_KICK = 2.2;   // rad/s — dorongan dasar tiap hantaman
+const K_SPEED_KICK = 0.35; // rad/s tambahan kecepatan putar
+const K_MAX_AMPLITUDE = 0.6; // rad (~34°)
 
+// Audio & haptic
 const HAPTIC_AVAILABLE = 'vibrate' in navigator;
 let audioPoolCtx = null;
 let audioReady = false;
 let lastPegIndex = -1;
 let pegCount = SECTOR_COUNT;
 
+// Fisika jarum
 let needleAngle = 0;
 let needleOmega = 0;
 let lastElapsed = 0;
 
+// State roda (bukan pakai baseRotation — kita reset ke 0 di setiap spin)
 let spinning = false;
 let result = null;
 let spinDuration = 0;
 let spinStartTime = 0;
+
+// DOM references
+let wheelEl, innerWheelEl, needleEl, goBtnEl, resultPlaceholderEl;
+let animationFrameId = null;
 let totalAngle = 0;
 let v0Final = 0;
 
-let wheelEl, innerWheelEl, needleEl, goBtnEl, resultPlaceholderEl;
-let animationFrameId = null;
-
 // ═══════════════════════════════════════════════════════
-// UTILITIES
-// ═══════════════════════════════════════════════════════
-function loadHistory() {
-  try { return JSON.parse(localStorage.getItem(STORAGE_KEY) || '[]'); } catch { return []; }
-}
-
-function saveHistory(hist) {
-  localStorage.setItem(STORAGE_KEY, JSON.stringify(hist));
-}
-
-function loadStats() {
-  const hist = loadHistory();
-  const stats = {};
-  LUCK_TIERS.forEach(t => { stats[t.key] = 0; });
-  hist.forEach(r => { stats[r.result] = (stats[r.result] || 0) + 1; });
-  return stats;
-}
-
-function randomMessage(tier) {
-  const messages = LUCK_MESSAGES[tier.key];
-  return messages[Math.floor(Math.random() * messages.length)];
-}
-
-function formatTime(ts) {
-  const d = new Date(ts);
-  const now = Date.now();
-  const diff = now - ts;
-  if (diff < 60000) return `${Math.floor(diff / 1000)}s lalu`;
-  if (diff < 3600000) return `${Math.floor(diff / 60000)}m lalu`;
-  if (diff < 86400000) return `${Math.floor(diff / 3600000)}h lalu`;
-  return `${d.toLocaleDateString('id-ID', { day: 'numeric', month: 'short' })} ${d.toLocaleTimeString('id-ID', { hour: '2-digit', minute: '2-digit' })}`;
-}
-
-function clamp(value, min, max) {
-  return Math.max(min, Math.min(max, value));
-}
-
-// ═══════════════════════════════════════════════════════
-// ROULETTE TICKER
+// ROULETTE TICKER — Efek suara & haptic
 // ═══════════════════════════════════════════════════════
 function loadAudio() {
   if (audioReady) return;
@@ -127,12 +81,18 @@ function playTick(intensity) {
     gain.connect(ctx.destination);
     source.start(0);
     source.stop(ctx.currentTime + 0.05);
-  } catch (e) {}
+  } catch (e) {
+    // Silent fail — best effort
+  }
 }
 
 function triggerHaptic() {
   if (!HAPTIC_AVAILABLE) return;
-  try { navigator.vibrate([5, 5, 5]); } catch (e) {}
+  try {
+    navigator.vibrate([5, 5, 5]);
+  } catch (e) {
+    // Silent fail — best effort
+  }
 }
 
 function updateTicker(currentAngle, angularVelocity) {
@@ -155,51 +115,49 @@ function resetTicker() {
 }
 
 // ═══════════════════════════════════════════════════════
-// HASIL DARI SUDUT
+// HASIL DARI SUDUT — sama seperti Dart source
 // ═══════════════════════════════════════════════════════
-function getSectorFromAngle(angleDeg) {
+function getResultFromAngle(angleDeg) {
   const normalized = ((angleDeg % 360) + 360) % 360;
   const sectorIndex = Math.floor((((270 - normalized) % 360 + 360) % 360) / SECTOR_ANGLE) % SECTOR_COUNT;
-  return LUCK_TIERS[sectorIndex];
+  const key = sectorIndex % 2 === 0 ? 'yes' : 'no';
+  return YES_NO[key];
 }
 
 // ═══════════════════════════════════════════════════════
-// BUILD SVG ELEMENTS — Konsisten dengan rolling.js
+// BUILD SVG ELEMENTS
 // ═══════════════════════════════════════════════════════
 function buildWheelSVG() {
   const size = 260;
   const center = size / 2;
   const radius = 118;
-  const labelRadius = radius * 0.55;
+  const labelRadius = radius * 0.65;
   const pegRadius = radius * 0.8;
 
   const slices = [];
   for (let i = 0; i < SECTOR_COUNT; i++) {
-    const tier = LUCK_TIERS[i];
-    const startAngle = i * SECTOR_ANGLE * Math.PI / 180;
-    const endAngle = (i + 1) * SECTOR_ANGLE * Math.PI / 180;
+    const startAngle = (i * SECTOR_ANGLE) * Math.PI / 180;
+    const endAngle = ((i + 1) * SECTOR_ANGLE) * Math.PI / 180;
     const x1 = center + radius * Math.cos(startAngle);
     const y1 = center + radius * Math.sin(startAngle);
     const x3 = center + radius * Math.cos(endAngle);
     const y3 = center + radius * Math.sin(endAngle);
     const largeArc = SECTOR_ANGLE > 180 ? 1 : 0;
 
+    const key = i % 2 === 0 ? 'yes' : 'no';
+    const color = YES_NO[key].color;
+
     slices.push(`
       <path d="M${center},${center} L${x1},${y1} A${radius},${radius} 0 ${largeArc} 1 ${x3},${y3} Z"
-            fill="${tier.color}" stroke="#000" stroke-width="1.5" opacity="0.9"/>
+            fill="${color}" stroke="#000" stroke-width="1"/>
     `);
 
     const midAngle = (startAngle + endAngle) / 2;
     const lx = center + labelRadius * Math.cos(midAngle);
     const ly = center + (labelRadius * Math.sin(midAngle)) + 5;
     slices.push(`
-      <text x="${lx}" y="${ly}" text-anchor="middle" fill="white" font-size="12" font-weight="bold">
-        ${tier.icon}
-      </text>
-    `);
-    slices.push(`
-      <text x="${lx}" y="${ly + 18}" text-anchor="middle" fill="white" font-size="10" font-weight="bold">
-        ${tier.name}
+      <text x="${lx}" y="${ly}" text-anchor="middle" fill="white" font-size="11" font-weight="bold">
+        ${YES_NO[key].label}
       </text>
     `);
   }
@@ -218,19 +176,17 @@ function buildWheelSVG() {
     const px = center + pegRadius * Math.cos(angle);
     const py = center + pegRadius * Math.sin(angle);
     slices.push(`
-      <circle cx="${px}" cy="${py}" r="4" fill="url(#pegGradientGacha)" />
+      <circle cx="${px}" cy="${py}" r="4" fill="url(#pegGradientRolling)" />
       <circle cx="${px - 1.5}" cy="${py - 1.5}" r="1.5" fill="rgba(255,255,255,0.6)"/>
     `);
   }
 
-  // Border luar
   slices.push(`<circle cx="${center}" cy="${center}" r="${radius}" fill="none" stroke="white" stroke-width="5"/>`);
-  slices.push(`<circle cx="${center}" cy="${center}" r="${radius * 0.92}" fill="rgba(0,0,0,0.2)"/>`);
 
   return `
    <svg class="gacha-svg-wheel" width="100%" height="100%" viewBox="0 0 ${size} ${size}">
       <defs>
-        <radialGradient id="pegGradientGacha" cx="50%" cy="50%" r="50%">
+        <radialGradient id="pegGradientRolling" cx="50%" cy="50%" r="50%">
           <stop offset="0%" stop-color="#aaaaaa"/>
           <stop offset="70%" stop-color="#666666"/>
           <stop offset="100%" stop-color="#333333"/>
@@ -242,26 +198,24 @@ function buildWheelSVG() {
   `;
 }
 
-function buildNeedleSVG(tier) {
-  const color = tier ? tier.color : '#E74C3C';
+function buildNeedleSVG(resultColor = '#E74C3C') {
   const w = 26;
   const h = 54;
   return `
     <svg class="gacha-svg-needle" width="${w}" height="${h}" viewBox="0 0 ${w} ${h}">
       <defs>
-        <filter id="needle-shadow-gacha" x="-50%" y="-50%" width="200%" height="200%">
+        <filter id="needle-shadow-rolling" x="-50%" y="-50%" width="200%" height="200%">
           <feDropShadow dx="0" dy="2" stdDeviation="2" flood-color="rgba(0,0,0,0.5)"/>
         </filter>
       </defs>
-      <path d="M${w/2},${h} L${w*0.06},0 L${w*0.94},0 Z" fill="${color}" filter="url(#needle-shadow-gacha)"/>
+      <path d="M${w/2},${h} L${w*0.06},0 L${w*0.94},0 Z" fill="${resultColor}" filter="url(#needle-shadow-rolling)"/>
       <circle cx="${w/2}" cy="0" r="${w*0.16}" fill="white"/>
-      <circle cx="${w/2}" cy="0" r="${w*0.10}" fill="${color}"/>
+      <circle cx="${w/2}" cy="0" r="${w*0.10}" fill="${resultColor}"/>
     </svg>
   `;
 }
 
-function buildResultCard(tier, message) {
-  const msg = message || randomMessage(tier);
+function buildResultCard(r) {
   const resultDiv = createEl('div', {
     class: 'gacha-result-card',
     style: {
@@ -271,20 +225,17 @@ function buildResultCard(tier, message) {
       gap: '8px',
       padding: '16px',
       borderRadius: '12px',
-      background: `${tier.color}15`,
-      border: `1px solid ${tier.color}40`,
+      background: `${r.color}15`,
+      border: `1px solid ${r.color}40`,
     }
   });
   resultDiv.innerHTML = `
-    <div style="width:40px;height:40px;border-radius:50%;background:${tier.color};display:flex;align-items:center;justify-content:center;font-size:20px;font-weight:bold;color:white;">
-      ${tier.icon}
+    <div style="width:40px;height:40px;border-radius:50%;background:${r.color};display:flex;align-items:center;justify-content:center;font-size:20px;font-weight:bold;color:white;">
+      ${r.icon}
     </div>
-    <div style="font-size:24px;font-weight:700;color:${tier.color};">${tier.name}</div>
+    <div style="font-size:24px;font-weight:700;color:${r.color};">${r.label}</div>
     <div style="font-size:14px;color:var(--c-text-2);text-align:center;">
-      ${msg.replace(/\n/g, '<br>')}
-    </div>
-    <div style="font-size:12px;color:var(--c-text-3);margin-top:4px;">
-      Probabilitas: ${tier.chance}%
+      ${r === YES_NO.yes ? 'Keputusan ini mendukung kamu!' : 'Pertanyaan ini perlu pertimbangan ekstra.'}
     </div>
   `;
   return resultDiv;
@@ -297,12 +248,12 @@ function startSpin() {
   if (spinning) return;
   if (!audioReady) loadAudio();
 
-  const target = rollLuck();
-  const index = LUCK_TIERS.indexOf(target);
+  const target = roll();
+  const index = target === YES_NO.yes ? 0 : 1;
   const tierCenter = SECTOR_ANGLE * index + SECTOR_ANGLE / 2;
-  const jitter = Math.random() * SECTOR_ANGLE * 0.6 - SECTOR_ANGLE * 0.3;
+  const jitter = (Math.random() * SECTOR_ANGLE * 0.6 - SECTOR_ANGLE * 0.3);
 
-  let targetAngle = 270 - tierCenter - jitter;
+  let targetAngle = 270 - tierCenter + jitter;
   targetAngle = ((targetAngle % 360) + 360) % 360;
 
   const T = SPIN_TIME_MIN + Math.random() * (SPIN_TIME_MAX - SPIN_TIME_MIN);
@@ -359,11 +310,11 @@ function animateSpin(timestamp) {
 function finishSpin() {
   spinning = false;
   // Gunakan totalAngle absolut — roda sudah di-reset ke 0 di startSpin
-  result = getSectorFromAngle(totalAngle);
+  result = getResultFromAngle(totalAngle);
   needleAngle = 0;
   needleOmega = 0;
 
-  // Roda tetap posisi akhiri — flush transform
+  // Roda tetap posisi akhiri — flush transform ke totalAngle untuk konsistensi
   if (wheelEl) {
     wheelEl.style.transition = 'none';
     wheelEl.style.transform = `rotate(${totalAngle}deg)`;
@@ -371,65 +322,72 @@ function finishSpin() {
   if (needleEl) {
     needleEl.style.transition = 'transform 0.5s ease-out';
     needleEl.style.transform = 'translateX(-50%) rotate(0rad)';
-    needleEl.innerHTML = buildNeedleSVG(result);
+    needleEl.innerHTML = buildNeedleSVG(result.color);
   }
   if (goBtnEl) { goBtnEl.style.opacity = '1'; goBtnEl.style.pointerEvents = 'auto'; }
 
-  // Generate message once — use same message for display and history
-  const message = randomMessage(result);
-
-  // Tampilkan hasil
   const placeholder = resultPlaceholderEl;
   if (placeholder) {
     placeholder.innerHTML = '';
-    placeholder.appendChild(buildResultCard(result, message));
+    placeholder.appendChild(buildResultCard(result));
   }
-
-  // Simpan riwayat
-  const history = loadHistory();
-  history.unshift({ result: result.key, time: Date.now(), message });
-  if (history.length > 30) history.splice(30);
-  saveHistory(history);
 
   updateStats();
 }
 
-function rollLuck() {
-  const r = Math.random() * 100;
-  let acc = 0;
-  for (const t of LUCK_TIERS) {
-    acc += t.chance;
-    if (r < acc) return t;
-  }
-  return LUCK_TIERS[LUCK_TIERS.length - 1];
+function roll() {
+  const rng = Date.now() * Math.random();
+  return (rng % 1) < 0.5 ? YES_NO.yes : YES_NO.no;
+}
+
+function clamp(value, min, max) {
+  return Math.max(min, Math.min(max, value));
 }
 
 function updateStats() {
-  const stats = loadStats();
-  LUCK_TIERS.forEach(t => {
-    const el = document.querySelector(`[data-stat="${t.key}"] .stat-value`);
-    if (el) el.textContent = (stats[t.key] || 0).toString();
+  const yesCount = parseInt(localStorage.getItem('rolling_stats_yes') || '0', 10);
+  const noCount = parseInt(localStorage.getItem('rolling_stats_no') || '0', 10);
+  if (result === YES_NO.yes) {
+    const newVal = yesCount + 1;
+    localStorage.setItem('rolling_stats_yes', newVal.toString());
+    updateStatDisplay('yes', newVal);
+  } else {
+    const newVal = noCount + 1;
+    localStorage.setItem('rolling_stats_no', newVal.toString());
+    updateStatDisplay('no', newVal);
+  }
+}
+
+function updateStatDisplay(key, value) {
+  const statEls = document.querySelectorAll('.rolling-stat');
+  statEls.forEach(el => {
+    if (el.dataset.stat === key) {
+      const valEl = el.querySelector('.stat-value');
+      if (valEl) valEl.textContent = value.toString();
+    }
   });
 }
 
-function resetHistory() {
-  if (confirm('Reset riwayat gacha?')) {
-    localStorage.removeItem(STORAGE_KEY);
-    updateStats();
+function resetStats() {
+  if (confirm('Reset statistik rolling?')) {
+    localStorage.removeItem('rolling_stats_yes');
+    localStorage.removeItem('rolling_stats_no');
+    updateStatDisplay('yes', 0);
+    updateStatDisplay('no', 0);
   }
 }
 
 // ═══════════════════════════════════════════════════════
-// MAIN RENDER — konsisten dengan rolling.js
+// MAIN RENDER — sync, konsisten dengan gacha.js
 // ═══════════════════════════════════════════════════════
 export function render() {
-  const container = createEl('div', { class: 'gacha-page' });
+  const container = createEl('div', { class: 'rolling-container' });
 
   // Header
   container.appendChild(createEl('div', { class: 'gacha-header' }, [
-    createEl('h1', { class: 'gacha-title' }, ['Gacha Luck']),
+    createEl('h1', { class: 'gacha-title' }, ['Rolling Yes/No']),
     createEl('p', { class: 'gacha-subtitle' }, [
-      'Putar roda untuk melihat keberuntunganmu hari ini!'
+      'Putar roda untuk mengundi YES atau NO!'
     ]),
   ]));
 
@@ -450,7 +408,7 @@ export function render() {
 
   // Needle statis (overlay di atas wheel)
   needleEl = createEl('div', { class: 'gacha-needle' });
-  needleEl.innerHTML = buildNeedleSVG(null);
+  needleEl.innerHTML = buildNeedleSVG('#E74C3C');
   needleEl.style.transform = 'translateX(-50%) rotate(0rad)'; // Inisialisasi posisi center
   wheelWrapper.appendChild(needleEl);
 
@@ -479,74 +437,44 @@ export function render() {
       display: 'flex',
       alignItems: 'center',
       justifyContent: 'center',
-      padding: 'var(--s-4)',
     }
   });
-  resultPlaceholderEl.innerHTML = '<p style="color:var(--c-text-3);font-size:var(--text-sm);">Tekan GO untuk memutar roda</p>';
+
+  const instruction = createEl('div', {
+    style: {
+      textAlign: 'center',
+      color: 'var(--c-text-3)',
+      fontSize: '13px',
+    }
+  }, ['Tekan GO untuk mengundi']);
+  resultPlaceholderEl.appendChild(instruction);
+
   rouletteTable.appendChild(resultPlaceholderEl);
   container.appendChild(rouletteTable);
 
-  // Stats grid (5 columns sesuai Dart source)
-  const stats = loadStats();
+  // Stats grid (2 kolom untuk rolling)
+  const yesCount = parseInt(localStorage.getItem('rolling_stats_yes') || '0', 10);
+  const noCount = parseInt(localStorage.getItem('rolling_stats_no') || '0', 10);
   const statsGrid = createEl('div', { class: 'gacha-stats-grid' });
-  LUCK_TIERS.forEach(t => {
-    const statEl = createEl('div', {
-      class: 'rolling-stat',
-      'data-stat': t.key,
-      style: { textAlign: 'center' }
-    });
-    statEl.innerHTML = `
-      <div class="stat-value" style="font-size:20px;font-weight:700;color:${t.color};">${stats[t.key] || 0}</div>
-      <div style="font-size:11px;color:var(--c-text-3);">${t.icon}</div>
-      <div style="font-size:10px;color:var(--c-text-3);">${t.chance}%</div>
-    `;
-    statsGrid.appendChild(statEl);
-  });
+  statsGrid.innerHTML = `
+    <div class="rolling-stat" data-stat="yes" style="text-align:center;">
+      <div class="stat-value" style="font-size:28px;font-weight:700;color:${YES_NO.yes.color};">${yesCount}</div>
+      <div style="color:var(--c-text-3);font-size:13px;">${YES_NO.yes.label}</div>
+    </div>
+    <div class="rolling-stat" data-stat="no" style="text-align:center;">
+      <div class="stat-value" style="font-size:28px;font-weight:700;color:${YES_NO.no.color};">${noCount}</div>
+      <div style="color:var(--c-text-3);font-size:13px;">${YES_NO.no.label}</div>
+    </div>
+  `;
   container.appendChild(statsGrid);
 
-  // History
-  const history = loadHistory();
-  const historyTitle = createEl('h2', {
-    class: 'card__title',
-    style: { fontSize: 'var(--text-md)', fontWeight: '600', marginTop: 'var(--s-5)' }
-  }, ['Riwayat Putaran']);
-  container.appendChild(historyTitle);
-
-  const historyCard = createEl('div', { class: 'card', style: { padding: 0, overflow: 'hidden' } });
-  if (history.length === 0) {
-    const empty = createEl('div', { class: 'empty', style: { padding: 'var(--s-5)', textAlign: 'center' } });
-    empty.innerHTML = '<div class="empty__title">Belum ada riwayat</div><div class="empty__desc">Putar roda untuk memulai!</div>';
-    historyCard.appendChild(empty);
-  } else {
-    const list = createEl('div', { style: { padding: 'var(--s-2)' } });
-    history.slice(0, 30).forEach(h => {
-      const tier = LUCK_TIERS.find(t => t.key === h.result) || LUCK_TIERS[2];
-      const row = createEl('div', { class: 'gacha-history-item', style: {
-        display: 'flex', alignItems: 'center', gap: 'var(--s-2)',
-        padding: 'var(--s-2) var(--s-3)',
-      }});
-      row.innerHTML = `
-        <span style="font-size:18px;min-width:24px;text-align:center;">${tier.icon}</span>
-        <span style="font-weight:600;color:${tier.color};">${tier.name}</span>
-        <span style="font-size:11px;color:var(--c-text-3);margin-left:auto;text-align:right;">
-          <div>${formatTime(h.time)}</div>
-        </span>
-      `;
-      list.appendChild(row);
-    });
-    historyCard.appendChild(list);
-  }
-
-  const clearBtn = createEl('button', {
+  // Reset button
+  const resetBtn = createEl('button', {
     class: 'btn btn--secondary gacha-reset-btn',
-    style: { marginTop: 'var(--s-3)', fontSize: '12px' }
-  }, ['Hapus Riwayat']);
-  clearBtn.addEventListener('click', resetHistory);
-  container.appendChild(historyCard);
-  container.appendChild(clearBtn);
-
-  // Update stat display
-  setTimeout(updateStats, 0);
+    style: { marginTop: 'var(--s-5)' }
+  }, ['Reset']);
+  resetBtn.addEventListener('click', resetStats);
+  container.appendChild(resetBtn);
 
   return container;
 }
@@ -560,7 +488,9 @@ export async function destroy() {
   if (audioPoolCtx) {
     try {
       await audioPoolCtx.close();
-    } catch (e) {}
+    } catch (e) {
+      // Silent fail
+    }
   }
 }
 

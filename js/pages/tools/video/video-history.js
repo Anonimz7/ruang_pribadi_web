@@ -1,10 +1,10 @@
 /* pages/video-history.js — Download History (Anti-Slop, Dart-parity) */
-import { $, on, createEl } from '../../utils/dom.js';
-import { icons } from '../../ui/icons.js';
-import Api from '../../core/api.js';
-import { toast } from '../../ui/toast.js';
-import { store } from '../../core/state.js';
-import { ApiConfig } from '../../core/api-config.js';
+import { $, on, createEl } from '../../../utils/dom.js';
+import { icons } from '../../../ui/icons.js';
+import Api from '../../../core/api.js';
+import { toast } from '../../../ui/toast.js';
+import { store } from '../../../core/state.js';
+import { ApiConfig } from '../../../core/api-config.js';
 
 /* ─── Helpers ─── */
 function formatBytes(bytes) {
@@ -127,7 +127,7 @@ function renderHeader() {
       <button class="btn btn--secondary" id="vh-refresh" aria-label="Refresh">
         ${icons.refresh} <span>Refresh</span>
       </button>
-      <a href="#/saham/video" class="btn btn--ghost" style="font-size:var(--text-sm);">
+      <a href="#/video" class="btn btn--ghost" style="font-size:var(--text-sm);">
         ${icons.download} <span>Downloader</span>
       </a>
     </div>
@@ -158,7 +158,7 @@ function renderList() {
         <div class="empty__icon">${icons.download}</div>
         <div class="empty__title">Belum ada download</div>
         <div class="empty__desc">Video yang berhasil diunduh akan muncul di sini.</div>
-        <a href="#/saham/video" class="btn btn--primary">Mulai Download</a>
+        <a href="#/video" class="btn btn--primary">Mulai Download</a>
       </div>
     `;
     return;

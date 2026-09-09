@@ -1,5 +1,5 @@
 /* pages/password-gen.js — Password Generator (complete) */
-import { calcStrength } from '../../ui/password-strength.js';
+import { calcStrength } from '../../../ui/password-strength.js';
 
 const UPPER = 'ABCDEFGHIJKLMNOPQRSTUVWXYZ';
 const LOWER = 'abcdefghijklmnopqrstuvwxyz';

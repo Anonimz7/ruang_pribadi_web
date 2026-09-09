@@ -69,9 +69,9 @@ function filterMenuItems() {
   }
 
   // === Mode non-portal (dashboard & tools/quiz): perilaku lama ===
-  // System section — always visible
+  // Systen section — selalu tampil, tapi hanya item NON-portal
   const systemItems = menuConfig
-    .filter((app) => app.section === 'system')
+    .filter((app) => app.section === 'system' && !app.portal)
     .map(toNavItem);
   const sections = [];
   if (systemItems.length) {
@@ -79,14 +79,25 @@ function filterMenuItems() {
   }
 
   if (!isLoggedIn) {
-    return sections; // Only system section visible for guests
+    // Guest (logout) di mode non-portal: tampilkan System + section Menu (tools publik)
+    // tanpa filter permission, agar /tools tetap bernavigasi walau belum login.
+    // Media/Market/Admin (milik portal Saham) sudah ter-exclude oleh !app.portal.
+    for (const { value: sec, label: secLabel } of MENU_SECTIONS) {
+      if (sec === 'system') continue;
+      const items = menuConfig.filter((app) => app.section === sec && !app.portal);
+      if (items.length === 0) continue;
+      sections.push({ label: secLabel, items: items.map(toNavItem) });
+    }
+    return sections;
   }
 
   // For logged-in users: filter menu, media, market, admin sections
+  // Item milik portal (mis. portal === 'saham') TIDAK ditampilkan di mode non-portal,
+  // karena itu eksklusif milik halaman-halaman dalam portal tersebut.
   for (const { value: sec, label: secLabel } of MENU_SECTIONS) {
     if (sec === 'system') continue;
 
-    let items = menuConfig.filter((app) => app.section === sec);
+    let items = menuConfig.filter((app) => app.section === sec && !app.portal);
 
     if (sec === 'admin') {
       // Admin section requires admin tier
@@ -172,31 +183,13 @@ function renderNav(sections) {
 }
 
 /**
- * Render the footer section: "Beranda" (portal mode), logout/login.
+ * Render the footer section: logout/login.
  */
 function renderFooter() {
-  const inPortal = store.activePortal === 'saham';
   const isLoggedIn = !!store.token;
   const logoutWrap = document.createElement('div');
   logoutWrap.style.marginTop = 'auto';
   logoutWrap.style.padding = 'var(--s-3) var(--s-4)';
-
-  // Di dalam portal: tombol kembali ke beranda
-  if (inPortal) {
-    const homeBtn = document.createElement('button');
-    homeBtn.className = 'drawer__item';
-    homeBtn.style.width = '100%';
-    homeBtn.style.margin = '0';
-    homeBtn.innerHTML = `
-      <span class="drawer__icon">${icons['grid']}</span>
-      <span class="drawer__label">Beranda</span>
-    `;
-    homeBtn.addEventListener('click', () => {
-      navigate('/');
-      if (window.innerWidth <= 768) store.drawerOpen = false;
-    });
-    logoutWrap.appendChild(homeBtn);
-  }
 
   const btn = document.createElement('button');
   btn.className = 'drawer__item';

@@ -41,6 +41,18 @@ export function createAppBar() {
   });
   actions.appendChild(themeBtn);
 
+  // Home button (di tengah antara theme & login)
+  const homeBtn = document.createElement('button');
+  homeBtn.className = 'appbar__btn tooltip';
+  homeBtn.innerHTML = icons['grid'];
+  homeBtn.setAttribute('aria-label', 'Beranda');
+  homeBtn.title = 'Beranda';
+  homeBtn.addEventListener('click', () => {
+    navigate('/');
+    store.drawerOpen = false;
+  });
+  actions.appendChild(homeBtn);
+
   // Login/Logout button (reactive)
   const loginBtn = document.createElement('button');
   loginBtn.className = 'btn btn--primary btn--sm';
@@ -90,13 +102,13 @@ export function createAppBar() {
       '/rolling': 'Rolling Yes/No',
       '/diagram': 'Code Diagram',
       '/bahasa': 'Language',
+      '/video': 'Video Downloader',
+      '/video-history': 'Video History',
       '/saham/news': 'News Intelligence',
       '/saham/stocks': 'IDX Stocks',
       '/saham/stock-list': 'Stock List',
       '/saham/market': 'IHSG Radar',
       '/saham/reports': 'Reports',
-      '/saham/video': 'Video Downloader',
-      '/saham/video-history': 'Video History',
       '/saham/admin/dashboard': 'Server Dashboard',
       '/saham/admin/users': 'User Permissions',
       '/saham/admin/backup': 'Backup System',

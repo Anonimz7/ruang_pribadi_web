@@ -10,26 +10,33 @@ let currentPageModule = null;
 
 const PUBLIC_ROUTES = new Set([
   '/',
+  '/tools',
+  '/quiz',
+  '/games',
 ]); // /login tidak lagi route publik (menggunakan modal pop-up)
 
 const routes = {
   '/': () => import('../pages/saham/landing.js'),
   '/profile': () => import('../pages/saham/profile.js'),
+  // Landing menu (hub Tools + placeholder Quiz/Games)
+  '/tools': () => import('../pages/tools/tools.js'),
+  '/quiz': () => import('../pages/coming-soon.js'),
+  '/games': () => import('../pages/coming-soon.js'),
   // Tools & Quiz — tetap flat (belum di-portal-kan)
-  '/math-speed': () => import('../pages/math-speed.js'),
-  '/password': () => import('../pages/password-gen.js'),
-  '/gacha': () => import('../pages/gacha.js'),
-  '/rolling': () => import('../pages/rolling.js'),
-  '/diagram': () => import('../pages/diagram.js'),
-  '/bahasa': () => import('../pages/bahasa.js'),
+  '/math-speed': () => import('../pages/tools/math-speed-2/math-speed.js'),
+  '/password': () => import('../pages/tools/password-gen/password-gen.js'),
+  '/gacha': () => import('../pages/tools/gacha/gacha.js'),
+  '/rolling': () => import('../pages/tools/rolling/rolling.js'),
+  '/diagram': () => import('../pages/tools/diagram/diagram.js'),
+  '/bahasa': () => import('../pages/tools/bahasa/bahasa.js'),
+  '/video': () => import('../pages/tools/video/video.js'),
+  '/video-history': () => import('../pages/tools/video/video-history.js'),
   // Portal Saham
   '/saham/news': () => import('../pages/saham/news.js'),
   '/saham/stocks': () => import('../pages/saham/stocks.js'),
   '/saham/stock-list': () => import('../pages/saham/stock-list.js'),
   '/saham/market': () => import('../pages/saham/market.js'),
   '/saham/reports': () => import('../pages/saham/reports.js'),
-  '/saham/video': () => import('../pages/saham/video.js'),
-  '/saham/video-history': () => import('../pages/saham/video-history.js'),
   '/saham/admin/dashboard': () => import('../pages/saham/admin/dashboard.js'),
   '/saham/admin/users': () => import('../pages/saham/admin/users.js'),
   '/saham/admin/backup': () => import('../pages/saham/admin/backup.js'),
@@ -72,16 +79,14 @@ function checkAccess(path) {
     return { allowed: true, reason: null };
   }
 
-  // Profile & halaman tools/quiz (non-portal): butuh login (perilaku sebelumnya)
-  if (!store.token) {
-    return { allowed: false, reason: 'login_required' };
-  }
-
+  // /profile butuh login
   if (path === '/profile') {
+    if (!store.token) return { allowed: false, reason: 'login_required' };
     return { allowed: true, reason: null };
   }
 
-  // Tools/quiz non-portal: cek permission seperti sebelumnya
+  // Tools non-portal: tamu boleh akses bebas (tanpa paksa login).
+  // User yang sudah login tetap dicek terhadap permission & hidden menu.
   const keyMap = {
     '/math-speed': 'math_speed',
     '/password': 'password_generator',
@@ -89,15 +94,25 @@ function checkAccess(path) {
     '/rolling': 'rolling',
     '/diagram': 'code_diagram',
     '/bahasa': 'language',
+    '/video': 'video_downloader',
+    '/video-history': 'video_history',
   };
-  const appKey = keyMap[path];
 
-  if (appKey && !Auth.canAccess(appKey)) {
-    return { allowed: false, reason: 'Anda tidak memiliki izin untuk mengakses fitur ini.' };
+  // Beberapa tool butuh login karena mengakses backend/akun.
+  // Saat guest membukanya, tampilkan pop-up login (lalu lanjut ke tool setelah login).
+  const TOOLS_REQUIRE_LOGIN = new Set(['/bahasa', '/video', '/video-history']);
+  if (TOOLS_REQUIRE_LOGIN.has(path) && !store.token) {
+    return { allowed: false, reason: 'login_required' };
   }
 
-  if (appKey && Auth.isMenuHidden(appKey)) {
-    return { allowed: false, reason: 'Menu ini disembunyikan.' };
+  // Tools non-portal: area tools dirancang bebas (sebagian butuh login saja),
+  // sehingga TIDAK digate oleh permission backend. Yang membatasi hanya hidden menu.
+  const appKey = keyMap[path];
+
+  if (store.token) {
+    if (appKey && Auth.isMenuHidden(appKey)) {
+      return { allowed: false, reason: 'Menu ini disembunyikan.' };
+    }
   }
 
   return { allowed: true, reason: null };

@@ -1,6 +1,6 @@
 /* pages/diagram.js — Code Diagram (PlantUML Local Renderer) */
-import { createEl } from '../../utils/dom.js';
-import { toast } from '../../ui/toast.js';
+import { createEl } from '../../../utils/dom.js';
+import { toast } from '../../../ui/toast.js';
 
 // ═══════════════════════════════════════════════════════
 // KONFIGURASI — Mencerminkan code_diagram_screen.dart & plantuml_local_renderer.dart

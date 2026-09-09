@@ -827,6 +827,10 @@
   background: linear-gradient(145deg, #8a4f5c, #5e323d);
   box-shadow: 0 8px 18px -4px rgba(94, 50, 61, 0.4);
 }
+.landing-item:nth-child(4) .landing-btn {
+  background: linear-gradient(145deg, #4f5b8a, #323e5e);
+  box-shadow: 0 8px 18px -4px rgba(50, 62, 94, 0.4);
+}
 .landing-btn:hover {
   transform: scale(1.07);
   box-shadow: 0 12px 28px -6px rgba(0, 0, 0, 0.3);
@@ -2295,4 +2299,112 @@ button.admin-sitemaps__lang:hover { filter: brightness(0.92); }
     transition: none !important;
     animation: none !important;
   }
+}
+
+/* ── Tools hub (publik) ──────────────────────────── */
+.tools-page {
+  padding: var(--s-2) 0;
+}
+.page-head {
+  margin-bottom: var(--s-5);
+}
+.page-head h1 {
+  margin: 0 0 var(--s-1);
+  font-size: var(--text-lg);
+  font-weight: 700;
+  color: var(--c-text);
+}
+.page-head__sub {
+  margin: 0;
+  color: var(--c-text-2);
+  font-size: var(--text-sm);
+}
+.tool-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(240px, 1fr));
+  gap: var(--s-4);
+}
+.tool-card {
+  display: flex;
+  align-items: center;
+  gap: var(--s-3);
+  padding: var(--s-4);
+  background: var(--c-surface);
+  border: 1px solid var(--c-border);
+  border-radius: var(--radius);
+  text-align: left;
+  cursor: pointer;
+  transition: border-color var(--dur-fast) var(--ease),
+              box-shadow var(--dur-base) var(--ease),
+              transform var(--dur-fast) var(--ease);
+}
+.tool-card:hover {
+  border-color: var(--c-border-hi);
+  box-shadow: 0 6px 16px -8px rgba(0, 0, 0, 0.18);
+  transform: translateY(-2px);
+}
+.tool-card__icon {
+  flex-shrink: 0;
+  width: 40px;
+  height: 40px;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  border-radius: var(--radius);
+  background: var(--c-primary);
+  color: #fff;
+}
+.tool-card__icon svg {
+  width: 20px;
+  height: 20px;
+}
+.tool-card__body {
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+  min-width: 0;
+}
+.tool-card__label {
+  font-size: var(--text-base);
+  font-weight: 600;
+  color: var(--c-text);
+}
+.tool-card__desc {
+  font-size: var(--text-xs);
+  color: var(--c-text-2);
+  line-height: 1.35;
+}
+
+/* ── Coming Soon (Quiz / Games) ──────────────────── */
+.coming-soon {
+  min-height: 60vh;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  padding: var(--s-5);
+}
+.coming-soon__card {
+  max-width: 420px;
+  width: 100%;
+  text-align: center;
+  padding: var(--s-7) var(--s-5);
+  background: var(--c-surface);
+  border: 1px solid var(--c-border);
+  border-radius: var(--radius);
+  box-shadow: 0 20px 40px -20px rgba(0, 0, 0, 0.25);
+}
+.coming-soon__emoji {
+  font-size: 3rem;
+  margin-bottom: var(--s-4);
+}
+.coming-soon__card h1 {
+  margin: 0 0 var(--s-2);
+  font-size: var(--text-lg);
+  font-weight: 700;
+  color: var(--c-text);
+}
+.coming-soon__card p {
+  margin: 0 0 var(--s-5);
+  color: var(--c-text-2);
+  font-size: var(--text-base);
 }

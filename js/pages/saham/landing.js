@@ -9,8 +9,9 @@ import { showLogin } from '../login-modal.js';
 // Status 'active' = bisa diklik, 'coming' = disabled "Segera hadir"
 const MENUS = [
   { num: '1', label: 'Saham', desc: 'Stocks, berita, video & panel admin', small: 'Butuh login', route: '/saham', status: 'active' },
-  { num: '2', label: 'Tools', desc: 'Kalkulator, konversi & produktivitas', small: 'Segera hadir', route: null, status: 'coming' },
-  { num: '3', label: 'Quiz', desc: 'Kuis interaktif & games seru', small: 'Segera hadir', route: null, status: 'coming' },
+  { num: '2', label: 'Tools', desc: 'Kalkulator, konversi & produktivitas', small: 'Gratis untuk semua', route: '/tools', status: 'active' },
+  { num: '3', label: 'Quiz', desc: 'Kuis interaktif & games seru', small: 'Coming Soon', route: '/quiz', status: 'active' },
+  { num: '4', label: 'Games', desc: 'Games seru untuk mengisi waktu', small: 'Coming Soon', route: '/games', status: 'active' },
 ];
 
 export function render() {
@@ -62,7 +63,7 @@ export function render() {
     header.appendChild(createEl('p', {}, ['Klik tombol untuk memulai']));
     card.appendChild(header);
 
-    // Grid 3 menu
+    // Grid menu
     const grid = createEl('div', { class: 'landing-grid' });
     MENUS.forEach((m) => {
       const item = createEl('div', {

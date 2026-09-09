@@ -93,16 +93,7 @@
       "key": "video_downloader",
       "icon": "Icons.download",
       "label": "Video Downloader",
-      "section": "media",
-      "portal": "saham",
-      "defaultPermission": true
-    },
-    {
-      "key": "video_history",
-      "icon": "Icons.history",
-      "label": "Video History",
-      "section": "media",
-      "portal": "saham",
+      "section": "menu",
       "defaultPermission": true
     },
     {
