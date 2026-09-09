@@ -2,6 +2,7 @@
  * Konversi dari tools/Color-Tint-Shade/index.html ke module SPA.
  * Partikel background dihilangkan; dark mode mengikuti tema app (CSS vars). */
 import { createEl } from '../../../utils/dom.js';
+import { getColorName } from '../../../utils/color-names.js';
 
 const CSS = `
   .cts-page { max-width: 1200px; margin: 0 auto; padding: var(--s-2); text-align: center; }
@@ -16,6 +17,9 @@ const CSS = `
   input[type="text"].cts-hex { padding: 10px; border: 1px solid var(--c-border); border-radius: 8px; font-size: 1em; width: 86px; text-align: center; outline: none; background: var(--c-surface); color: var(--c-text); }
   input[type="range"].cts-range { width: 100%; max-width: 160px; accent-color: var(--c-primary); }
   .cts-value { font-weight: bold; color: var(--c-primary); min-width: 40px; text-align: left; }
+  .cts-color-name { display: inline-block; margin-top: 8px; padding: 3px 12px; border-radius: 999px; border: 1px solid var(--c-border); background: var(--c-surface); font-size: .85em; color: var(--c-text); }
+  .cts-color-name strong { color: var(--c-primary); font-weight: 600; }
+  .cts-color-name .cts-unknown { color: var(--c-text-2); }
   .cts-wide { grid-column: 1 / -1; }
   .cts-range-wide { width: 80% !important; max-width: none !important; }
   .cts-palette { display: flex; flex-wrap: wrap; justify-content: flex-start; align-items: flex-start; margin-top: var(--s-5); border-radius: var(--radius); overflow: hidden; border: 1px solid var(--c-border); }
@@ -87,6 +91,8 @@ function getContrastTextColor(hexColor) {
   return luminance > 0.55 ? 'black' : 'white';
 }
 
+
+
 export function render() {
   const page = createEl('div', { class: 'cts-page' });
 
@@ -120,6 +126,8 @@ export function render() {
   baseColorHex.placeholder = '#RRGGBB';
   row1.append(baseColorPicker, baseColorHex);
   g1.appendChild(row1);
+  const baseColorName = createEl('div', { class: 'cts-color-name' }, ['']);
+  g1.appendChild(baseColorName);
   controls.appendChild(g1);
 
   // Group 2: Weight
@@ -259,6 +267,15 @@ export function render() {
   }
 
   // --- SYNC LOGIC (dua arah) ---
+  const updateColorNameDisplay = () => {
+    const info = getColorName(baseColorPicker.value);
+    if (info) {
+      baseColorName.innerHTML = `<strong>${info.name}</strong> <span class="cts-unknown">(${info.hex})</span>`;
+    } else {
+      baseColorName.innerHTML = '<span class="cts-unknown">Hex tidak valid</span>';
+    }
+  };
+
   const updateHexFromPicker = () => {
     const hex = baseColorPicker.value.toUpperCase();
     baseColorHex.value = hex;
@@ -275,6 +292,7 @@ export function render() {
     const [h] = rgbToHsl(r, g, b);
     hueSlider.value = h;
     regenerate();
+    updateColorNameDisplay();
   };
 
   const updateBaseColorFromHue = () => {
@@ -288,6 +306,7 @@ export function render() {
     baseColorPicker.value = newHex;
     baseColorHex.value = newHex;
     regenerate();
+    updateColorNameDisplay();
   };
 
   const regenerate = () => {

@@ -2,6 +2,7 @@
  * Konversi dari tools/color-blind/index.html ke module SPA.
  * Partikel background dihilangkan; dark mode mengikuti tema aplikasi. */
 import { createEl } from '../../../utils/dom.js';
+import { getColorName } from '../../../utils/color-names.js';
 
 const CSS = `
         :root {
@@ -574,6 +575,18 @@ const CSS = `
          }
 
 
+        .mixed-color-name {
+            margin: 6px 0 10px;
+            padding: 4px 14px;
+            border-radius: 999px;
+            border: 1px solid var(--card-border);
+            background: var(--card-bg);
+            display: inline-block;
+            font-size: .95rem;
+        }
+        .mixed-color-name strong {
+            color: var(--button-bg);
+        }
     `;
 
 const BODY = `</head>
@@ -844,6 +857,7 @@ const BODY = `</head>
             <div class="color-output">
                 <h3>Hasil Pencampuran</h3>
                 <div id="mixedColorBox" class="mixed-color-box"></div>
+                <p id="mixedColorName" class="mixed-color-name">Nama: -</p>
                 <div class="color-codes">
                     <p id="mixedColorHex">Hex: #000000</p>
                     <p id="mixedColorRgb">RGB: rgb(0, 0, 0)</p>
@@ -987,6 +1001,13 @@ function initColorBlind(page) {
     page.querySelector('#mixedColorHex').textContent = `Hex: ${mixedHex}`;
     page.querySelector('#mixedColorRgb').textContent = `RGB: rgb(${mixedR}, ${mixedG}, ${mixedB})`;
     page.querySelector('#mixedColorCmyk').textContent = `CMYK: cmyk(${cmykObj.c}, ${cmykObj.m}, ${cmykObj.y}, ${cmykObj.k})`;
+    const mixedName = getColorName(mixedHex);
+    const nameEl = page.querySelector('#mixedColorName');
+    if (nameEl) {
+      nameEl.innerHTML = mixedName
+        ? `Nama: <strong>${mixedName.name}</strong> (${mixedName.hex})`
+        : 'Nama: -';
+    }
   }
 
   function toggleInputs(colorNumber, mode) {
