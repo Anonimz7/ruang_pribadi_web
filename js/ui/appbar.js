@@ -3,6 +3,7 @@ import { store, subscribe } from '../core/state.js';
 import { navigate } from '../core/router.js';
 import { Auth } from '../core/auth.js';
 import { icons } from './icons.js';
+import { showLogin } from '../pages/login-modal.js';
 
 export function createAppBar() {
   const el = document.createElement('header');
@@ -64,7 +65,7 @@ export function createAppBar() {
       loginBtn.title = 'Login';
       loginBtn.onclick = null;
       loginBtn.addEventListener('click', () => {
-        navigate('/login');
+        showLogin();
       });
     }
   };
@@ -82,7 +83,6 @@ export function createAppBar() {
   subscribe('currentPage', (path) => {
     const map = {
       '/': 'Beranda',
-      '/login': 'Login',
       '/profile': 'Profile',
       '/math-speed': 'Math Speed',
       '/password': 'Password Generator',

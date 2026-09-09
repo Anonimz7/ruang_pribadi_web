@@ -4,6 +4,7 @@ import { Auth } from '../core/auth.js';
 import { fetchMenuConfig, ROUTE_MAP, MENU_SECTIONS, getPortal } from '../core/menu-config.js';
 import { navigate } from '../core/router.js';
 import { icons } from './icons.js';
+import { showLogin } from '../pages/login-modal.js';
 
 let menuConfig = null;
 
@@ -219,7 +220,7 @@ function renderFooter() {
       <span class="drawer__label">Login</span>
     `;
     btn.addEventListener('click', () => {
-      navigate('/login');
+      showLogin();
       if (window.innerWidth <= 768) store.drawerOpen = false;
     });
   }

@@ -3,19 +3,18 @@ import { $ } from '../utils/dom.js';
 import { store, subscribe } from './state.js';
 import { loadSession, Auth } from './auth.js';
 import { getPortal } from './menu-config.js';
+import { showLogin } from '../pages/login-modal.js';
 
 const cache = new Map();
 let currentPageModule = null;
 
 const PUBLIC_ROUTES = new Set([
-  '/login',
   '/',
-]);
+]); // /login tidak lagi route publik (menggunakan modal pop-up)
 
 const routes = {
-  '/': () => import('../pages/landing.js'),
-  '/login': () => import('../pages/login.js'),
-  '/profile': () => import('../pages/profile.js'),
+  '/': () => import('../pages/saham/landing.js'),
+  '/profile': () => import('../pages/saham/profile.js'),
   // Tools & Quiz — tetap flat (belum di-portal-kan)
   '/math-speed': () => import('../pages/math-speed.js'),
   '/password': () => import('../pages/password-gen.js'),
@@ -24,21 +23,21 @@ const routes = {
   '/diagram': () => import('../pages/diagram.js'),
   '/bahasa': () => import('../pages/bahasa.js'),
   // Portal Saham
-  '/saham/news': () => import('../pages/news.js'),
-  '/saham/stocks': () => import('../pages/stocks.js'),
-  '/saham/stock-list': () => import('../pages/stock-list.js'),
-  '/saham/market': () => import('../pages/market.js'),
-  '/saham/reports': () => import('../pages/reports.js'),
-  '/saham/video': () => import('../pages/video.js'),
-  '/saham/video-history': () => import('../pages/video-history.js'),
-  '/saham/admin/dashboard': () => import('../pages/admin/dashboard.js'),
-  '/saham/admin/users': () => import('../pages/admin/users.js'),
-  '/saham/admin/backup': () => import('../pages/admin/backup.js'),
-  '/saham/admin/sitemaps': () => import('../pages/admin/sitemaps.js'),
-  '/saham/admin/proxies': () => import('../pages/admin/proxies.js'),
-  '/saham/admin/reports': () => import('../pages/admin/reports.js'),
-  '/saham/admin/stock-status': () => import('../pages/admin/stock-status.js'),
-  '/saham/admin/idx-upload': () => import('../pages/admin/idx-upload.js'),
+  '/saham/news': () => import('../pages/saham/news.js'),
+  '/saham/stocks': () => import('../pages/saham/stocks.js'),
+  '/saham/stock-list': () => import('../pages/saham/stock-list.js'),
+  '/saham/market': () => import('../pages/saham/market.js'),
+  '/saham/reports': () => import('../pages/saham/reports.js'),
+  '/saham/video': () => import('../pages/saham/video.js'),
+  '/saham/video-history': () => import('../pages/saham/video-history.js'),
+  '/saham/admin/dashboard': () => import('../pages/saham/admin/dashboard.js'),
+  '/saham/admin/users': () => import('../pages/saham/admin/users.js'),
+  '/saham/admin/backup': () => import('../pages/saham/admin/backup.js'),
+  '/saham/admin/sitemaps': () => import('../pages/saham/admin/sitemaps.js'),
+  '/saham/admin/proxies': () => import('../pages/saham/admin/proxies.js'),
+  '/saham/admin/reports': () => import('../pages/saham/admin/reports.js'),
+  '/saham/admin/stock-status': () => import('../pages/saham/admin/stock-status.js'),
+  '/saham/admin/idx-upload': () => import('../pages/saham/admin/idx-upload.js'),
 };
 
 /**
@@ -117,14 +116,21 @@ export async function navigate(path, push = true) {
   const { allowed, reason } = checkAccess(path);
   if (!allowed) {
     if (reason === 'login_required') {
-      // Redirect to login page, preserving the original destination
+      // Show login modal directly (no page redirect)
       store.pendingRoute = path;
-      store.activePortal = null; // halaman login bukan bagian portal
-      path = '/login';
+      store.activePortal = null;
+      showLogin();
+      return;
     } else {
       app.innerHTML = `<div class="empty"><div class="empty__title">Akses Dibatasi</div><div class="empty__desc">${reason}</div></div>`;
       return;
     }
+  }
+
+  // Close login modal if open (it lives in body, not page-root)
+  const existingModal = document.querySelector('.login-modal');
+  if (existingModal) {
+    existingModal.remove();
   }
 
   // Cleanup previous page module
