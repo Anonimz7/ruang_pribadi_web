@@ -46,15 +46,15 @@ const routes = {
   '/saham/admin/stock-status': () => import('../pages/saham/admin/stock-status.js'),
   '/saham/admin/idx-upload': () => import('../pages/saham/admin/idx-upload.js'),
   // Tools — dikonversi dari HTML standalone ke ES module
-  '/color-palate': () => import('../pages/tools/color-palate-2/color-palate.js'),
-  '/math-dasar': () => import('../pages/tools/math-dasar-2/math-dasar.js'),
-  '/bacak': () => import('../pages/tools/bacak-2/bacak.js'),
-  '/tint-shade': () => import('../pages/tools/color-tint-shade-2/color-tint-shade.js'),
-  '/color-blind': () => import('../pages/tools/color-blind-2/color-blind.js'),
-  '/jepunese': () => import('../pages/tools/jepunese-2/jepunese.js'),
-  '/bahasa-interaktif': () => import('../pages/tools/bahasa-interaktif-2/bahasa-interaktif.js'),
-  '/type-writing': () => import('../pages/tools/type-writing-2/type-writing.js'),
-  '/math-speed-legacy': () => import('../pages/tools/math-speed-legacy-2/math-speed-legacy.js'),
+  '/color-palate': () => import('../pages/tools/Color-Palate/color-palate.js'),
+  '/math-dasar': () => import('../pages/tools/Math-Dasar/math-dasar.js'),
+  '/bacak': () => import('../pages/tools/bacak/bacak.js'),
+  '/tint-shade': () => import('../pages/tools/Color-Tint-Shade/color-tint-shade.js'),
+  '/color-blind': () => import('../pages/tools/color-blind/color-blind.js'),
+  '/jepunese': () => import('../pages/tools/jepunese/jepunese.js'),
+  '/bahasa-interaktif': () => import('../pages/tools/Pembelajaran-Bahasa-Interaktif/bahasa-interaktif.js'),
+  '/type-writing': () => import('../pages/tools/type-writing/type-writing.js'),
+  '/math-speed-legacy': () => import('../pages/tools/math-speed/math-speed.js'),
 };
 
 /**
