@@ -15,6 +15,13 @@
       "defaultPermission": true
     },
     {
+      "key": "math_speed_legacy",
+      "icon": "Icons.calculate",
+      "label": "Math Speed (Old)",
+      "section": "menu",
+      "defaultPermission": true
+    },
+    {
       "key": "password_generator",
       "icon": "Icons.password",
       "label": "Password Generator",
@@ -93,6 +100,69 @@
       "key": "video_downloader",
       "icon": "Icons.download",
       "label": "Video Downloader",
+      "section": "menu",
+      "defaultPermission": true
+    },
+    {
+      "key": "color_palate",
+      "icon": "Icons.grid",
+      "label": "Color Palate",
+      "section": "menu",
+      "defaultPermission": true
+    },
+    {
+      "key": "math_dasar",
+      "icon": "Icons.calculate",
+      "label": "Math Dasar",
+      "section": "menu",
+      "defaultPermission": true
+    },
+    {
+      "key": "csv_shuffler",
+      "icon": "Icons.grid",
+      "label": "CSV Shuffler",
+      "section": "menu",
+      "defaultPermission": true
+    },
+    {
+      "key": "tint_shade",
+      "icon": "Icons.grid",
+      "label": "Tint & Shade",
+      "section": "menu",
+      "defaultPermission": true
+    },
+    {
+      "key": "color_vision",
+      "icon": "Icons.grid",
+      "label": "Edukasi Warna",
+      "section": "menu",
+      "defaultPermission": true
+    },
+    {
+      "key": "jepunese",
+      "icon": "Icons.translate",
+      "label": "Jepunese",
+      "section": "menu",
+      "defaultPermission": true
+    },
+    {
+      "key": "bahasa_interaktif",
+      "icon": "Icons.book_open",
+      "label": "Bahasa Interaktif",
+      "section": "menu",
+      "defaultPermission": true
+    },
+    {
+      "key": "type_writing",
+      "icon": "Icons.keyboard",
+      "label": "Type Writing",
+      "section": "menu",
+      "defaultPermission": true
+    },
+    {
+      "key": "deck_of_cards",
+      "icon": "Icons.grid",
+      "label": "Deck of Cards",
       "section": "menu",
       "defaultPermission": true
     },

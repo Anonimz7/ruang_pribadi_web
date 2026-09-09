@@ -1,0 +1,864 @@
+/* pages/tools/math-speed-legacy-2/math-speed-legacy.js — Math Speed Challenge (legacy version)
+ * Konversi dari tools/math-speed/index.html ke module SPA.
+ * Dark mode mengikuti tema aplikasi; Particles.js di-drop. */
+import { createEl } from '../../../utils/dom.js';
+
+function ensureFontAwesome() {
+  if (!document.querySelector('link[href*="font-awesome"]')) {
+    const l = document.createElement('link');
+    l.rel = 'stylesheet';
+    l.href = 'https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.1/css/all.min.css';
+    document.head.appendChild(l);
+  }
+}
+
+const CSS = `.ms-root /* CSS Lengkap dari file style.css Anda */
+        @font-face{
+            font-family: 'Poppins';
+            font-style: normal;
+            font-weight: 400;
+            src: url('fonts/poppins/Poppins-Regular.ttf') format('truetype');
+        }
+        @font-face {
+            font-family: 'Poppins';
+            font-style: normal;
+            font-weight: 600;
+            src: url('fonts/poppins/Poppins-SemiBold.ttf') format('truetype');
+        }
+        @font-face {
+            font-family: 'Poppins';
+            font-style: normal;
+            font-weight: 700;
+            src: url('fonts/poppins/Poppins-Bold.ttf') format('truetype');
+        }.ms-root{
+            --primary: #4361ee;
+            --secondary: #3f37c9;
+            --accent: #4895ef;
+            --danger: #f72585;
+            --success: #4cc9f0;
+            --light: #f8f9fa;
+            --dark: #212529;
+            --gray: #6c757d;
+            --warning: #ff9e00;
+            --super-hard: #9d4edd;
+            --monster: #ff5400;
+            --info: #0077b6; /* Warna baru untuk tombol tabel */
+            
+            --bg-color: #f5f7fa;
+            --bg-gradient: linear-gradient(135deg, #f5f7fa 0%, #c3cfe2 100%);
+            --card-bg: white;
+            --text-color: #212529;
+            --input-bg: white;
+            --input-border: #e9ecef;
+            --stat-bg: white;
+            --result-stat-bg: #f8f9fa;
+        }.ms-root.dark-mode{
+            --bg-color: #121212;
+            --bg-gradient: linear-gradient(135deg, #121212 0%, #1e1e1e 100%);
+            --card-bg: #1e1e1e;
+            --text-color: #f8f9fa;
+            --input-bg: #2d2d2d;
+            --input-border: #444;
+            --stat-bg: #2d2d2d;
+            --result-stat-bg: #2d2d2d;
+            --light: #2d2d2d;
+        }.ms-root *{
+            box-sizing: border-box;
+            margin: 0;
+            padding: 0;
+            transition: background-color 0.3s, color 0.3s;
+        }.ms-root{
+            font-family: 'Poppins', sans-serif;
+            background: var(--bg-gradient);
+            min-height: 100vh;
+            width: 100%;
+            box-sizing: border-box;
+            display: flex;
+            flex-direction: column;
+            justify-content: center;
+            align-items: center;
+            padding: 20px;
+            color: var(--text-color);
+        }.ms-root .container{ width: 100%; max-width: 800px; }.ms-root .container{
+            background-color: var(--card-bg);
+            border-radius: 16px;
+            box-shadow: 0 10px 30px rgba(0, 0, 0, 0.1);
+            width: 100%;
+            max-width: 800px;
+            overflow: hidden;
+            margin: 20px 0;
+            position: relative;
+            z-index: 1;
+        }.ms-root .header{
+            background: linear-gradient(135deg, var(--primary) 0%, var(--secondary) 100%);
+            color: white;
+            padding: 25px;
+            text-align: center;
+            position: relative;
+        }.ms-root h1{
+            font-size: 2.2rem;
+            margin-bottom: 10px;
+            font-weight: 700;
+        }.ms-root .subtitle{
+            font-size: 1rem;
+            opacity: 0.9;
+        }.ms-root .game-area{
+            padding: 30px;
+        }.ms-root .settings{
+            background-color: var(--light);
+            border-radius: 12px;
+            padding: 20px;
+            margin-bottom: 30px;
+            display: grid;
+            grid-template-columns: 1fr;
+            gap: 15px;
+        }.ms-root .setting-group{
+            margin-bottom: 10px;
+        }.ms-root label{
+            display: block;
+            margin-bottom: 8px;
+            font-weight: 600;
+            color: var(--gray);
+            font-size: 0.9rem;
+        }.ms-root select,.ms-root input[type="number"]{
+            width: 100%;
+            padding: 12px 15px;
+            background-color: var(--input-bg);
+            border: 2px solid var(--input-border);
+            border-radius: 8px;
+            font-family: 'Poppins', sans-serif;
+            font-size: 1rem;
+            transition: all 0.3s;
+            color: var(--text-color);
+        }.ms-root select:disabled{
+            background-color: #e9ecef;
+            cursor: not-allowed;
+            opacity: 0.7;
+        }.ms-root.dark-mode select:disabled{
+            background-color: #3a3a3a;
+        }.ms-root select:focus,.ms-root input[type="number"]:focus{
+            border-color: var(--accent);
+            outline: none;
+            box-shadow: 0 0 0 3px rgba(67, 97, 238, 0.2);
+        }.ms-root .game-mode{
+            display: flex;
+            flex-direction: column;
+            gap: 10px;
+        }.ms-root .mode-options{
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(120px, 1fr));
+            gap: 10px;
+        }.ms-root .mode-option{
+            flex: 1;
+        }.ms-root .mode-radio{
+            display: none;
+        }.ms-root .mode-label{
+            display: block;
+            padding: 12px;
+            background-color: var(--card-bg);
+            border: 2px solid var(--input-border);
+            border-radius: 8px;
+            text-align: center;
+            cursor: pointer;
+            transition: all 0.3s;
+            font-size: 0.9rem;
+            color: var(--text-color);
+        }.ms-root .mode-radio:checked + .mode-label{
+            border-color: var(--accent);
+            background-color: rgba(72, 149, 239, 0.1);
+            color: var(--primary);
+            font-weight: 600;
+        }.ms-root .mode-input{
+            margin-top: 10px;
+            display: none;
+        }.ms-root .problem-container{
+            text-align: center;
+            margin-bottom: 30px;
+            position: relative;
+        }.ms-root .problem{
+            font-size: clamp(2.5rem, 8vw, 4rem);
+            font-weight: 700;
+            margin: 20px 0;
+            color: var(--text-color);
+            min-height: 80px;
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            word-break: break-all;
+        }.ms-root .answer-input{
+            font-size: 1.8rem;
+            padding: 15px;
+            width: 100%;
+            max-width: 200px;
+            text-align: center;
+            background-color: var(--input-bg);
+            border: 3px solid var(--input-border);
+            border-radius: 10px;
+            margin: 0 auto 25px;
+            display: block;
+            transition: all 0.3s;
+            color: var(--text-color);
+        }.ms-root .answer-input:focus{
+            border-color: var(--accent);
+            box-shadow: 0 0 0 4px rgba(67, 97, 238, 0.2);
+        }.ms-root .btn{
+            color: white;
+            border: none;
+            padding: 12px 24px;
+            font-size: 1rem;
+            font-weight: 600;
+            border-radius: 8px;
+            cursor: pointer;
+            transition: all 0.3s;
+            display: inline-block;
+            min-width: 120px;
+            margin: 5px;
+            box-shadow: 0 4px 6px rgba(0, 0, 0, 0.1);
+        }.ms-root .btn-primary{
+            background: linear-gradient(135deg, var(--primary) 0%, var(--secondary) 100%);
+        }.ms-root .btn-warning{
+            background: linear-gradient(135deg, var(--warning) 0%, #ff6d00 100%);
+        }.ms-root .btn-danger{
+            background: linear-gradient(135deg, var(--danger) 0%, #b5179e 100%);
+        }.ms-root .btn-info{
+            background: linear-gradient(135deg, var(--info) 0%, #0096c7 100%); /* Gaya untuk tombol baru */
+        }.ms-root .btn:hover{
+            transform: translateY(-2px);
+            box-shadow: 0 6px 10px rgba(0, 0, 0, 0.15);
+        }.ms-root .btn:active{
+            transform: translateY(0);
+        }.ms-root .btn:disabled{
+            background: var(--input-border);
+            color: var(--gray);
+            cursor: not-allowed;
+            box-shadow: none;
+            transform: none;
+        }.ms-root .btn-group{
+            display: flex;
+            justify-content: center;
+            flex-wrap: wrap;
+            gap: 10px;
+            margin-top: 15px;
+        }.ms-root .stats{
+            display: grid;
+            grid-template-columns: repeat(3, 1fr);
+            gap: 10px;
+            margin-top: 30px;
+        }.ms-root .stat-card{
+            background-color: var(--stat-bg);
+            border-radius: 10px;
+            padding: 15px;
+            box-shadow: 0 4px 10px rgba(0, 0, 0, 0.05);
+            text-align: center;
+        }.ms-root .stat-value{
+            font-size: 1.5rem;
+            font-weight: 700;
+            margin-bottom: 5px;
+        }.ms-root .stat-label{
+            font-size: 0.8rem;
+            color: var(--gray);
+        }.ms-root .timer{
+            color: var(--danger);
+        }.ms-root .score{
+            color: var(--primary);
+        }.ms-root .streak{
+            color: var(--success);
+        }.ms-root .progress-container{
+            margin-top: 20px;
+            height: 8px;
+            background-color: var(--input-border);
+            border-radius: 4px;
+            overflow: hidden;
+        }.ms-root .progress-bar{
+            height: 100%;
+            background: linear-gradient(90deg, var(--accent) 0%, var(--success) 100%);
+            width: 0%;
+            transition: width 0.3s;
+        }.ms-root .pause-overlay{
+            position: absolute;
+            top: 0;
+            left: 0;
+            right: 0;
+            bottom: 0;
+            background-color: rgba(30, 30, 30, 0.9);
+            display: flex;
+            flex-direction: column;
+            justify-content: center;
+            align-items: center;
+            z-index: 10;
+            border-radius: 12px;
+            opacity: 0;
+            pointer-events: none;
+            transition: opacity 0.3s;
+        }.ms-root.dark-mode .pause-overlay{
+            background-color: rgba(0, 0, 0, 0.9);
+        }.ms-root .pause-overlay.active{
+            opacity: 1;
+            pointer-events: all;
+        }.ms-root .pause-text{
+            font-size: 2rem;
+            font-weight: 700;
+            color: var(--warning);
+            margin-bottom: 20px;
+        }.ms-root .results-container{
+            text-align: center;
+            padding: 20px;
+            display: none;
+        }.ms-root .results-title{
+            font-size: 1.8rem;
+            font-weight: 700;
+            color: var(--primary);
+            margin-bottom: 20px;
+        }.ms-root .results-stats{
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(150px, 1fr));
+            gap: 15px;
+            margin-bottom: 20px;
+        }.ms-root .result-stat{
+            background-color: var(--result-stat-bg);
+            border-radius: 10px;
+            padding: 15px;
+            text-align: center;
+        }.ms-root .result-value{
+            font-size: 1.5rem;
+            font-weight: 700;
+            margin-bottom: 5px;
+        }.ms-root .result-label{
+            font-size: 0.9rem;
+            color: var(--gray);
+        }.ms-root .difficulty-label{
+            display: inline-block;
+            padding: 4px 10px;
+            border-radius: 20px;
+            font-size: 0.8rem;
+            font-weight: 600;
+            margin-bottom: 10px;
+        }.ms-root .easy{
+            background-color: rgba(76, 201, 240, 0.2);
+            color: var(--success);
+        }.ms-root .medium{
+            background-color: rgba(255, 193, 7, 0.2);
+            color: #ffc107;
+        }.ms-root .hard{
+            background-color: rgba(244, 67, 54, 0.2);
+            color: #f44336;
+        }.ms-root .super-hard{
+            background-color: rgba(157, 78, 221, 0.2);
+            color: var(--super-hard);
+        }.ms-root .monster{
+            background-color: rgba(255, 84, 0, 0.2);
+            color: var(--monster);
+        }.ms-root.dark-mode-toggle{
+            position: absolute;
+            top: 20px;
+            right: 20px;
+            width: 40px;
+            height: 40px;
+            border-radius: 50%;
+            background-color: rgba(255, 255, 255, 0.2);
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            cursor: pointer;
+            transition: all 0.3s;
+            border: none;
+            color: white;
+        }.ms-root.dark-mode-toggle:hover{
+            background-color: rgba(255, 255, 255, 0.3);
+        }.ms-root.dark-mode-toggle i{
+            font-size: 1.2rem;
+        }
+
+        @keyframes pulse {
+            0% { opacity: 1; }
+            50% { opacity: 0.5; }
+            100% { opacity: 1; }
+        }@media (max-width: 600px){.ms-root .container{
+                margin: 10px;
+                border-radius: 10px;
+            }.ms-root .header{
+                padding: 20px 15px;
+            }.ms-root h1{
+                font-size: 1.8rem;
+            }.ms-root .game-area{
+                padding: 20px 15px;
+            }.ms-root .settings{
+                padding: 15px;
+            }.ms-root .mode-options{
+                grid-template-columns: 1fr;
+            }.ms-root .btn{
+                padding: 10px 15px;
+                min-width: 100px;
+                font-size: 0.9rem;
+            }.ms-root .stats{
+                grid-template-columns: 1fr;
+                gap: 10px;
+            }.ms-root .results-stats{
+                grid-template-columns: 1fr 1fr;
+            }.ms-root.dark-mode-toggle{
+                top: 15px;
+                right: 15px;
+                width: 35px;
+                height: 35px;
+            }
+        }
+    `;
+
+const BODY = `<div class="container">
+        <div class="header">
+            <h1>Math Speed Challenge</h1>
+            <p class="subtitle">Latih kecepatan berhitung matematika Anda!</p>
+        </div>
+        
+        <div class="game-area">
+            <div class="settings">
+                <div class="setting-group">
+                    <label for="operation">Operasi Matematika</label>
+                    <select id="operation">
+                        <option value="+">Penjumlahan (+)</option>
+                        <option value="-">Pengurangan (-)</option>
+                        <option value="*">Perkalian (×)</option>
+                        <option value="/">Pembagian (÷)</option>
+                        <option value="random">Campuran (Tidak Berlaku di Mode 10x10)</option>
+                    </select>
+                </div>
+                
+                <div class="setting-group">
+                    <label for="level">Tingkat Kesulitan</label>
+                    <select id="level">
+                        <option value="easy">Mudah</option>
+                        <option value="medium">Sedang</option>
+                        <option value="hard">Sulit</option>
+                        <option value="super-hard">Super Sulit</option>
+                        <option value="monster">Monster</option>
+                    </select>
+                </div>
+                
+                <div class="setting-group">
+                    <label>Mode Permainan</label>
+                    <div class="game-mode">
+                        <div class="mode-options">
+                            <div class="mode-option">
+                                <input type="radio" id="mode-unlimited" name="game-mode" class="mode-radio" value="unlimited" checked>
+                                <label for="mode-unlimited" class="mode-label">Tanpa Batas</label>
+                            </div>
+                            
+                            <div class="mode-option">
+                                <input type="radio" id="mode-time" name="game-mode" class="mode-radio" value="time">
+                                <label for="mode-time" class="mode-label">Batas Waktu</label>
+                            </div>
+                            
+                            <div class="mode-option">
+                                <input type="radio" id="mode-questions" name="game-mode" class="mode-radio" value="questions">
+                                <label for="mode-questions" class="mode-label">Batas Soal</label>
+                            </div>
+
+                            <div class="mode-option">
+                                <input type="radio" id="mode-10x10" name="game-mode" class="mode-radio" value="10x10">
+                                <label for="mode-10x10" class="mode-label">Tabel 10x10</label>
+                            </div>
+                        </div>
+                        
+                        <div class="mode-inputs">
+                            <input type="number" id="time-limit" min="1" max="30" value="2" class="mode-input" placeholder="Menit">
+                            <input type="number" id="question-limit" min="5" max="100" value="10" class="mode-input" placeholder="Jumlah Soal">
+                            
+                            <div id="10x10-options" class="mode-input" style="margin-top: 15px; background-color: var(--input-bg); padding: 10px; border-radius: 8px; border: 2px solid var(--input-border);">
+                                <label style="font-size: 0.9rem; margin-bottom: 10px;">Urutan Soal:</label>
+                                <div style="display: flex; justify-content: space-around;">
+                                    <div class="mode-option">
+                                        <input type="radio" id="order-sequential" name="10x10-order" class="mode-radio" value="sequential" checked>
+                                        <label for="order-sequential" class="mode-label" style="padding: 8px 16px; font-size: 0.85rem;">Urut</label>
+                                    </div>
+                                    <div class="mode-option">
+                                        <input type="radio" id="order-random" name="10x10-order" class="mode-radio" value="random">
+                                        <label for="order-random" class="mode-label" style="padding: 8px 16px; font-size: 0.85rem;">Acak</label>
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+            
+            <div class="problem-container">
+                <div class="pause-overlay" id="pauseOverlay">
+                    <div class="pause-text">PAUSE</div>
+                    <button id="resumeBtn" class="btn btn-primary">Lanjutkan</button>
+                </div>
+                
+                <div class="problem" id="problem">Siap?</div>
+                <input type="number" id="answer" class="answer-input" placeholder="Jawaban" disabled>
+                
+                <div class="btn-group">
+                    <button id="startBtn" class="btn btn-primary">Mulai</button>
+                    <button id="pauseBtn" class="btn btn-warning" disabled>Pause</button>
+                    <button id="stopBtn" class="btn btn-danger" disabled>Stop</button>
+                    <button id="submitBtn" class="btn btn-primary" disabled>Submit</button>
+                    <button id="viewTableBtn" class="btn btn-info"><i class="fas fa-book-open"></i> Tabel</button>
+                </div>
+                
+                <div class="progress-container">
+                    <div class="progress-bar" id="progress-bar"></div>
+                </div>
+            </div>
+            
+            <div class="stats">
+                <div class="stat-card">
+                    <div class="stat-value timer" id="timer">00:00</div>
+                    <div class="stat-label">Waktu</div>
+                </div>
+                <div class="stat-card">
+                    <div class="stat-value score" id="score">0</div>
+                    <div class="stat-label">Skor</div>
+                </div>
+                <div class="stat-card">
+                    <div class="stat-value streak" id="streak">0</div>
+                    <div class="stat-label">Beruntun</div>
+                </div>
+            </div>
+            
+            <div class="results-container" id="resultsContainer">
+                <div class="results-title">Hasil Permainan</div>
+                <div id="difficultyBadge" class="difficulty-label easy">Mudah</div>
+                <div class="results-stats" id="resultsStats">
+                    </div>
+                <button id="restartBtn" class="btn btn-primary">Main Lagi</button>
+                <button id="resultsTableBtn" class="btn btn-info"><i class="fas fa-book-open"></i> Lihat Tabel</button>
+            </div>
+        </div>
+    </div>`;
+
+function initGame(page) {
+// ================= JAVASCRIPT GAME =================
+        
+        let score = 0, streak = 0, time = 0, timer, currentProblem = {}, isPlaying = false, isPaused = false, totalQuestions = 0;
+        let gameMode = 'unlimited', timeLimit = 120, questionLimit = 10, currentDifficulty = 'easy';
+        let answerTimes = [], darkMode = false, problemSet = [];
+
+        // DOM Elements
+        const problemEl = page.querySelector('#problem'), answerEl = page.querySelector('#answer'), submitBtn = page.querySelector('#submitBtn');
+        const startBtn = page.querySelector('#startBtn'), pauseBtn = page.querySelector('#pauseBtn'), stopBtn = page.querySelector('#stopBtn');
+        const resumeBtn = page.querySelector('#resumeBtn'), restartBtn = page.querySelector('#restartBtn'), timerEl = page.querySelector('#timer');
+        const scoreEl = page.querySelector('#score'), streakEl = page.querySelector('#streak'), operationEl = page.querySelector('#operation');
+        const levelEl = page.querySelector('#level'), progressBar = page.querySelector('#progress-bar'), pauseOverlay = page.querySelector('#pauseOverlay');
+        const resultsContainer = page.querySelector('#resultsContainer'), resultsStats = page.querySelector('#resultsStats'), difficultyBadge = page.querySelector('#difficultyBadge');
+        const viewTableBtn = page.querySelector('#viewTableBtn'); // Tombol Baru
+        
+        // Perbaikan: Hanya ambil radio mode permainan utama (name="game-mode")
+        const gameModeRadios = page.querySelectorAll('input[name="game-mode"]');
+        
+        const timeLimitInput = page.querySelector('#time-limit'), questionLimitInput = page.querySelector('#question-limit');
+        const darkModeToggle = page.querySelector('#darkModeToggle'), options10x10 = page.querySelector('[id="10x10-options"]');
+        
+        // Event Listeners
+        startBtn.addEventListener('click', startGame);
+        pauseBtn.addEventListener('click', pauseGame);
+        stopBtn.addEventListener('click', stopGame);
+        resumeBtn.addEventListener('click', resumeGame);
+        restartBtn.addEventListener('click', restartGame);
+        submitBtn.addEventListener('click', checkAnswer);
+        answerEl.addEventListener('keypress', e => { if (e.key === 'Enter') checkAnswer(); });
+        if (darkModeToggle) darkModeToggle.addEventListener('click', toggleDarkMode);
+        
+        // Dark Mode Logic
+        function checkDarkModePreference() { if (localStorage.getItem('darkMode') === 'enabled') enableDarkMode(); }
+        function toggleDarkMode() { darkMode ? disableDarkMode() : enableDarkMode(); }
+        function enableDarkMode() { page.classList.add('dark-mode'); if (darkModeToggle) darkModeToggle.innerHTML = '<i class="fas fa-sun"></i>'; localStorage.setItem('darkMode', 'enabled'); darkMode = true; }
+        function disableDarkMode() { page.classList.remove('dark-mode'); if (darkModeToggle) darkModeToggle.innerHTML = '<i class="fas fa-moon"></i>'; localStorage.setItem('darkMode', 'disabled'); darkMode = false; }
+        
+        // Game Mode Selection Logic (SUDAH DIPERBAIKI)
+        gameModeRadios.forEach(radio => { // Menggunakan gameModeRadios yang baru
+            radio.addEventListener('change', function() {
+                gameMode = this.value;
+                
+                // Sembunyikan semua input spesifik mode
+                timeLimitInput.style.display = 'none';
+                questionLimitInput.style.display = 'none';
+                options10x10.style.display = 'none';
+                
+                // Aktifkan/nonaktifkan select yang relevan
+                levelEl.disabled = false;
+                
+                // Tampilkan input yang relevan
+                if (gameMode === 'time') {
+                    timeLimitInput.style.display = 'block';
+                } else if (gameMode === 'questions') {
+                    questionLimitInput.style.display = 'block';
+                } else if (gameMode === '10x10') {
+                    options10x10.style.display = 'block';
+                    levelEl.disabled = true; // Tingkat kesulitan tidak relevan
+                    if (operationEl.value === 'random') {
+                        operationEl.value = '+'; // Default ke penjumlahan jika 'random' terpilih
+                    }
+                }
+            });
+        });
+        
+        function startGame() {
+            if (gameMode === 'time') {
+                timeLimit = parseInt(timeLimitInput.value) * 60;
+                time = timeLimit;
+            } else if (gameMode === 'questions') {
+                questionLimit = parseInt(questionLimitInput.value);
+                time = 0;
+            } else if (gameMode === '10x10') {
+                questionLimit = 100; // Mode ini selalu 100 soal
+                time = 0;
+            } else {
+                time = 0;
+            }
+            
+            currentDifficulty = levelEl.value;
+            score = 0; streak = 0; totalQuestions = 0; isPaused = false; answerTimes = [];
+            scoreEl.textContent = score; streakEl.textContent = streak;
+            updateTimerDisplay();
+            progressBar.style.width = '0%';
+            pauseOverlay.classList.remove('active');
+            resultsContainer.style.display = 'none';
+            page.querySelector('.problem-container').style.display = 'block';
+            page.querySelector('.stats').style.display = 'grid';
+            startBtn.disabled = true; pauseBtn.disabled = false; stopBtn.disabled = false; submitBtn.disabled = false; answerEl.disabled = false;
+            
+            // Sembunyikan tombol Tabel saat bermain
+            viewTableBtn.style.display = 'none'; 
+            
+            isPlaying = true;
+            generateProblemSet();
+            clearInterval(timer);
+            
+            if (gameMode === 'time') {
+                timer = setInterval(() => {
+                    time--;
+                    updateTimerDisplay();
+                    progressBar.style.width = `${Math.min(((timeLimit - time) / timeLimit) * 100, 100)}%`;
+                    if (time <= 0) stopGame();
+                }, 1000);
+            } else {
+                timer = setInterval(() => {
+                    time++;
+                    updateTimerDisplay();
+                    if (gameMode === 'questions' || gameMode === '10x10') {
+                        progressBar.style.width = `${Math.min((totalQuestions / questionLimit) * 100, 100)}%`;
+                    }
+                }, 1000);
+            }
+            
+            generateProblem();
+            answerEl.focus();
+            answerTimes.push({ startTime: gameMode === 'time' ? timeLimit : time, answerTime: 0 });
+        }
+        
+        function updateTimerDisplay() {
+            let displayTime = Math.max(0, time);
+            const minutes = Math.floor(displayTime / 60).toString().padStart(2, '0');
+            const seconds = (displayTime % 60).toString().padStart(2, '0');
+            timerEl.textContent = `${minutes}:${seconds}`;
+            
+            if (gameMode === 'time' && time <= 10) {
+                timerEl.style.color = 'var(--danger)';
+                timerEl.style.animation = 'pulse 0.5s infinite alternate';
+            } else {
+                timerEl.style.color = 'var(--danger)';
+                timerEl.style.animation = 'none';
+            }
+        }
+        
+        // Pause, Resume, Stop, Restart Functions
+        function pauseGame() { if (!isPlaying) return; isPaused = true; clearInterval(timer); pauseOverlay.classList.add('active'); answerEl.disabled = true; submitBtn.disabled = true; pauseBtn.disabled = true; }
+        function resumeGame() { if (!isPlaying || !isPaused) return; isPaused = false; pauseOverlay.classList.remove('active'); answerEl.disabled = false; submitBtn.disabled = false; pauseBtn.disabled = false; startGameTimer(); answerEl.focus(); }
+        function stopGame() { 
+            isPlaying = false; isPaused = false; clearInterval(timer); 
+            startBtn.disabled = false; pauseBtn.disabled = true; stopBtn.disabled = true; submitBtn.disabled = true; answerEl.disabled = true; 
+            pauseOverlay.classList.remove('active'); 
+            
+            // Tampilkan tombol Tabel saat berhenti
+            viewTableBtn.style.display = 'inline-block';
+
+            showFinalResults(); 
+        }
+        function restartGame() { resultsContainer.style.display = 'none'; page.querySelector('.problem-container').style.display = 'block'; page.querySelector('.stats').style.display = 'grid'; startGame(); }
+        function startGameTimer() { 
+             // Logika timer dipindahkan ke startGame
+            if (gameMode === 'time') {
+                timer = setInterval(() => {
+                    time--;
+                    updateTimerDisplay();
+                    progressBar.style.width = `${Math.min(((timeLimit - time) / timeLimit) * 100, 100)}%`;
+                    if (time <= 0) stopGame();
+                }, 1000);
+            } else {
+                timer = setInterval(() => {
+                    time++;
+                    updateTimerDisplay();
+                    if (gameMode === 'questions' || gameMode === '10x10') {
+                        progressBar.style.width = `${Math.min((totalQuestions / questionLimit) * 100, 100)}%`;
+                    }
+                }, 1000);
+            }
+        } 
+        
+        function shuffleArray(array) { for (let i = array.length - 1; i > 0; i--) { const j = Math.floor(Math.random() * (i + 1)); [array[i], array[j]] = [array[j], array[i]]; } }
+
+        function generateProblemSet() {
+            problemSet = [];
+            const operation = operationEl.value;
+
+            if (gameMode === '10x10') {
+                let op = (operation === 'random' || !['+','-','*','/'].includes(operation)) ? '+' : operation;
+                for (let i = 1; i <= 10; i++) {
+                    for (let j = 1; j <= 10; j++) {
+                        let problem = {};
+                        if (op === '+') problem = { num1: i, num2: j, op: '+', answer: i + j };
+                        else if (op === '-') problem = { num1: i + j, num2: i, op: '-', answer: j };
+                        else if (op === '*') problem = { num1: i, num2: j, op: '*', answer: i * j };
+                        else if (op === '/') problem = { num1: i * j, num2: i, op: '/', answer: j };
+                        problemSet.push(problem);
+                    }
+                }
+                if (page.querySelector('#order-random').checked) shuffleArray(problemSet);
+            } else {
+                const level = levelEl.value;
+                const ranges = {
+                    easy: { min: 1, max: 10, divMax: 5, divMultiplier: 5 },
+                    medium: { min: 1, max: 50, divMax: 10, divMultiplier: 10 },
+                    hard: { min: 1, max: 100, divMax: 12, divMultiplier: 20 },
+                    'super-hard': { min: 1, max: 500, divMax: 20, divMultiplier: 25 },
+                    monster: { min: 1, max: 1000, divMax: 30, divMultiplier: 35 }
+                };
+                const { min, max, divMax, divMultiplier } = ranges[level];
+                const generateForOperation = op => {
+                    for (let i = min; i <= max; i++) {
+                        for (let j = min; j <= max; j++) {
+                            if (op === '+' && j >= i) problemSet.push({ num1: i, num2: j, op: '+', answer: i + j });
+                            else if (op === '*' && j >= i) problemSet.push({ num1: i, num2: j, op: '*', answer: i * j });
+                            else if (op === '-' && i >= j) problemSet.push({ num1: i, num2: j, op: '-', answer: i - j });
+                        }
+                    }
+                    if (op === '/') {
+                        for (let d = min; d <= divMax; d++) {
+                            for (let q = min; q <= divMultiplier; q++) {
+                                if (d * q <= max) problemSet.push({ num1: d * q, num2: d, op: '/', answer: q });
+                            }
+                        }
+                    }
+                };
+                if (operation === 'random') ['+', '-', '*', '/'].forEach(op => generateForOperation(op));
+                else generateForOperation(operation);
+                shuffleArray(problemSet);
+            }
+        }
+        
+        function generateProblem() {
+            if (problemSet.length === 0) {
+                console.log("Problem set exhausted. Regenerating.");
+                generateProblemSet();
+                if (problemSet.length === 0) {
+                    problemEl.textContent = "Selesai!";
+                    stopGame();
+                    return;
+                }
+            }
+            currentProblem = problemSet.shift(); // Use shift for sequential, works for random too
+            problemEl.textContent = `${currentProblem.num1} ${getOperatorSymbol(currentProblem.op)} ${currentProblem.num2} = ?`;
+            answerEl.value = '';
+            answerTimes.push({ startTime: gameMode === 'time' ? time : time, answerTime: 0 });
+        }
+        
+        function getOperatorSymbol(op) { return { '+': '+', '-': '-', '*': '×', '/': '÷' }[op] || op; }
+        
+        function checkAnswer() {
+            if (!isPlaying || isPaused) return;
+            const userAnswer = parseFloat(answerEl.value);
+            if (isNaN(userAnswer)) return;
+
+            const lastTimeEntry = answerTimes[answerTimes.length - 1];
+            lastTimeEntry.answerTime = gameMode === 'time' ? lastTimeEntry.startTime - time : time - lastTimeEntry.startTime;
+            
+            totalQuestions++;
+            const isCorrect = Math.abs(userAnswer - currentProblem.answer) < 0.0001;
+            
+            if (isCorrect) {
+                let points = (gameMode === '10x10') ? 10 : { 'easy': 10, 'medium': 15, 'hard': 20, 'super-hard': 30, 'monster': 50 }[currentDifficulty];
+                score += points;
+                streak++;
+                if (streak >= 5) score += Math.floor(points / 2);
+                problemEl.style.color = 'var(--success)';
+            } else {
+                streak = 0;
+                problemEl.style.color = 'var(--danger)';
+            }
+            setTimeout(() => { problemEl.style.color = 'var(--text-color)'; }, 300);
+            
+            scoreEl.textContent = score;
+            streakEl.textContent = streak;
+            
+            if ((gameMode === 'questions' || gameMode === '10x10') && totalQuestions >= questionLimit) {
+                stopGame();
+                return;
+            }
+            generateProblem();
+            answerEl.focus();
+        }
+        
+        function calculateAverageAnswerTime() {
+            const validTimes = answerTimes.filter(t => t.answerTime > 0);
+            if (validTimes.length === 0) return 0;
+            const totalTime = validTimes.reduce((sum, t) => sum + t.answerTime, 0);
+            return (totalTime / validTimes.length).toFixed(1);
+        }
+        
+        function showFinalResults() {
+            const finalTime = (gameMode === 'time') ? timeLimit - time : time;
+            const minutes = Math.floor(finalTime / 60);
+            const seconds = finalTime % 60;
+            const timeString = `${minutes > 0 ? minutes + 'm ' : ''}${seconds}d`;
+            
+            difficultyBadge.className = 'difficulty-label';
+            const difficultyText = (gameMode === '10x10') ? 'Tabel 10x10' : {
+                'easy': 'Mudah', 'medium': 'Sedang', 'hard': 'Sulit', 'super-hard': 'Super Sulit', 'monster': 'Monster'
+            }[currentDifficulty];
+            difficultyBadge.textContent = difficultyText;
+            difficultyBadge.classList.add(currentDifficulty);
+            
+            resultsStats.innerHTML = `
+                <div class="result-stat"><div class="result-value">${score}</div><div class="result-label">Total Skor</div></div>
+                <div class="result-stat"><div class="result-value">${totalQuestions}</div><div class="result-label">Soal Terjawab</div></div>
+                <div class="result-stat"><div class="result-value">${timeString}</div><div class="result-label">Waktu Bermain</div></div>
+                <div class="result-stat"><div class="result-value">${calculateAverageAnswerTime()}s</div><div class="result-label">Rata-rata Waktu/Soal</div></div>
+                <div class="result-stat"><div class="result-value">${totalQuestions > 0 ? (score / totalQuestions).toFixed(1) : 0}</div><div class="result-label">Rata-rata Poin</div></div>
+                <div class="result-stat"><div class="result-value">${finalTime > 0 ? Math.floor(totalQuestions / finalTime * 60) : 0}</div><div class="result-label">Soal/Menit</div></div>
+                <div class="result-stat"><div class="result-value">${streak}</div><div class="result-label">Streak Terakhir</div></div>
+                <div class="result-stat">
+                    <div class="result-value">${(gameMode === '10x10') ? 10 : {'easy':10,'medium':15,'hard':20,'super-hard':30,'monster':50}[currentDifficulty]}</div>
+                    <div class="result-label">Poin/Soal</div>
+                </div>
+            `;
+            
+            page.querySelector('.problem-container').style.display = 'none';
+            page.querySelector('.stats').style.display = 'none';
+            resultsContainer.style.display = 'block';
+        }
+        
+        checkDarkModePreference();
+
+// Sync with app theme
+function applyAppTheme() {
+    const isDark = document.documentElement.getAttribute('data-theme') === 'dark';
+    if (isDark) page.classList.add('dark-mode'); else page.classList.remove('dark-mode');
+    darkMode = isDark;
+}
+applyAppTheme();
+
+}
+
+export function render() {
+  ensureFontAwesome();
+  const page = createEl('div', { class: 'ms-root' });
+  const style = document.createElement('style');
+  style.textContent = CSS;
+  page.appendChild(style);
+  page.insertAdjacentHTML('beforeend', BODY);
+  initGame(page);
+  return page;
+}

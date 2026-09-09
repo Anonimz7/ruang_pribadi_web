@@ -1,7 +1,7 @@
 /* ui/drawer.js — Dynamic side navigation driven by server permissions (portal-aware) */
 import { store, subscribe } from '../core/state.js';
 import { Auth } from '../core/auth.js';
-import { fetchMenuConfig, ROUTE_MAP, MENU_SECTIONS, getPortal } from '../core/menu-config.js';
+import { fetchMenuConfig, ROUTE_MAP, MENU_SECTIONS, EXTERNAL_URLS, getPortal } from '../core/menu-config.js';
 import { navigate } from '../core/router.js';
 import { icons } from './icons.js';
 import { showLogin } from '../pages/login-modal.js';
@@ -23,6 +23,7 @@ function toNavItem(app) {
     label: app.label,
     icon: getIcon(app.icon),
     path: ROUTE_MAP[app.key] || '/',
+    externalUrl: EXTERNAL_URLS[app.key] || null,
   };
 }
 
@@ -163,16 +164,25 @@ function renderNav(sections) {
 
     group.items.forEach((item) => {
       const a = document.createElement('a');
-      a.href = '#' + item.path;
       a.className = 'drawer__item';
       a.dataset.key = item.key;
-      a.dataset.path = item.path;
+
+      if (item.externalUrl) {
+        a.href = item.externalUrl;
+        a.target = '_blank';
+        a.rel = 'noopener';
+        a.dataset.path = item.externalUrl;
+      } else {
+        a.href = '#' + item.path;
+        a.dataset.path = item.path;
+      }
+
       a.innerHTML = `
         <span class="drawer__icon">${item.icon}</span>
         <span class="drawer__label">${item.label}</span>
       `;
       a.addEventListener('click', () => {
-        navigate(item.path);
+        if (!item.externalUrl) navigate(item.path);
         if (window.innerWidth <= 768) store.drawerOpen = false;
       });
       nav.appendChild(a);

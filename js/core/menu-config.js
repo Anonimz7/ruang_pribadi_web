@@ -25,6 +25,8 @@ const iconMap = {
   'Icons.upload_file': 'upload',
   'Icons.history': 'history',
   'Icons.help': 'help-circle',
+  'Icons.grid': 'grid',
+  'Icons.book_open': 'book-open',
 };
 
 /** Portal registry — single source of truth for portal ids */
@@ -90,4 +92,19 @@ export const ROUTE_MAP = {
   backup: '/saham/admin/backup',
   stock_status: '/saham/admin/stock-status',
   idx_upload: '/saham/admin/idx-upload',
+  // Tools baru (dikonversi dari HTML standalone)
+  color_palate: '/color-palate',
+  math_dasar: '/math-dasar',
+  csv_shuffler: '/bacak',
+  tint_shade: '/tint-shade',
+  color_vision: '/color-blind',
+  jepunese: '/jepunese',
+  bahasa_interaktif: '/bahasa-interaktif',
+  type_writing: '/type-writing',
+  math_speed_legacy: '/math-speed-legacy',
+};
+
+// Menu key -> URL yang dibuka di tab baru (tool HTML standalone, tanpa konversi SPA)
+export const EXTERNAL_URLS = {
+  deck_of_cards: '/js/pages/tools/deck-of-cards-old/index.html',
 };
