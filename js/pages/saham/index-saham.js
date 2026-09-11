@@ -122,6 +122,8 @@ export function render() {
       });
       const chg = idx.last_change_pct;
       const chgColor = chg == null ? 'var(--c-text-3)' : (chg >= 0 ? 'var(--c-accent)' : 'var(--c-danger)');
+      const tr = totalReturnPct(idx.last_level, idx.first_level != null ? idx.first_level : idx.base_value);
+      const trColor = tr == null ? 'var(--c-text-3)' : (tr >= 0 ? 'var(--c-accent)' : 'var(--c-danger)');
 
       card.innerHTML = `
         <div style="display:flex;align-items:flex-start;gap:var(--s-3);">
@@ -132,10 +134,11 @@ export function render() {
           </div>
           <div style="text-align:right;flex-shrink:0;">
             <div style="font-weight:700;font-size:var(--text-md);">${fmtLevel(idx.last_level)}</div>
-            <div style="font-size:var(--text-sm);font-weight:600;color:${chgColor};">${fmtPct(chg)}</div>
+            <div style="font-size:var(--text-sm);font-weight:600;color:${chgColor};">${fmtPct(chg)} (harian)</div>
           </div>
         </div>
         <div style="display:flex;gap:var(--s-2);margin-top:var(--s-3);font-size:var(--text-xs);color:var(--c-text-3);flex-wrap:wrap;">
+          <span style="font-weight:600;color:${trColor};">${tr == null ? '' : `${fmtPct(tr)} sejak dasar`}</span>
           <span>${idx.member_count ?? 0} anggota</span>
           ${idx.last_stale ? `<span style="color:var(--c-warn);">data belum lengkap</span>` : ''}
           ${idx.is_active ? '' : `<span style="color:var(--c-danger);">nonaktif</span>`}
@@ -148,6 +151,13 @@ export function render() {
     });
 
     listWrap.appendChild(grid);
+  }
+
+  // Total return sejak Tanggal Dasar: (level_terbaru / nilai_dasar - 1) * 100
+  function totalReturnPct(lastLevel, baseValue) {
+    const base = Number(baseValue);
+    if (lastLevel == null || !base || base <= 0) return null;
+    return (lastLevel / base - 1) * 100;
   }
 
   // ---- Detail ----
@@ -178,7 +188,11 @@ export function render() {
     const breadth = contribs.breadth || {};
 
     detailWrap.innerHTML = '';
-    detailWrap.appendChild(buildDetailHeader(idx, members));
+    detailWrap.appendChild(buildDetailHeader(
+      idx,
+      members,
+      series.length ? totalReturnPct(series[series.length - 1].level, series[0].level) : null,
+    ));
     detailWrap.appendChild(buildChartCard(idx, series));
     const two = createEl('div', {
       style: { display: 'grid', gridTemplateColumns: 'repeat(auto-fit,minmax(340px,1fr))', gap: 'var(--s-3)', marginTop: 'var(--s-3)' },
@@ -188,15 +202,22 @@ export function render() {
     detailWrap.appendChild(two);
   }
 
-  function buildDetailHeader(idx, members) {
+  function buildDetailHeader(idx, members, totalReturn) {
     const head = createEl('div', {
       class: 'card',
       style: { display: 'flex', alignItems: 'center', gap: 'var(--s-3)', flexWrap: 'wrap', marginBottom: 'var(--s-3)' },
     });
     const info = createEl('div', { style: { flex: '1', minWidth: '220px' } });
     info.appendChild(createEl('h2', { style: { fontSize: 'var(--text-lg)', fontWeight: 700 } }, [idx.name]));
-    info.appendChild(createEl('div', { style: { fontSize: 'var(--text-sm)', color: 'var(--c-text-2)' } },
-      [`${idx.code} · ${MODES[idx.weighting_mode] || idx.weighting_mode} · base ${fmtLevel(idx.base_value)} @ ${idx.base_date || '-'} · ${members.length} anggota`]));
+    const sub = createEl('div', { style: { fontSize: 'var(--text-sm)', color: 'var(--c-text-2)' } },
+      [`${idx.code} · ${MODES[idx.weighting_mode] || idx.weighting_mode} · base ${fmtLevel(idx.base_value)} @ ${idx.base_date || '-'} · ${members.length} anggota`]);
+    if (totalReturn != null) {
+      const span = createEl('span', {
+        style: { fontWeight: 600, color: totalReturn >= 0 ? 'var(--c-accent)' : 'var(--c-danger)' },
+      }, [` ${fmtPct(totalReturn)} sejak dasar`]);
+      sub.appendChild(span);
+    }
+    info.appendChild(sub);
     if (idx.description) {
       info.appendChild(createEl('p', { style: { fontSize: 'var(--text-sm)', color: 'var(--c-text-3)', marginTop: 'var(--s-1)' } }, [idx.description]));
     }
@@ -537,6 +558,8 @@ export function render() {
       total: 0,
       results: [],
       searchDebounce: null,
+      view: '', // '' = semua, 'selected' = hanya terpilih
+      allStocks: [], // cache seluruh daftar saham untuk filter "Terpilih saja"
     };
 
     // Prefill from the currently selected detail members
@@ -587,6 +610,8 @@ export function render() {
     const sectorSel = makeSelect('Sektor', '130px');
     const primarySel = makeSelect('Primary', '130px');
     const subSel = makeSelect('Sub Sektor', '130px');
+    const viewSel = makeSelect('Tampilan', '150px');
+    viewSel.innerHTML = '<option value="">Semua saham</option><option value="selected">Terpilih saja</option>';
     content.appendChild(toolbar);
 
     // Bulk add: tempel daftar ticker langsung
@@ -650,7 +675,7 @@ export function render() {
       });
       if (isCustom) updateWeightHint();
       updateSelectedCount();
-      renderTable();
+      if (state2.view === 'selected') loadStocks(); else renderTable();
     });
     deselectAllBtn.addEventListener('click', () => {
       state2.results.forEach((s) => {
@@ -659,7 +684,7 @@ export function render() {
       });
       if (isCustom) updateWeightHint();
       updateSelectedCount();
-      renderTable();
+      if (state2.view === 'selected') loadStocks(); else renderTable();
     });
     pagRow.append(selectedCount, selectAllBtn, deselectAllBtn);
 
@@ -700,6 +725,11 @@ export function render() {
       state2.page = 1;
       loadStocks();
     });
+    viewSel.addEventListener('change', (e) => {
+      state2.view = e.target.value;
+      state2.page = 1;
+      loadStocks();
+    });
     if (isCustom) updateWeightHint();
 
     async function loadSubOptions() {
@@ -724,14 +754,30 @@ export function render() {
     async function loadStocks() {
       tableWrap.innerHTML = '<div class="skeleton" style="height:160px;border-radius:6px;"></div>';
       try {
-        const params = {
-          limit: state2.perPage, offset: (state2.page - 1) * state2.perPage,
-          q: state2.q, sector: state2.sector,
-          primary_sector: state2.primary, sub_sector: state2.sub,
-        };
-        const data = await Api.get('/idx/stocks', params);
-        state2.results = (data && data.stocks) || [];
-        state2.total = (data && data.total) || 0;
+        if (state2.view === 'selected') {
+          // Filter lokal: hanya saham terpilih (dari cache seluruh daftar),
+          // tetap hormati pencarian dan filter sektor.
+          const q = state2.q.trim().toLowerCase();
+          const rows = state2.allStocks.filter((s) => {
+            if (q && !(s.ticker.toLowerCase().includes(q) || String(s.company_name || '').toLowerCase().includes(q))) return false;
+            if (state2.sector && s.sector !== state2.sector) return false;
+            if (state2.primary && s.primary_sector !== state2.primary) return false;
+            if (state2.sub && s.sub_sector !== state2.sub) return false;
+            return state2.selected.has(s.ticker);
+          });
+          state2.total = rows.length;
+          const start = (state2.page - 1) * state2.perPage;
+          state2.results = rows.slice(start, start + state2.perPage);
+        } else {
+          const params = {
+            limit: state2.perPage, offset: (state2.page - 1) * state2.perPage,
+            q: state2.q, sector: state2.sector,
+            primary_sector: state2.primary, sub_sector: state2.sub,
+          };
+          const data = await Api.get('/idx/stocks', params);
+          state2.results = (data && data.stocks) || [];
+          state2.total = (data && data.total) || 0;
+        }
       } catch (e) {
         state2.results = []; state2.total = 0;
         toast('Gagal memuat saham: ' + (e.message || e), { type: 'error' });
@@ -770,6 +816,8 @@ export function render() {
           }
           if (isCustom) updateWeightHint();
           updateSelectedCount();
+          // di view "Terpilih saja", baris yang di-uncheck langsung hilang dari daftar
+          if (state2.view === 'selected') loadStocks();
         });
         tdChk.appendChild(chk);
         tr.appendChild(tdChk);
@@ -875,6 +923,25 @@ export function render() {
 
     // Init
     loadSectorOptions().then(loadStocks);
+    loadAllStocks();
+
+    // Muat seluruh daftar saham (2 panggilan, limit maksimal 500) untuk filter "Terpilih saja".
+    async function loadAllStocks() {
+      if (state2.allStocks.length > 0) return;
+      try {
+        const all = [];
+        for (let offset = 0; offset < 1500; offset += 500) {
+          const data = await Api.get('/idx/stocks', { limit: 500, offset });
+          const batch = (data && data.stocks) || [];
+          all.push(...batch);
+          if (batch.length < 500) break;
+        }
+        state2.allStocks = all;
+      } catch (_) {
+        // cache gagal dimuat; view "Terpilih saja" tetap bisa dipakai setelah
+        // halaman dijelajahi karena hasil pencarian server tetap masuk state2.results
+      }
+    }
 
     async function loadSectorOptions() {
       try {
