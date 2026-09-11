@@ -154,7 +154,8 @@ export function render() {
 
   async function selectIndex(id) {
     try {
-      state.selected = await Api.get(`/index-saham/${id}`, { days: 180 });
+      // days=0 (default): seluruh periode dari Tanggal Dasar index
+      state.selected = await Api.get(`/index-saham/${id}`);
     } catch (e) {
       state.selected = null;
       toast('Gagal memuat detail: ' + (e.message || e), { type: 'error' });
@@ -257,6 +258,13 @@ export function render() {
     if (!box) return;
     if (state.chart) { destroyChart(state.chart); state.chart = null; }
 
+    // Jendela tanggal = periode seri utama (dari Tanggal Dasar index).
+    // Pembanding difilter ke jendela yang sama agar grafik dan datanya sinkron.
+    const d0 = series.length ? series[0].date : null;
+    const d1 = series.length ? series[series.length - 1].date : null;
+    const inWindow = (p) => !d0 || (p.date >= d0 && p.date <= d1);
+    const daysW = Math.max(series.length, 1);
+
     const norm = (pts, key = 'level') => {
       const valid = pts.filter((p) => p[key] != null);
       if (valid.length === 0) return [];
@@ -273,8 +281,8 @@ export function render() {
 
     if (state.compareId === 'ihsg') {
       try {
-        const radar = await Api.get('/idx/market/radar', { days: 180 });
-        const pts = (radar?.data || []).map((p) => ({ date: p.date, close: p.ewi }));
+        const radar = await Api.get('/idx/market/radar', { days: daysW });
+        const pts = (radar?.data || []).filter(inWindow).map((p) => ({ date: p.date, close: p.ewi }));
         seriesArr.push({ name: 'IHSG', type: 'line', data: norm(pts, 'close') });
         colors.push('#059669');
       } catch (e) {
@@ -282,8 +290,9 @@ export function render() {
       }
     } else if (state.compareId) {
       try {
-        const other = await Api.get(`/index-saham/${state.compareId}`, { days: 180 });
-        seriesArr.push({ name: other?.index?.name || 'Lainnya', type: 'line', data: norm(other?.series || [], 'level') });
+        const other = await Api.get(`/index-saham/${state.compareId}`, { days: daysW });
+        const pts = (other?.series || []).filter(inWindow);
+        seriesArr.push({ name: other?.index?.name || 'Lainnya', type: 'line', data: norm(pts, 'level') });
         colors.push('#d97706');
       } catch (e) {
         toast('Gagal memuat pembanding: ' + (e.message || e), { type: 'warn' });
@@ -336,7 +345,9 @@ export function render() {
       tbody.appendChild(tr);
     });
     table.appendChild(tbody);
-    card.appendChild(table);
+    const wrap = createEl('div', { class: 'table-wrap' });
+    wrap.appendChild(table);
+    card.appendChild(wrap);
     return card;
   }
 
@@ -367,7 +378,9 @@ export function render() {
       tbody.appendChild(tr);
     });
     table.appendChild(tbody);
-    card.appendChild(table);
+    const wrap = createEl('div', { class: 'table-wrap' });
+    wrap.appendChild(table);
+    card.appendChild(wrap);
     return card;
   }
 
@@ -623,9 +636,33 @@ export function render() {
     const pagRow = createEl('div', { style: { display: 'flex', alignItems: 'center', gap: 'var(--s-2)', fontSize: 'var(--text-sm)', color: 'var(--c-text-3)' } });
     content.appendChild(pagRow);
 
-    // Selected counter
+    // Selected counter + select/deselect all
     const selectedCount = createEl('span', { style: { fontSize: 'var(--text-sm)', fontWeight: 600, color: 'var(--c-primary)' } });
     pagRow.appendChild(selectedCount);
+    const selectAllBtn = createEl('button', { class: 'btn btn--ghost btn--sm' }, ['Pilih Semua']);
+    const deselectAllBtn = createEl('button', { class: 'btn btn--ghost btn--sm' }, ['Hapus Pilihan']);
+    selectAllBtn.addEventListener('click', () => {
+      state2.results.forEach((s) => {
+        if (s.label_delisted !== 1 && !state2.selected.has(s.ticker)) {
+          state2.selected.add(s.ticker);
+          if (isCustom && state2.weights[s.ticker] == null) state2.weights[s.ticker] = 0;
+        }
+      });
+      if (isCustom) updateWeightHint();
+      updateSelectedCount();
+      renderTable();
+    });
+    deselectAllBtn.addEventListener('click', () => {
+      state2.results.forEach((s) => {
+        state2.selected.delete(s.ticker);
+        if (isCustom) delete state2.weights[s.ticker];
+      });
+      if (isCustom) updateWeightHint();
+      updateSelectedCount();
+      renderTable();
+    });
+    pagRow.append(selectedCount, selectAllBtn, deselectAllBtn);
+
     function updateSelectedCount() {
       selectedCount.textContent = `Terpilih: ${state2.selected.size} saham`;
     }
