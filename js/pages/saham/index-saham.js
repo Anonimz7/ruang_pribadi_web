@@ -331,7 +331,21 @@ export function render() {
 
   function buildContributionsCard(contribs) {
     const card = createEl('div', { class: 'card' });
-    card.appendChild(createEl('h3', { class: 'card__title', style: { marginBottom: 'var(--s-3)' } }, ['Kontribusi Pergerakan']));
+    card.appendChild(createEl('h3', { class: 'card__title', style: { marginBottom: 'var(--s-3)' } }, ['Kontribusi Sejak Dasar']));
+
+    // Transparansi: level kumulatif vs jumlah kontribusi harian (bunga-berbunga)
+    const tr = contribs.total_return_pct;
+    const sc = contribs.sum_contrib_pct;
+    if (tr != null && sc != null) {
+      const delta = Math.abs(tr - sc);
+      const note = delta >= 0.01 ? `<span style="color:var(--c-text-3);"> (selisih ${fmtPct(delta)} karena bunga-berbunga)</span>` : '';
+      const color = tr >= 0 ? 'var(--c-accent)' : 'var(--c-danger)';
+      const line = createEl('div', {
+        style: { fontSize: 'var(--text-sm)', marginBottom: 'var(--s-2)', color: 'var(--c-text-2)' },
+      });
+      line.innerHTML = `<span style="font-weight:600;color:${color};">Level ${fmtPct(tr)}</span> <span>· Σ kontribusi ${fmtPct(sc)}${note}</span>`;
+      card.appendChild(line);
+    }
 
     const b = contribs.breadth || {};
     const breadthRow = createEl('div', {
@@ -341,6 +355,7 @@ export function render() {
       <span style="color:var(--c-accent);font-weight:600;">▲ ${b.advancers ?? 0} naik</span>
       <span style="color:var(--c-danger);font-weight:600;">▼ ${b.decliners ?? 0} turun</span>
       <span style="color:var(--c-text-3);">${b.unchanged ?? 0} datar</span>
+      <span style="color:var(--c-text-3);">· ${contribs.days ?? 0} hari</span>
     `;
     card.appendChild(breadthRow);
 
@@ -353,16 +368,16 @@ export function render() {
     }
 
     const table = createEl('table', { class: 'table' });
-    table.innerHTML = `<thead><tr><th>Ticker</th><th>Return</th><th>Bobot</th><th>Kontribusi</th></tr></thead>`;
+    table.innerHTML = `<thead><tr><th>Ticker</th><th>Kontribusi</th><th>Bobot Rata-rata</th><th>Hari</th></tr></thead>`;
     const tbody = createEl('tbody');
     [...tops, ...bottoms].forEach((c) => {
       const tr = createEl('tr', {});
       const color = c.contribution_pct >= 0 ? 'var(--c-accent)' : 'var(--c-danger)';
       tr.innerHTML = `
         <td style="font-weight:600;">${c.ticker}</td>
-        <td>${fmtPct(c.return_pct)}</td>
-        <td>${c.weight_pct != null ? c.weight_pct.toLocaleString('id-ID') + '%' : '-'}</td>
-        <td style="color:${color};font-weight:600;">${fmtPct(c.contribution_pct)}</td>`;
+        <td style="color:${color};font-weight:600;">${fmtPct(c.contribution_pct)}</td>
+        <td>${c.avg_weight_pct != null ? c.avg_weight_pct.toLocaleString('id-ID') + '%' : '-'}</td>
+        <td>${c.days != null ? c.days : '-'}</td>`;
       tbody.appendChild(tr);
     });
     table.appendChild(tbody);
