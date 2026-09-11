@@ -27,6 +27,7 @@ const iconMap = {
   'Icons.help': 'help-circle',
   'Icons.grid': 'grid',
   'Icons.book_open': 'book-open',
+  'Icons.layers': 'layers',
 };
 
 /** Portal registry — single source of truth for portal ids */
@@ -84,6 +85,7 @@ export const ROUTE_MAP = {
   stock_list: '/saham/stock-list',
   ihsg_radar: '/saham/market',
   reports: '/saham/reports',
+  index_saham: '/saham/index',
   video_downloader: '/video',
   user_permissions: '/saham/admin/users',
   server_dashboard: '/saham/admin/dashboard',

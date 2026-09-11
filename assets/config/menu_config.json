@@ -97,6 +97,14 @@
       "defaultPermission": true
     },
     {
+      "key": "index_saham",
+      "icon": "Icons.layers",
+      "label": "Index Saham",
+      "section": "market",
+      "portal": "saham",
+      "defaultPermission": true
+    },
+    {
       "key": "video_downloader",
       "icon": "Icons.download",
       "label": "Video Downloader",
