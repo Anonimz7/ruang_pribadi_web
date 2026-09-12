@@ -491,8 +491,25 @@ export function render() {
     const modeSel = createEl('select', { class: 'field__select' });
     Object.entries(MODES).forEach(([v, l]) => modeSel.appendChild(createEl('option', { value: v }, [l])));
     if (isEdit) modeSel.value = idx.weighting_mode;
-    if (isEdit && idx.weighting_mode === 'custom') modeSel.disabled = true; // validation: members already weighted
     modeField.appendChild(modeSel);
+    const modeHint = createEl('p', {
+      style: { fontSize: 'var(--text-xs)', color: 'var(--c-text-3)', marginTop: 'var(--s-1)', lineHeight: 1.5 },
+    });
+    modeField.appendChild(modeHint);
+    const updateModeHint = () => {
+      const v = modeSel.value;
+      if (v === 'custom') {
+        modeHint.textContent = isEdit
+          ? 'Anggota tanpa bobot dihitung 0% sampai diisi. Setelah disimpan, buka tombol Anggota dan isi bobot tiap saham (total wajib 100%).'
+          : 'Setelah index dibuat, buka tombol Anggota lalu isi bobot tiap saham (total wajib 100%).';
+      } else if (isEdit && idx.weighting_mode === 'custom') {
+        modeHint.textContent = 'Bobot custom tetap tersimpan; kembali ke modus ini akan memakainya lagi.';
+      } else {
+        modeHint.textContent = '';
+      }
+    };
+    modeSel.addEventListener('change', updateModeHint);
+    updateModeHint();
 
     const baseDateField = createEl('div', { class: 'field' });
     baseDateField.innerHTML = '<label class="field__label">Tanggal Dasar (kosongkan = tanggal terbaru)</label>';
@@ -590,19 +607,49 @@ export function render() {
     const modal = createModal({ title: `Anggota: ${idx.name}`, content, width: '760px' });
     const isCustom = idx.weighting_mode === 'custom';
 
-    // Weight-sum indicator (custom mode)
-    const weightHint = createEl('div', {
-      style: { fontSize: 'var(--text-sm)', fontWeight: 600, color: 'var(--c-text-2)' },
+    // Weight-sum indicator (custom mode): terisi + sisa + tombol bagi rata
+    const weightRow = createEl('div', {
+      style: { display: 'flex', alignItems: 'center', gap: 'var(--s-2)', flexWrap: 'wrap' },
     });
-    if (isCustom) content.appendChild(weightHint);
+    const weightHint = createEl('span', {
+      style: { fontSize: 'var(--text-sm)', fontWeight: 600 },
+    });
+    const fillBtn = createEl('button', { class: 'btn btn--secondary btn--sm' }, ['Bagi Rata Sisa']);
+    weightRow.append(weightHint, fillBtn);
+    if (isCustom) content.appendChild(weightRow);
+
+    const totalWeight = () => Object.values(state2.weights).reduce((a, b) => a + (Number(b) || 0), 0);
+
     const updateWeightHint = () => {
       if (!isCustom) return;
-      const sum = Object.values(state2.weights).reduce((a, b) => a + (Number(b) || 0), 0);
+      const sum = totalWeight();
       const ok = Math.abs(sum - 100) <= 0.01;
-      weightHint.textContent = `Total bobot: ${sum.toLocaleString('id-ID', { maximumFractionDigits: 2 })}% `;
-      weightHint.style.color = ok ? 'var(--c-accent)' : 'var(--c-danger)';
-      if (!ok) weightHint.textContent += '— harus 100%';
+      if (ok) {
+        weightHint.textContent = 'Total bobot: 100%';
+        weightHint.style.color = 'var(--c-accent)';
+      } else {
+        const sisa = Math.max(100 - sum, 0);
+        weightHint.textContent = `Terisi ${sum.toLocaleString('id-ID', { maximumFractionDigits: 2 })}% · Sisa ${sisa.toLocaleString('id-ID', { maximumFractionDigits: 2 })}% — harus 100%`;
+        weightHint.style.color = 'var(--c-danger)';
+      }
     };
+
+    const distributeRemaining = () => {
+      if (!isCustom) return;
+      const sum = totalWeight();
+      const sisa = 100 - sum;
+      if (sisa <= 0.01) { toast('Bobot sudah 100%.', { type: 'warn' }); return; }
+      const elig = [...state2.selected].filter((t) => !(Number(state2.weights[t]) > 0));
+      if (elig.length === 0) { toast('Tidak ada anggota kosong untuk dibagi.', { type: 'warn' }); return; }
+      const n = elig.length;
+      const base = Math.floor((sisa / n) * 100) / 100;
+      for (let i = 0; i < n - 1; i++) state2.weights[elig[i]] = base;
+      const used = Math.round(base * (n - 1) * 100) / 100;
+      state2.weights[elig[n - 1]] = Math.round((sisa - used) * 100) / 100;
+      updateWeightHint();
+      renderTable();
+    };
+    fillBtn.addEventListener('click', distributeRemaining);
 
     // Toolbar: search + cascading sector filters (seperti halaman Stock List)
     const toolbar = createEl('div', { style: { display: 'flex', gap: 'var(--s-2)', flexWrap: 'wrap', alignItems: 'flex-end' } });
