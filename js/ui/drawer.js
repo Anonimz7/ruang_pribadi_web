@@ -46,14 +46,13 @@ function filterMenuItems() {
       let items = menuConfig.filter((app) => app.portal === 'saham' && app.section === sec);
 
       if (sec === 'admin') {
-        // Admin section requires admin tier
-        if (store.tier !== 'admin') continue;
-        items = items.filter((app) => Auth.canAccess(app.key));
+        // Admin section requires admin tier (rank tertinggi)
+        if (!Auth.isAdmin()) continue;
+        items = items.filter((app) => !Auth.isMenuHidden(app.key) && Auth.canAccess(app.key, app.minTier));
       } else {
         items = items.filter((app) => {
-          if (app.defaultPermission) return true;
           if (Auth.isMenuHidden(app.key)) return false;
-          return Auth.canAccess(app.key);
+          return Auth.canAccess(app.key, app.minTier);
         });
       }
 
@@ -102,14 +101,12 @@ function filterMenuItems() {
 
     if (sec === 'admin') {
       // Admin section requires admin tier
-      if (store.tier !== 'admin') continue;
-      items = items.filter((app) => Auth.canAccess(app.key));
+      if (!Auth.isAdmin()) continue;
+      items = items.filter((app) => !Auth.isMenuHidden(app.key) && Auth.canAccess(app.key, app.minTier));
     } else {
-      // Menu, media, market sections: check permissions
       items = items.filter((app) => {
-        if (app.defaultPermission && sec !== 'admin') return true;
         if (Auth.isMenuHidden(app.key)) return false;
-        return Auth.canAccess(app.key);
+        return Auth.canAccess(app.key, app.minTier);
       });
     }
 
@@ -290,6 +287,9 @@ export async function createDrawer() {
     renderDrawer();
   });
   subscribe('tier', () => {
+    renderDrawer();
+  });
+  subscribe('rank', () => {
     renderDrawer();
   });
   subscribe('activePortal', () => {

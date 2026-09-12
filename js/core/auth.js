@@ -1,6 +1,7 @@
 /* core/auth.js — Authentication layer (mirrors Flutter AuthApi) */
 import Api, { ApiError } from './api.js';
 import { store } from './state.js';
+import { tierRank, isAdminRank } from './tiers.js';
 
 /**
  * Decode JWT token payload (base64url) without external libraries.
@@ -25,6 +26,14 @@ function isTokenExpired(token) {
 }
 
 /**
+ * Derive effective rank from user payload (backend-provided rank wins).
+ */
+function userRank(user) {
+  const rank = Number(user?.rank);
+  return Number.isFinite(rank) && rank >= 0 ? rank : tierRank(user?.tier);
+}
+
+/**
  * Persist user data + token to localStorage + Proxy store.
  */
 function saveSession(token, user) {
@@ -34,6 +43,7 @@ function saveSession(token, user) {
   store.user = user;
   store.username = user.username ?? '';
   store.tier = user.tier ?? 'guest';
+  store.rank = userRank(user);
   store.permissions = (user.permissions ?? []).map(String);
   store.hiddenMenus = (user.hidden_menus ?? []).map(String);
 }
@@ -51,6 +61,7 @@ export async function loadSession() {
       store.user = user;
       store.username = user.username ?? '';
       store.tier = user.tier ?? 'guest';
+      store.rank = userRank(user);
       store.permissions = (user.permissions ?? []).map(String);
       store.hiddenMenus = (user.hidden_menus ?? []).map(String);
       return true;
@@ -67,6 +78,7 @@ export function clearSession() {
   store.user = null;
   store.username = '';
   store.tier = 'guest';
+  store.rank = 0;
   store.permissions = [];
   store.hiddenMenus = [];
   localStorage.removeItem('jwt_token');
@@ -122,10 +134,21 @@ export const Auth = {
     });
   },
 
-  // Permission checks (mirrors Flutter ApiClient.canAccess / isMenuHidden)
-  canAccess(appKey) {
-    if (store.tier === 'admin') return true;
+  /**
+   * Rank-based access check (rank 0 = tertinggi):
+   *   rank <= minTier (basis tier)  atau  app di permissions user (grant custom).
+   * minTier default = tier dasar -> semua user login (rank <= max) lolos.
+   */
+  canAccess(appKey, minTier = 3) {
+    const need = Number.isFinite(minTier) ? minTier : 3;
+    if (store.rank <= need) return true;
+    if (store.rank <= tierRank('admin')) return true;
     return store.permissions.includes(appKey);
+  },
+
+  // Bacaan cepat: apakah user berguna admin (rank tertinggi).
+  isAdmin() {
+    return isAdminRank(store.rank);
   },
 
   isMenuHidden(appKey) {

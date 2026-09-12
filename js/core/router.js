@@ -84,7 +84,7 @@ function checkAccess(path) {
   // Portal Saham: seluruh isi butuh login; /saham/admin/* butuh tier admin
   if (path.startsWith('/saham')) {
     if (!store.token) return { allowed: false, reason: 'login_required' };
-    if (path.startsWith('/saham/admin') && store.tier !== 'admin') {
+    if (path.startsWith('/saham/admin') && !Auth.isAdmin()) {
       return { allowed: false, reason: 'Anda tidak memiliki akses admin.' };
     }
     return { allowed: true, reason: null };

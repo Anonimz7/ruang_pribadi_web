@@ -12,6 +12,7 @@ import Api, { ApiError } from '../../../core/api.js';
 import { toast } from '../../../ui/toast.js';
 import { createModal } from '../../../ui/modal.js';
 import { store } from '../../../core/state.js';
+import { Auth } from '../../../core/auth.js';
 
 // ═══════════════════════════════════════════════════════════════════════════════
 //  CONSTANTS
@@ -85,7 +86,7 @@ function parseLangSource(raw) {
   }
 }
 
-function isAdmin() { return store.tier === 'admin'; }
+function isAdmin() { return Auth.isAdmin(); }
 
 function escapeHtml(str) {
   if (!str) return '';

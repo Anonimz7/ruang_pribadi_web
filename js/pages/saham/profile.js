@@ -54,7 +54,7 @@ export function render() {
     const card = createEl('div', { class: 'card profile-hero' }, []);
 
     const username = store.username || 'User';
-    const isAdmin = store.tier === 'admin';
+    const isAdmin = Auth.isAdmin();
 
     const avatar = createEl('div', { class: 'profile-hero__avatar ' + (isAdmin ? 'profile-hero__avatar--admin' : 'profile-hero__avatar--guest') },
       [username.substring(0, 1).toUpperCase()]);
@@ -62,10 +62,11 @@ export function render() {
     const info = createEl('div', { class: 'profile-hero__info' });
     info.appendChild(createEl('div', { class: 'profile-hero__name' }, [username]));
 
+    const badgeTone = isAdmin ? 'badge--success' : store.tier === 'premium' ? 'badge--primary' : 'badge--warn';
     const badge = createEl('span', {
-      class: 'badge ' + (isAdmin ? 'badge--success' : 'badge--warn'),
+      class: 'badge ' + badgeTone,
       style: { marginTop: 'var(--s-1)' },
-    }, [isAdmin ? 'ADMIN' : 'GUEST']);
+    }, [(store.tier || 'guest').toUpperCase()]);
     info.appendChild(badge);
 
     card.append(avatar, info);
@@ -78,7 +79,7 @@ export function render() {
     card.appendChild(createEl('div', { class: 'card__title', style: { marginBottom: 'var(--s-3)' } }, ['Izin Akses']));
 
     const perms = store.permissions || [];
-    const isAdmin = store.tier === 'admin';
+    const isAdmin = Auth.isAdmin();
 
     if (isAdmin) {
       const badge = createEl('span', { class: 'badge badge--success' }, ['Akses penuh ke semua fitur']);

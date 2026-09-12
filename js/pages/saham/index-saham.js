@@ -2,6 +2,7 @@
 import { createEl } from '../../utils/dom.js';
 import { icons } from '../../ui/icons.js';
 import { store } from '../../core/state.js';
+import { Auth } from '../../core/auth.js';
 import Api from '../../core/api.js';
 import { toast } from '../../ui/toast.js';
 import { createModal } from '../../ui/modal.js';
@@ -48,7 +49,7 @@ function toTs(dateStr) {
 }
 
 export function render() {
-  const isAdmin = store.tier === 'admin';
+  const isAdmin = Auth.isAdmin();
 
   const state = {
     indices: [],

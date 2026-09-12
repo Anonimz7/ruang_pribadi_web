@@ -58,7 +58,8 @@ export async function fetchMenuConfig() {
     label: app.label,
     section: app.section,
     portal: app.portal || null,
-    defaultPermission: app.defaultPermission,
+    // Rank 0 = tertinggi; fallback = tier dasar (nilai terbesar = akses paling luas).
+    minTier: Number.isFinite(app.minTier) ? app.minTier : 3,
   }));
   return cached;
 }

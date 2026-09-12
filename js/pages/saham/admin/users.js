@@ -205,13 +205,15 @@ export function render() {
     tr.appendChild(tdUser);
 
     const tdTier = createEl('td');
-    tdTier.innerHTML = `<span class="badge badge--${u.tier === 'admin' ? 'danger' : 'neutral'}">${u.tier}</span>`;
+    const tierTone = { admin: 'danger', premium: 'primary', member: 'success', guest: 'neutral' }[u.tier] || 'neutral';
+    tdTier.innerHTML = `<span class="badge badge--${tierTone}">${u.tier}</span>`;
     tr.appendChild(tdTier);
 
     const tdPerms = createEl('td');
     const permCount = u.permissions?.length || 0;
     const permList = u.permissions?.join(', ') || 'tidak ada';
-    tdPerms.innerHTML = u.tier === 'admin'
+    const isFull = (u.rank ?? (u.tier === 'admin' ? 0 : 3)) <= 0;
+    tdPerms.innerHTML = isFull
       ? '<span class="badge badge--success">full access</span>'
       : `<span class="badge badge--neutral" title="${permList}">${permCount} / ${state.apps.length} fitur</span>`;
     tr.appendChild(tdPerms);
@@ -270,8 +272,10 @@ export function render() {
       <div class="field">
         <label class="field__label">Tier</label>
         <select name="tier" class="field__select">
-          <option value="admin">Admin</option>
-          <option value="guest" selected>Guest</option>
+          <option value="guest" selected>Guest (3)</option>
+          <option value="member">Member (2)</option>
+          <option value="premium">Premium (1)</option>
+          <option value="admin">Admin (0)</option>
         </select>
       </div>
       <p class="admin-users__hint">Permissions mengikuti "Default for New Users" (${state.defaultPerms.length} fitur aktif) — atur lewat kartu di atas.</p>
@@ -327,8 +331,10 @@ export function render() {
       <div class="field">
         <label class="field__label">Tier</label>
         <select class="field__select" id="edit-tier" ${isMain ? 'disabled title="Main admin tidak bisa diubah tier-nya"' : ''}>
-          <option value="admin" ${tierVal === 'admin' ? 'selected' : ''}>Admin</option>
-          <option value="guest" ${tierVal === 'guest' ? 'selected' : ''}>Guest</option>
+          <option value="guest" ${tierVal === 'guest' ? 'selected' : ''}>Guest (3)</option>
+          <option value="member" ${tierVal === 'member' ? 'selected' : ''}>Member (2)</option>
+          <option value="premium" ${tierVal === 'premium' ? 'selected' : ''}>Premium (1)</option>
+          <option value="admin" ${tierVal === 'admin' ? 'selected' : ''}>Admin (0)</option>
         </select>
       </div>
       <div class="field">

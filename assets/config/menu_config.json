@@ -5,56 +5,56 @@
       "icon": "Icons.person",
       "label": "Profile",
       "section": "system",
-      "defaultPermission": false
+      "minTier": 3
     },
     {
       "key": "math_speed",
       "icon": "Icons.calculate",
       "label": "Math Speed",
       "section": "menu",
-      "defaultPermission": true
+      "minTier": 3
     },
     {
       "key": "math_speed_legacy",
       "icon": "Icons.calculate",
       "label": "Math Speed (Old)",
       "section": "menu",
-      "defaultPermission": true
+      "minTier": 3
     },
     {
       "key": "password_generator",
       "icon": "Icons.password",
       "label": "Password Generator",
       "section": "menu",
-      "defaultPermission": true
+      "minTier": 3
     },
     {
       "key": "gacha_luck",
       "icon": "Icons.casino",
       "label": "Gacha Luck",
       "section": "menu",
-      "defaultPermission": true
+      "minTier": 3
     },
     {
       "key": "rolling",
       "icon": "Icons.change_circle",
       "label": "Rolling Yes/No",
       "section": "menu",
-      "defaultPermission": true
+      "minTier": 3
     },
     {
       "key": "code_diagram",
       "icon": "Icons.account_tree",
       "label": "Render Diagram",
       "section": "menu",
-      "defaultPermission": true
+      "minTier": 3
     },
     {
       "key": "language",
       "icon": "Icons.translate",
       "label": "Language",
       "section": "menu",
-      "defaultPermission": true
+      "minTier": 3
     },
     {
       "key": "news",
@@ -62,7 +62,7 @@
       "label": "News",
       "section": "market",
       "portal": "saham",
-      "defaultPermission": true
+      "minTier": 2
     },
     {
       "key": "stocks",
@@ -70,7 +70,7 @@
       "label": "IDX Stocks",
       "section": "market",
       "portal": "saham",
-      "defaultPermission": true
+      "minTier": 2
     },
     {
       "key": "stock_list",
@@ -78,7 +78,7 @@
       "label": "Stock List",
       "section": "market",
       "portal": "saham",
-      "defaultPermission": true
+      "minTier": 2
     },
     {
       "key": "ihsg_radar",
@@ -86,7 +86,7 @@
       "label": "IHSG Radar",
       "section": "market",
       "portal": "saham",
-      "defaultPermission": true
+      "minTier": 2
     },
     {
       "key": "reports",
@@ -94,7 +94,7 @@
       "label": "Reports",
       "section": "market",
       "portal": "saham",
-      "defaultPermission": true
+      "minTier": 1
     },
     {
       "key": "index_saham",
@@ -102,77 +102,77 @@
       "label": "Index Saham",
       "section": "market",
       "portal": "saham",
-      "defaultPermission": true
+      "minTier": 1
     },
     {
       "key": "video_downloader",
       "icon": "Icons.download",
       "label": "Video Downloader",
       "section": "menu",
-      "defaultPermission": true
+      "minTier": 3
     },
     {
       "key": "color_palate",
       "icon": "Icons.grid",
       "label": "Color Palate",
       "section": "menu",
-      "defaultPermission": true
+      "minTier": 3
     },
     {
       "key": "math_dasar",
       "icon": "Icons.calculate",
       "label": "Math Dasar",
       "section": "menu",
-      "defaultPermission": true
+      "minTier": 3
     },
     {
       "key": "csv_shuffler",
       "icon": "Icons.grid",
       "label": "CSV Shuffler",
       "section": "menu",
-      "defaultPermission": true
+      "minTier": 3
     },
     {
       "key": "tint_shade",
       "icon": "Icons.grid",
       "label": "Tint & Shade",
       "section": "menu",
-      "defaultPermission": true
+      "minTier": 3
     },
     {
       "key": "color_vision",
       "icon": "Icons.grid",
       "label": "Edukasi Warna",
       "section": "menu",
-      "defaultPermission": true
+      "minTier": 3
     },
     {
       "key": "jepunese",
       "icon": "Icons.translate",
       "label": "Jepunese",
       "section": "menu",
-      "defaultPermission": true
+      "minTier": 3
     },
     {
       "key": "bahasa_interaktif",
       "icon": "Icons.book_open",
       "label": "Bahasa Interaktif",
       "section": "menu",
-      "defaultPermission": true
+      "minTier": 3
     },
     {
       "key": "type_writing",
       "icon": "Icons.keyboard",
       "label": "Type Writing",
       "section": "menu",
-      "defaultPermission": true
+      "minTier": 3
     },
     {
       "key": "deck_of_cards",
       "icon": "Icons.grid",
       "label": "Deck of Cards",
       "section": "menu",
-      "defaultPermission": true
+      "minTier": 3
     },
     {
       "key": "user_permissions",
@@ -180,7 +180,7 @@
       "label": "User Permissions",
       "section": "admin",
       "portal": "saham",
-      "defaultPermission": false
+      "minTier": 0
     },
     {
       "key": "server_dashboard",
@@ -188,7 +188,7 @@
       "label": "Server Dashboard",
       "section": "admin",
       "portal": "saham",
-      "defaultPermission": false
+      "minTier": 0
     },
     {
       "key": "sitemaps",
@@ -196,7 +196,7 @@
       "label": "Sitemaps",
       "section": "admin",
       "portal": "saham",
-      "defaultPermission": false
+      "minTier": 0
     },
     {
       "key": "proxies",
@@ -204,7 +204,7 @@
       "label": "Proxy Scraper",
       "section": "admin",
       "portal": "saham",
-      "defaultPermission": false
+      "minTier": 0
     },
     {
       "key": "backup",
@@ -212,7 +212,7 @@
       "label": "Backup System",
       "section": "admin",
       "portal": "saham",
-      "defaultPermission": false
+      "minTier": 0
     },
     {
       "key": "stock_status",
@@ -220,7 +220,7 @@
       "label": "Stock Status",
       "section": "admin",
       "portal": "saham",
-      "defaultPermission": false
+      "minTier": 0
     },
     {
       "key": "idx_upload",
@@ -228,7 +228,7 @@
       "label": "IDX Upload",
       "section": "admin",
       "portal": "saham",
-      "defaultPermission": false
+      "minTier": 0
     }
   ]
 }
