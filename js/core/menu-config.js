@@ -1,5 +1,12 @@
-/* core/menu-config.js — Loads static menu_config.json (mirrors Flutter AppConfig.load) */
+/* core/menu-config.js — Loads menu config (mirrors Flutter AppConfig.load).
+ * Dua sumber:
+ *   - STATIC  assets/config/menu_config.json  → metadata UI (label, icon,
+ *     portal, inDrawer, urutan) + fallback minTier.
+ *   - SERVER  GET /api/meta/apps               → minTier OTORITATIF dari
+ *     backend apps_tier_*.json (server menang; static hanya fallback).
+ */
 import { icons } from '../ui/icons.js';
+import { ApiConfig } from './api-config.js';
 
 // Maps Flutter IconData names to our icon registry keys
 const iconMap = {
@@ -50,9 +57,18 @@ let cached = null;
 
 export async function fetchMenuConfig() {
   if (cached) return cached;
-  const res = await fetch('/assets/config/menu_config.json');
-  const data = await res.json();
-  cached = data.apps.map((app) => ({
+
+  const [staticRes, serverRes] = await Promise.all([
+    fetch('/assets/config/menu_config.json'),
+    // Server = sumber tunggal aturan akses; gagal/tidak responsif → fallback static
+    fetch(ApiConfig.url('/meta/apps'), { signal: AbortSignal.timeout(6000) }).catch(() => null),
+  ]);
+
+  const staticData = await staticRes.json();
+  const serverApps = serverRes && serverRes.ok ? (await serverRes.json()).apps || [] : [];
+  const serverMinTier = Object.fromEntries(serverApps.map((a) => [a.key, a.minTier]));
+
+  cached = staticData.apps.map((app) => ({
     key: app.key,
     icon: iconMap[app.icon] || 'help-circle',
     label: app.label,
@@ -61,8 +77,10 @@ export async function fetchMenuConfig() {
     // Item dengan inDrawer=false tidak dirender di drawer (mis. Profile
     // yang hanya dibuka lewat pop-up dari chip user di landing).
     inDrawer: app.inDrawer !== false,
-    // Rank 0 = tertinggi; fallback = tier dasar (nilai terbesar = akses paling luas).
-    minTier: Number.isFinite(app.minTier) ? app.minTier : 3,
+    // minTier: server otoritatif; fallback static; terakhir tier dasar (3).
+    minTier: Number.isFinite(serverMinTier[app.key])
+      ? serverMinTier[app.key]
+      : (Number.isFinite(app.minTier) ? app.minTier : 3),
   }));
   return cached;
 }
