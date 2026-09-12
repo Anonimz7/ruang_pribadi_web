@@ -19,7 +19,6 @@ export function render() {
   const state = {
     users: [],
     apps: [],              // [{ key, label }]
-    defaultPerms: [],      // [key, ...]
     loading: true,
     searchTerm: '',
     searchDebounce: null,
@@ -30,10 +29,6 @@ export function render() {
   container.appendChild(createEl('h1', {}, ['User Permissions']));
   container.appendChild(createEl('p', { style: { color: 'var(--c-text-2)', marginBottom: 'var(--s-5)' } },
     ['Manage users, tiers, and app access.']));
-
-  // ── Default for New Users card ──
-  const defaultCard = createEl('div', { class: 'card admin-users__default' });
-  container.appendChild(defaultCard);
 
   // Toolbar
   const toolbar = createEl('div', { style: { display: 'flex', gap: 'var(--s-3)', marginBottom: 'var(--s-4)', flexWrap: 'wrap' } });
@@ -90,59 +85,10 @@ export function render() {
       console.error('[AdminUsers] Failed to load apps:', e);
       state.apps = [];
     }
-    renderDefaultCard();
-  }
-
-  async function loadDefaultPerms() {
-    try {
-      const res = await Api.get('/admin/default-permissions');
-      if (Array.isArray(res?.default_permissions)) state.defaultPerms = res.default_permissions;
-      if (Array.isArray(res?.all_apps) && state.apps.length === 0) {
-        state.apps = res.all_apps.map(k => ({ key: k, label: k }));
-      }
-    } catch (e) {
-      console.error('[AdminUsers] Failed to load default perms:', e);
-    }
-    renderDefaultCard();
   }
 
   function appLabel(key) {
     return state.apps.find(a => a.key === key)?.label || key;
-  }
-
-  function renderDefaultCard() {
-    defaultCard.innerHTML = '';
-    defaultCard.appendChild(createEl('div', { class: 'card__head' }, [], []));
-    defaultCard.querySelector('.card__head').innerHTML = `
-      <div>
-        <div class="card__title">Default for New Users</div>
-        <div class="card__subtitle">${state.defaultPerms.length} dari ${state.apps.length} fitur aktif — diterapkan otomatis saat user baru dibuat.</div>
-      </div>
-    `;
-
-    const chips = createEl('div', { class: 'admin-users__chips' });
-    state.apps.forEach(({ key }) => {
-      const chip = createEl('button', {
-        type: 'button',
-        class: 'admin-users__chip' + (state.defaultPerms.includes(key) ? ' admin-users__chip--active' : ''),
-      }, [appLabel(key)]);
-      chip.addEventListener('click', () => toggleDefaultPerm(key));
-      chips.appendChild(chip);
-    });
-    defaultCard.appendChild(chips);
-  }
-
-  async function toggleDefaultPerm(key) {
-    const next = state.defaultPerms.includes(key)
-      ? state.defaultPerms.filter(k => k !== key)
-      : [...state.defaultPerms, key];
-    try {
-      const res = await Api.put('/admin/default-permissions', { permissions: next });
-      state.defaultPerms = res?.default_permissions || next;
-      renderDefaultCard();
-    } catch (e) {
-      toast('Gagal simpan default: ' + (e.message || e), { type: 'error' });
-    }
   }
 
   // ---- Users list ----
@@ -278,7 +224,7 @@ export function render() {
           <option value="admin">Admin (0)</option>
         </select>
       </div>
-      <p class="admin-users__hint">Permissions mengikuti "Default for New Users" (${state.defaultPerms.length} fitur aktif) — atur lewat kartu di atas.</p>
+      <p class="admin-users__hint">Akses dasar mengikuti tier yang dipilih (rank &le; minTier). Permission tambahan (grant) bisa diatur lewat menu Edit user nanti.</p>
       <div class="field field--inline" style="justify-content:space-between;margin-top:var(--s-2);">
         <button type="button" class="btn btn--secondary" id="cancel">Batal</button>
         <button type="submit" class="btn btn--primary">${icons['plus']} Buat</button>
@@ -434,7 +380,6 @@ export function render() {
 
   // Init
   loadApps();
-  loadDefaultPerms();
   loadUsers();
 
   return container;
