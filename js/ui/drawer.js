@@ -1,4 +1,4 @@
-/* ui/drawer.js — Dynamic side navigation driven by server permissions (portal-aware) */
+/* ui/drawer.js — Dynamic side navigation driven by tier (portal-aware) */
 import { store, subscribe } from '../core/state.js';
 import { Auth } from '../core/auth.js';
 import { fetchMenuConfig, ROUTE_MAP, MENU_SECTIONS, EXTERNAL_URLS, getPortal } from '../core/menu-config.js';
@@ -28,7 +28,7 @@ function toNavItem(app) {
 }
 
 /**
- * Filter menu items based on login status, tier, and permissions.
+ * Filter menu items based on login status and tier (rank <= minTier).
  * Returns array of { section, label, items: [...] }
  */
 function filterMenuItems() {
@@ -48,12 +48,9 @@ function filterMenuItems() {
       if (sec === 'admin') {
         // Admin section requires admin tier (rank tertinggi)
         if (!Auth.isAdmin()) continue;
-        items = items.filter((app) => !Auth.isMenuHidden(app.key) && Auth.canAccess(app.key, app.minTier));
+        items = items.filter((app) => Auth.canAccess(app.key, app.minTier));
       } else {
-        items = items.filter((app) => {
-          if (Auth.isMenuHidden(app.key)) return false;
-          return Auth.canAccess(app.key, app.minTier);
-        });
+        items = items.filter((app) => Auth.canAccess(app.key, app.minTier));
       }
 
       if (items.length === 0) continue;
@@ -80,7 +77,7 @@ function filterMenuItems() {
 
   if (!isLoggedIn) {
     // Guest (logout) di mode non-portal: tampilkan System + section Menu (tools publik)
-    // tanpa filter permission, agar /tools tetap bernavigasi walau belum login.
+    // tanpa filter tier, agar /tools tetap bernavigasi walau belum login.
     // Media/Market/Admin (milik portal Saham) sudah ter-exclude oleh !app.portal.
     for (const { value: sec, label: secLabel } of MENU_SECTIONS) {
       if (sec === 'system') continue;
@@ -102,12 +99,9 @@ function filterMenuItems() {
     if (sec === 'admin') {
       // Admin section requires admin tier
       if (!Auth.isAdmin()) continue;
-      items = items.filter((app) => !Auth.isMenuHidden(app.key) && Auth.canAccess(app.key, app.minTier));
+      items = items.filter((app) => Auth.canAccess(app.key, app.minTier));
     } else {
-      items = items.filter((app) => {
-        if (Auth.isMenuHidden(app.key)) return false;
-        return Auth.canAccess(app.key, app.minTier);
-      });
+      items = items.filter((app) => Auth.canAccess(app.key, app.minTier));
     }
 
     if (items.length === 0) continue;
@@ -278,12 +272,6 @@ export async function createDrawer() {
 
   // Listen for auth state changes and re-render
   subscribe('token', () => {
-    renderDrawer();
-  });
-  subscribe('permissions', () => {
-    renderDrawer();
-  });
-  subscribe('hiddenMenus', () => {
     renderDrawer();
   });
   subscribe('tier', () => {

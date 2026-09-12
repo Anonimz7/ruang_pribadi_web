@@ -1,10 +1,9 @@
-/* pages/admin/users.js — User Permissions Management (Flutter parity) */
+/* pages/saham/admin/users.js — User Permissions Management (tier-only) */
 import { createEl } from '../../../utils/dom.js';
 import { icons } from '../../../ui/icons.js';
 import Api from '../../../core/api.js';
 import { toast } from '../../../ui/toast.js';
 import { createModal } from '../../../ui/modal.js';
-import { fetchMenuConfig } from '../../../core/menu-config.js';
 
 const MAIN_ADMIN = 'xoot';
 
@@ -18,7 +17,6 @@ function formatDate(iso) {
 export function render() {
   const state = {
     users: [],
-    apps: [],              // [{ key, label }]
     loading: true,
     searchTerm: '',
     searchDebounce: null,
@@ -28,7 +26,7 @@ export function render() {
 
   container.appendChild(createEl('h1', {}, ['User Permissions']));
   container.appendChild(createEl('p', { style: { color: 'var(--c-text-2)', marginBottom: 'var(--s-5)' } },
-    ['Manage users, tiers, and app access.']));
+    ['Manage users and tiers. Akses tiap user mengikuti tier (rank &le; minTier).']));
 
   // Toolbar
   const toolbar = createEl('div', { style: { display: 'flex', gap: 'var(--s-3)', marginBottom: 'var(--s-4)', flexWrap: 'wrap' } });
@@ -67,29 +65,6 @@ export function render() {
   });
 
   toolbar.querySelector('#create-user').addEventListener('click', openCreateModal);
-
-  // ---- Apps & default permissions ----
-  async function loadApps() {
-    try {
-      const res = await Api.get('/admin/apps');
-      const keys = res?.apps || [];
-
-      let labels = {};
-      try {
-        const cfg = await fetchMenuConfig();
-        cfg.forEach(a => { labels[a.key] = a.label; });
-      } catch { /* fallback: pakai key sebagai label */ }
-
-      state.apps = keys.map(k => ({ key: k, label: labels[k] || k }));
-    } catch (e) {
-      console.error('[AdminUsers] Failed to load apps:', e);
-      state.apps = [];
-    }
-  }
-
-  function appLabel(key) {
-    return state.apps.find(a => a.key === key)?.label || key;
-  }
 
   // ---- Users list ----
   async function loadUsers() {
@@ -133,7 +108,7 @@ export function render() {
     const table = createEl('table', { class: 'table' });
     table.innerHTML = `
       <thead><tr>
-        <th>Username</th><th>Tier</th><th>Permissions</th><th>Last Login</th><th>Status</th><th></th>
+        <th>Username</th><th>Tier</th><th>Last Login</th><th></th>
       </tr></thead>
     `;
     const tbody = createEl('tbody');
@@ -152,27 +127,12 @@ export function render() {
 
     const tdTier = createEl('td');
     const tierTone = { admin: 'danger', premium: 'primary', member: 'success', guest: 'neutral' }[u.tier] || 'neutral';
-    tdTier.innerHTML = `<span class="badge badge--${tierTone}">${u.tier}</span>`;
+    tdTier.innerHTML = `<span class="badge badge--${tierTone}">${u.tier} (${u.rank ?? '?'})</span>`;
     tr.appendChild(tdTier);
-
-    const tdPerms = createEl('td');
-    const permCount = u.permissions?.length || 0;
-    const permList = u.permissions?.join(', ') || 'tidak ada';
-    const isFull = (u.rank ?? (u.tier === 'admin' ? 0 : 3)) <= 0;
-    tdPerms.innerHTML = isFull
-      ? '<span class="badge badge--success">full access</span>'
-      : `<span class="badge badge--neutral" title="${permList}">${permCount} / ${state.apps.length} fitur</span>`;
-    tr.appendChild(tdPerms);
 
     const tdLogin = createEl('td');
     tdLogin.appendChild(createEl('span', { style: { fontSize: 'var(--text-sm)', color: 'var(--c-text-3)' } }, [formatDate(u.last_login)]));
     tr.appendChild(tdLogin);
-
-    const tdStatus = createEl('td');
-    tdStatus.innerHTML = u.hidden_menus?.length
-      ? `<span class="badge badge--warn" title="${u.hidden_menus.join(', ')}">${u.hidden_menus.length} hidden</span>`
-      : '<span class="badge badge--success">visible</span>';
-    tr.appendChild(tdStatus);
 
     // Actions — div wrapper agar td tetap table-cell
     const tdActions = createEl('td');
@@ -203,7 +163,7 @@ export function render() {
     return tr;
   }
 
-  // ---- Create modal (parity Flutter: username + password + tier) ----
+  // ---- Create modal (username + password + tier) ----
   function openCreateModal() {
     const form = createEl('form', { style: { display: 'flex', flexDirection: 'column', gap: 'var(--s-3)' } });
     form.innerHTML = `
@@ -224,7 +184,7 @@ export function render() {
           <option value="admin">Admin (0)</option>
         </select>
       </div>
-      <p class="admin-users__hint">Akses dasar mengikuti tier yang dipilih (rank &le; minTier). Permission tambahan (grant) bisa diatur lewat menu Edit user nanti.</p>
+      <p class="admin-users__hint">Seluruh akses mengikuti tier yang dipilih (rank &le; minTier). Tingkatkan/ubah tier kapan pun lewat Edit.</p>
       <div class="field field--inline" style="justify-content:space-between;margin-top:var(--s-2);">
         <button type="button" class="btn btn--secondary" id="cancel">Batal</button>
         <button type="submit" class="btn btn--primary">${icons['plus']} Buat</button>
@@ -253,7 +213,7 @@ export function render() {
     });
   }
 
-  // ---- Edit modal (tier + permissions chips + hidden menus chips) ----
+  // ---- Edit modal (tier saja) ----
   async function openEditModal(userId) {
     let user;
     try {
@@ -264,8 +224,6 @@ export function render() {
     }
 
     const isMain = user.username === MAIN_ADMIN;
-    const permsSet = new Set(user.permissions || []);
-    const hiddenSet = new Set(user.hidden_menus || []);
     const tierVal = user.tier || 'guest';
 
     const form = createEl('form', { style: { display: 'flex', flexDirection: 'column', gap: 'var(--s-3)' } });
@@ -283,30 +241,17 @@ export function render() {
           <option value="admin" ${tierVal === 'admin' ? 'selected' : ''}>Admin (0)</option>
         </select>
       </div>
-      <div class="field">
-        <label class="field__label">Permissions</label>
-        <div class="admin-users__chips" id="edit-perms-chips"></div>
-      </div>
-      <div class="field">
-        <label class="field__label">Sembunyikan dari drawer</label>
-        <div class="admin-users__chips" id="edit-hidden-chips"></div>
-      </div>
+      <p class="admin-users__hint">Akses berubah otomatis mengikuti tier baru (rank &le; minTier).</p>
       <div class="field field--inline" style="justify-content:space-between;margin-top:var(--s-2);">
         <button type="button" class="btn btn--secondary" id="cancel">Batal</button>
         <button type="submit" class="btn btn--primary">${icons['check']} Simpan</button>
       </div>
     `;
 
-    const permsChipsEl = form.querySelector('#edit-perms-chips');
-    const hiddenChipsEl = form.querySelector('#edit-hidden-chips');
-
-    state.apps.forEach(({ key }) => buildToggleChip(key, permsSet, permsChipsEl));
-    state.apps.forEach(({ key }) => buildToggleChip(key, hiddenSet, hiddenChipsEl, 'Sembunyikan'));
-
     const modal = createModal({
       title: `Edit User: ${user.username}`,
       content: form,
-      width: '480px',
+      width: '420px',
     });
     form.querySelector('#cancel').addEventListener('click', () => modal.close());
 
@@ -317,8 +262,6 @@ export function render() {
         if (tier !== user.tier) {
           await Api.put(`/admin/users/${userId}/tier`, { tier });
         }
-        await Api.put(`/admin/users/${userId}/permissions`, { permissions: [...permsSet] });
-        await Api.put(`/admin/users/${userId}/visibility`, { hidden_menus: [...hiddenSet] });
         toast('User berhasil diupdate', { type: 'success' });
         modal.close();
         loadUsers();
@@ -326,24 +269,6 @@ export function render() {
         toast('Error: ' + (err.message || err), { type: 'error' });
       }
     });
-  }
-
-  function buildToggleChip(key, valueSet, containerEl, activeTitle) {
-    const chip = createEl('button', {
-      type: 'button',
-      class: 'admin-users__chip' + (valueSet.has(key) ? ' admin-users__chip--active' : ''),
-      ...(activeTitle ? { title: activeTitle } : {}),
-    }, [appLabel(key)]);
-    chip.addEventListener('click', () => {
-      if (valueSet.has(key)) {
-        valueSet.delete(key);
-        chip.classList.remove('admin-users__chip--active');
-      } else {
-        valueSet.add(key);
-        chip.classList.add('admin-users__chip--active');
-      }
-    });
-    containerEl.appendChild(chip);
   }
 
   // ---- Delete confirm (modal, bukan confirm() native) ----
@@ -379,7 +304,6 @@ export function render() {
   };
 
   // Init
-  loadApps();
   loadUsers();
 
   return container;

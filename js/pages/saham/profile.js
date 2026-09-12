@@ -1,4 +1,4 @@
-/* pages/profile.js — User profile (redesigned: hero + permissions + change password) */
+/* pages/profile.js — User profile (hero + akses tier + change password) */
 import { store, subscribe } from '../../core/state.js';
 import { Auth } from '../../core/auth.js';
 import { navigate } from '../../core/router.js';
@@ -12,14 +12,16 @@ import { showLogin } from '../login-modal.js';
 export function render() {
   const container = createEl('div', { class: 'profile-page' });
 
-  // Cache label aplikasi untuk permissions yang readable
-  let appLabels = {};
+  // Cache akses tier: fitur yang terbuka untuk rank user saat ini
+  let accessCount = 0;
+  let accessTotal = 0;
   fetchMenuConfig()
     .then(cfg => {
-      appLabels = Object.fromEntries(cfg.map(a => [a.key, a.label]));
+      accessTotal = cfg.length;
+      accessCount = cfg.filter(a => Auth.canAccess(a.key, a.minTier)).length;
       renderContent();
     })
-    .catch(() => { /* biarkan labels kosong, fallback raw key */ });
+    .catch(() => { /* biarkan 0, renderContent tetap jalan */ });
 
   const renderContent = () => {
     container.innerHTML = '';
@@ -30,7 +32,7 @@ export function render() {
     }
 
     container.appendChild(buildHero());
-    container.appendChild(buildPermissionsCard());
+    container.appendChild(buildAccessCard());
     container.appendChild(buildPasswordCard());
   };
 
@@ -73,25 +75,17 @@ export function render() {
     return card;
   }
 
-  // ═══ PERMISSIONS ══════════════════════════════════
-  function buildPermissionsCard() {
+  // ═══ AKSES (murni tier) ═══════════════════════════
+  function buildAccessCard() {
     const card = createEl('div', { class: 'card' }, []);
-    card.appendChild(createEl('div', { class: 'card__title', style: { marginBottom: 'var(--s-3)' } }, ['Izin Akses']));
+    card.appendChild(createEl('div', { class: 'card__title', style: { marginBottom: 'var(--s-3)' } }, ['Akses Anda']));
 
-    const perms = store.permissions || [];
-    const isAdmin = Auth.isAdmin();
-
-    if (isAdmin) {
+    if (Auth.isAdmin()) {
       const badge = createEl('span', { class: 'badge badge--success' }, ['Akses penuh ke semua fitur']);
       card.appendChild(badge);
-    } else if (perms.length === 0) {
-      card.appendChild(createEl('p', { class: 'profile-muted' }, ['Tidak ada izin akses']));
     } else {
-      const chips = createEl('div', { class: 'profile-chips' });
-      perms.forEach(p => {
-        chips.appendChild(createEl('span', { class: 'profile-chip', title: p }, [appLabels[p] || p]));
-      });
-      card.appendChild(chips);
+      card.appendChild(createEl('p', { class: 'profile-muted' },
+        [`Tier ${(store.tier || 'guest').toUpperCase()} (rank ${store.rank}) membuka ${accessCount} dari ${accessTotal || '?'} fitur.`]));
     }
     return card;
   }
@@ -192,7 +186,7 @@ export function render() {
   }
 
   // Subscribe re-render pada perubahan auth
-  const unsubs = ['token', 'username', 'tier', 'permissions'].map(k =>
+  const unsubs = ['token', 'username', 'tier', 'rank'].map(k =>
     subscribe(k, () => renderContent())
   );
 

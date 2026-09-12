@@ -7,8 +7,6 @@ export const store = new Proxy({
   username: '',
   tier: 'guest',
   rank: 3,
-  permissions: [],
-  hiddenMenus: [],
   pendingRoute: null,
   theme: localStorage.getItem('rp-theme') || 'system',
   drawerOpen: false,

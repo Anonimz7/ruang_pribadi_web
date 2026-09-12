@@ -15,7 +15,6 @@ class ApiError extends Error {
 function _triggerSessionExpired() {
   store.token = null;
   store.user = null;
-  store.permissions = [];
   store.rank = 3;
   localStorage.removeItem('jwt_token');
   localStorage.removeItem('user_data');

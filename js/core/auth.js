@@ -44,8 +44,6 @@ function saveSession(token, user) {
   store.username = user.username ?? '';
   store.tier = user.tier ?? 'guest';
   store.rank = userRank(user);
-  store.permissions = (user.permissions ?? []).map(String);
-  store.hiddenMenus = (user.hidden_menus ?? []).map(String);
 }
 
 /**
@@ -62,8 +60,6 @@ export async function loadSession() {
       store.username = user.username ?? '';
       store.tier = user.tier ?? 'guest';
       store.rank = userRank(user);
-      store.permissions = (user.permissions ?? []).map(String);
-      store.hiddenMenus = (user.hidden_menus ?? []).map(String);
       return true;
     } catch {
       clearSession();
@@ -79,8 +75,6 @@ export function clearSession() {
   store.username = '';
   store.tier = 'guest';
   store.rank = 3;
-  store.permissions = [];
-  store.hiddenMenus = [];
   localStorage.removeItem('jwt_token');
   localStorage.removeItem('user_data');
 }
@@ -135,24 +129,18 @@ export const Auth = {
   },
 
   /**
-   * Rank-based access check (rank 0 = tertinggi):
-   *   rank <= minTier (basis tier)  atau  app di permissions user (grant custom).
+   * Rank-based access check (rank 0 = tertinggi, murni tier):
+   *   rank <= minTier  ->  dapat akses.
    * minTier default = tier dasar -> semua user login (rank <= max) lolos.
    */
   canAccess(appKey, minTier = 3) {
     const need = Number.isFinite(minTier) ? minTier : 3;
-    if (store.rank <= need) return true;
-    if (store.rank <= tierRank('admin')) return true;
-    return store.permissions.includes(appKey);
+    return store.rank <= need || store.rank <= tierRank('admin');
   },
 
   // Bacaan cepat: apakah user berguna admin (rank tertinggi).
   isAdmin() {
     return isAdminRank(store.rank);
-  },
-
-  isMenuHidden(appKey) {
-    return store.hiddenMenus.includes(appKey);
   },
 
   isLoggedIn() {

@@ -132,10 +132,6 @@ async function checkAccess(path) {
           : 'login_required',
       };
     }
-    // Hidden menu check
-    if (store.token && Auth.isMenuHidden(appKey)) {
-      return { allowed: false, reason: 'Menu ini disembunyikan.' };
-    }
     return { allowed: true, reason: null };
   }
 
