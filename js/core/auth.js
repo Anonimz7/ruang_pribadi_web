@@ -78,7 +78,7 @@ export function clearSession() {
   store.user = null;
   store.username = '';
   store.tier = 'guest';
-  store.rank = 0;
+  store.rank = 3;
   store.permissions = [];
   store.hiddenMenus = [];
   localStorage.removeItem('jwt_token');

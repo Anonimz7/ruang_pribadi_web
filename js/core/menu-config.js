@@ -72,6 +72,30 @@ export const MENU_SECTIONS = [
   { value: 'admin', label: 'Admin', path: '/saham/admin/dashboard' },
 ];
 
+// ── Landing config (kartu portal di halaman landing) ─────────────────────────
+let landingCache = null;
+
+/**
+ * Load kartu landing dari menu_config.json (array 'landing').
+ * Setiap entri punya minTier — dirender dinamis oleh halaman landing.
+ */
+export async function fetchLandingConfig() {
+  if (landingCache) return landingCache;
+  const res = await fetch('/assets/config/menu_config.json');
+  const data = await res.json();
+  landingCache = (data.landing || []).map((m) => ({
+    key: m.key,
+    num: m.num,
+    label: m.label,
+    desc: m.desc,
+    small: m.small,
+    route: m.route,
+    status: m.status,
+    minTier: Number.isFinite(m.minTier) ? m.minTier : 3,
+  }));
+  return landingCache;
+}
+
 // Menu key -> route path (mirrors Flutter drawer paths)
 export const ROUTE_MAP = {
   profile: '/profile',

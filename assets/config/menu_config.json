@@ -230,5 +230,47 @@
       "portal": "saham",
       "minTier": 0
     }
+  ],
+  "landing": [
+    {
+      "key": "saham",
+      "num": "1",
+      "label": "Saham",
+      "desc": "Stocks, berita, video & panel admin",
+      "small": "Akses pasar IDX",
+      "route": "/saham",
+      "status": "active",
+      "minTier": 2
+    },
+    {
+      "key": "tools",
+      "num": "2",
+      "label": "Tools",
+      "desc": "Kalkulator, konversi & produktivitas",
+      "small": "Gratis untuk semua",
+      "route": "/tools",
+      "status": "active",
+      "minTier": 3
+    },
+    {
+      "key": "quiz",
+      "num": "3",
+      "label": "Quiz",
+      "desc": "Kuis interaktif & games seru",
+      "small": "Coming Soon",
+      "route": "/quiz",
+      "status": "active",
+      "minTier": 3
+    },
+    {
+      "key": "games",
+      "num": "4",
+      "label": "Games",
+      "desc": "Games seru untuk mengisi waktu",
+      "small": "Coming Soon",
+      "route": "/games",
+      "status": "active",
+      "minTier": 3
+    }
   ]
 }

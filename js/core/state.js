@@ -6,7 +6,7 @@ export const store = new Proxy({
   token: null,
   username: '',
   tier: 'guest',
-  rank: 0,
+  rank: 3,
   permissions: [],
   hiddenMenus: [],
   pendingRoute: null,

@@ -1,18 +1,15 @@
-/* pages/landing.js — Landing pilih portal (Saham aktif, Tools/Quiz segera hadir) */
+/* pages/landing.js — Landing pilih portal (kartu diatur config + filter tier).
+ * Entri dibaca dari menu_config.json -> 'landing' (fetchLandingConfig).
+ * Setiap kartu punya minTier; kartu 'active' hanya tampil bila
+ * Auth.canAccess(key, minTier) — konsisten dengan drawer & router.
+ */
 import { store, subscribe } from '../../core/state.js';
 import { Auth } from '../../core/auth.js';
 import { navigate } from '../../core/router.js';
 import { createEl } from '../../utils/dom.js';
 import { icons } from '../../ui/icons.js';
+import { fetchLandingConfig } from '../../core/menu-config.js';
 import { showLogin } from '../login-modal.js';
-
-// Status 'active' = bisa diklik, 'coming' = disabled "Segera hadir"
-const MENUS = [
-  { num: '1', label: 'Saham', desc: 'Stocks, berita, video & panel admin', small: 'Butuh login', route: '/saham', status: 'active' },
-  { num: '2', label: 'Tools', desc: 'Kalkulator, konversi & produktivitas', small: 'Gratis untuk semua', route: '/tools', status: 'active' },
-  { num: '3', label: 'Quiz', desc: 'Kuis interaktif & games seru', small: 'Coming Soon', route: '/quiz', status: 'active' },
-  { num: '4', label: 'Games', desc: 'Games seru untuk mengisi waktu', small: 'Coming Soon', route: '/games', status: 'active' },
-];
 
 export function render() {
   const page = createEl('div', { class: 'landing-page' });
@@ -54,7 +51,15 @@ export function render() {
     topbar.appendChild(logoutBtn);
   }
 
-  function renderMenu() {
+  function visibleMenus(menus) {
+    return menus.filter((m) => {
+      // Kartu 'coming' (Quiz/Games) tetap tampil, butuh login pun tidak.
+      if (m.status === 'coming') return true;
+      return Auth.canAccess(m.key, m.minTier);
+    });
+  }
+
+  function renderMenu(menus) {
     card.innerHTML = '';
 
     // Header
@@ -63,9 +68,10 @@ export function render() {
     header.appendChild(createEl('p', {}, ['Klik tombol untuk memulai']));
     card.appendChild(header);
 
-    // Grid menu
+    // Grid menu — hanya kartu yang tier-nya mengizinkan
     const grid = createEl('div', { class: 'landing-grid' });
-    MENUS.forEach((m) => {
+    const items = visibleMenus(menus);
+    items.forEach((m) => {
       const item = createEl('div', {
         class: 'landing-item' + (m.status === 'coming' ? ' landing-item--coming' : ''),
       }, []);
@@ -90,13 +96,20 @@ export function render() {
     card.appendChild(grid);
   }
 
-  const unsubs = ['token', 'username'].map((k) => subscribe(k, () => {
+  // Muat kartu dari config; bila gagal, landing tetap tampil tanpa grid.
+  fetchLandingConfig()
+    .then((menus) => renderMenu(menus))
+    .catch(() => {
+      console.warn('[Landing] Gagal memuat landing config');
+      renderMenu([]);
+    });
+
+  const unsubs = ['token', 'username', 'tier', 'rank'].map((k) => subscribe(k, () => {
     renderTopbar();
-    renderMenu();
+    fetchLandingConfig().then(renderMenu).catch(() => {});
   }));
 
   renderTopbar();
-  renderMenu();
 
   page._cleanup = () => {
     unsubs.forEach((u) => u());
