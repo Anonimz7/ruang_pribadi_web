@@ -37,7 +37,7 @@ export const PORTALS = {
     label: 'Saham',
     icon: 'trending-up',
     route: '/saham',
-    defaultPage: '/saham/news',
+    defaultPage: '/saham',
     sections: ['market', 'admin'],
   },
 };

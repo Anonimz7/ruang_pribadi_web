@@ -2,7 +2,7 @@
 import { $ } from '../utils/dom.js';
 import { store, subscribe } from './state.js';
 import { loadSession, Auth } from './auth.js';
-import { getPortal, fetchMenuConfig } from './menu-config.js';
+import { fetchMenuConfig } from './menu-config.js';
 import { showLogin } from '../pages/login-modal.js';
 
 const cache = new Map();
@@ -18,6 +18,7 @@ const PUBLIC_ROUTES = new Set([
 const routes = {
   '/': () => import('../pages/saham/landing.js'),
   '/profile': () => import('../pages/saham/profile.js'),
+  '/saham': () => import('../pages/saham/hub.js'),
   // Landing menu (hub Tools + placeholder Quiz/Games)
   '/tools': () => import('../pages/tools/tools.js'),
   '/quiz': () => import('../pages/coming-soon.js'),
@@ -59,13 +60,10 @@ const routes = {
 };
 
 /**
- * Normalize a path: '/saham' dan '/saham/admin' → halaman default portal.
+ * Normalize a path: '/saham/admin' → dashboard admin portal.
+ * '/saham' sendiri = hub portal (halaman pilihan), bukan redirect otomatis.
  */
 function normalizePath(path) {
-  if (path === '/saham') {
-    const portal = getPortal('saham');
-    return (portal && portal.defaultPage) || '/saham/news';
-  }
   if (path === '/saham/admin') return '/saham/admin/dashboard';
   return path;
 }
