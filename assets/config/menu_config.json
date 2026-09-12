@@ -12,49 +12,49 @@
       "icon": "Icons.calculate",
       "label": "Math Speed",
       "section": "menu",
-      "minTier": 3
+      "minTier": 1
     },
     {
       "key": "math_speed_legacy",
       "icon": "Icons.calculate",
       "label": "Math Speed (Old)",
       "section": "menu",
-      "minTier": 3
+      "minTier": 1
     },
     {
       "key": "password_generator",
       "icon": "Icons.password",
       "label": "Password Generator",
       "section": "menu",
-      "minTier": 3
+      "minTier": 1
     },
     {
       "key": "gacha_luck",
       "icon": "Icons.casino",
       "label": "Gacha Luck",
       "section": "menu",
-      "minTier": 3
+      "minTier": 1
     },
     {
       "key": "rolling",
       "icon": "Icons.change_circle",
       "label": "Rolling Yes/No",
       "section": "menu",
-      "minTier": 3
+      "minTier": 1
     },
     {
       "key": "code_diagram",
       "icon": "Icons.account_tree",
       "label": "Render Diagram",
       "section": "menu",
-      "minTier": 3
+      "minTier": 1
     },
     {
       "key": "language",
       "icon": "Icons.translate",
       "label": "Language",
       "section": "menu",
-      "minTier": 3
+      "minTier": 1
     },
     {
       "key": "news",
@@ -109,70 +109,70 @@
       "icon": "Icons.download",
       "label": "Video Downloader",
       "section": "menu",
-      "minTier": 3
+      "minTier": 1
     },
     {
       "key": "color_palate",
       "icon": "Icons.grid",
       "label": "Color Palate",
       "section": "menu",
-      "minTier": 3
+      "minTier": 1
     },
     {
       "key": "math_dasar",
       "icon": "Icons.calculate",
       "label": "Math Dasar",
       "section": "menu",
-      "minTier": 3
+      "minTier": 1
     },
     {
       "key": "csv_shuffler",
       "icon": "Icons.grid",
       "label": "CSV Shuffler",
       "section": "menu",
-      "minTier": 3
+      "minTier": 1
     },
     {
       "key": "tint_shade",
       "icon": "Icons.grid",
       "label": "Tint & Shade",
       "section": "menu",
-      "minTier": 3
+      "minTier": 1
     },
     {
       "key": "color_vision",
       "icon": "Icons.grid",
       "label": "Edukasi Warna",
       "section": "menu",
-      "minTier": 3
+      "minTier": 1
     },
     {
       "key": "jepunese",
       "icon": "Icons.translate",
       "label": "Jepunese",
       "section": "menu",
-      "minTier": 3
+      "minTier": 1
     },
     {
       "key": "bahasa_interaktif",
       "icon": "Icons.book_open",
       "label": "Bahasa Interaktif",
       "section": "menu",
-      "minTier": 3
+      "minTier": 1
     },
     {
       "key": "type_writing",
       "icon": "Icons.keyboard",
       "label": "Type Writing",
       "section": "menu",
-      "minTier": 3
+      "minTier": 1
     },
     {
       "key": "deck_of_cards",
       "icon": "Icons.grid",
       "label": "Deck of Cards",
       "section": "menu",
-      "minTier": 3
+      "minTier": 1
     },
     {
       "key": "user_permissions",
@@ -247,10 +247,10 @@
       "num": "2",
       "label": "Tools",
       "desc": "Kalkulator, konversi & produktivitas",
-      "small": "Gratis untuk semua",
+      "small": "Khusus Premium+",
       "route": "/tools",
       "status": "active",
-      "minTier": 3
+      "minTier": 1
     },
     {
       "key": "quiz",

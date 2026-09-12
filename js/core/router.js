@@ -2,7 +2,7 @@
 import { $ } from '../utils/dom.js';
 import { store, subscribe } from './state.js';
 import { loadSession, Auth } from './auth.js';
-import { getPortal } from './menu-config.js';
+import { getPortal, fetchMenuConfig } from './menu-config.js';
 import { showLogin } from '../pages/login-modal.js';
 
 const cache = new Map();
@@ -74,7 +74,7 @@ function normalizePath(path) {
  * Check if the current user can access the given route.
  * Returns { allowed: bool, reason: string|null }
  */
-function checkAccess(path) {
+async function checkAccess(path) {
   const routeModule = routes[path];
   if (!routeModule) return { allowed: false, reason: 'Halaman tidak ditemukan.' };
 
@@ -96,17 +96,17 @@ function checkAccess(path) {
     return { allowed: true, reason: null };
   }
 
-  // Tools non-portal: tamu boleh akses bebas (tanpa paksa login).
-  // User yang sudah login tetap dicek terhadap permission & hidden menu.
+  // Tools non-portal: digate oleh tier berdasarkan menu config
   const keyMap = {
     '/math-speed': 'math_speed',
+    '/math-speed-legacy': 'math_speed_legacy',
     '/password': 'password_generator',
     '/gacha': 'gacha_luck',
     '/rolling': 'rolling',
     '/diagram': 'code_diagram',
     '/bahasa': 'language',
     '/video': 'video_downloader',
-    '/video-history': 'video_history',
+    '/video-history': 'video_downloader',
     '/color-palate': 'color_palate',
     '/math-dasar': 'math_dasar',
     '/bacak': 'csv_shuffler',
@@ -115,24 +115,28 @@ function checkAccess(path) {
     '/jepunese': 'jepunese',
     '/bahasa-interaktif': 'bahasa_interaktif',
     '/type-writing': 'type_writing',
-    '/math-speed-legacy': 'math_speed_legacy',
   };
 
-  // Beberapa tool butuh login karena mengakses backend/akun.
-  // Saat guest membukanya, tampilkan pop-up login (lalu lanjut ke tool setelah login).
-  const TOOLS_REQUIRE_LOGIN = new Set(['/bahasa', '/video', '/video-history']);
-  if (TOOLS_REQUIRE_LOGIN.has(path) && !store.token) {
-    return { allowed: false, reason: 'login_required' };
-  }
-
-  // Tools non-portal: area tools dirancang bebas (sebagian butuh login saja),
-  // sehingga TIDAK digate oleh permission backend. Yang membatasi hanya hidden menu.
   const appKey = keyMap[path];
+  if (appKey) {
+    // Cek tier (minTier dari menu_config, fallback 1 = tier tools)
+    const menu = await fetchMenuConfig();
+    const app = menu.find((a) => a.key === appKey);
+    const minTier = app?.minTier ?? 1;
 
-  if (store.token) {
-    if (appKey && Auth.isMenuHidden(appKey)) {
+    if (!Auth.canAccess(appKey, minTier)) {
+      return {
+        allowed: false,
+        reason: store.token
+          ? 'Akses membutuhkan tier lebih tinggi.'
+          : 'login_required',
+      };
+    }
+    // Hidden menu check
+    if (store.token && Auth.isMenuHidden(appKey)) {
       return { allowed: false, reason: 'Menu ini disembunyikan.' };
     }
+    return { allowed: true, reason: null };
   }
 
   return { allowed: true, reason: null };
@@ -148,7 +152,7 @@ export async function navigate(path, push = true) {
   store.activePortal = path.startsWith('/saham') ? 'saham' : null;
 
   // Check access before proceeding
-  const { allowed, reason } = checkAccess(path);
+  const { allowed, reason } = await checkAccess(path);
   if (!allowed) {
     if (reason === 'login_required') {
       // Show login modal directly (no page redirect)
