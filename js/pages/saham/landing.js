@@ -10,6 +10,7 @@ import { createEl } from '../../utils/dom.js';
 import { icons } from '../../ui/icons.js';
 import { fetchLandingConfig } from '../../core/menu-config.js';
 import { showLogin } from '../login-modal.js';
+import { openProfileModal } from './profile.js';
 
 export function render() {
   const page = createEl('div', { class: 'landing-page' });
@@ -39,7 +40,7 @@ export function render() {
       <span class="landing-user__avatar">${name.substring(0, 1).toUpperCase()}</span>
       <span class="landing-user__name">${name}</span>
     `;
-    chip.addEventListener('click', () => navigate('/profile'));
+    chip.addEventListener('click', () => openProfileModal());
     topbar.appendChild(chip);
 
     const logoutBtn = createEl('button', { class: 'btn btn--ghost btn--sm', title: 'Logout' }, []);

@@ -5,7 +5,8 @@
       "icon": "Icons.person",
       "label": "Profile",
       "section": "system",
-      "minTier": 3
+      "minTier": 3,
+      "inDrawer": false
     },
     {
       "key": "math_speed",

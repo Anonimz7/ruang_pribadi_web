@@ -68,7 +68,7 @@ function filterMenuItems() {
   // === Mode non-portal (dashboard & tools/quiz): perilaku lama ===
   // Systen section — selalu tampil, tapi hanya item NON-portal
   const systemItems = menuConfig
-    .filter((app) => app.section === 'system' && !app.portal)
+    .filter((app) => app.section === 'system' && !app.portal && app.inDrawer !== false)
     .map(toNavItem);
   const sections = [];
   if (systemItems.length) {
@@ -81,7 +81,7 @@ function filterMenuItems() {
     // Media/Market/Admin (milik portal Saham) sudah ter-exclude oleh !app.portal.
     for (const { value: sec, label: secLabel } of MENU_SECTIONS) {
       if (sec === 'system') continue;
-      const items = menuConfig.filter((app) => app.section === sec && !app.portal);
+      const items = menuConfig.filter((app) => app.section === sec && !app.portal && app.inDrawer !== false);
       if (items.length === 0) continue;
       sections.push({ label: secLabel, items: items.map(toNavItem) });
     }
@@ -94,7 +94,7 @@ function filterMenuItems() {
   for (const { value: sec, label: secLabel } of MENU_SECTIONS) {
     if (sec === 'system') continue;
 
-    let items = menuConfig.filter((app) => app.section === sec && !app.portal);
+    let items = menuConfig.filter((app) => app.section === sec && !app.portal && app.inDrawer !== false);
 
     if (sec === 'admin') {
       // Admin section requires admin tier
