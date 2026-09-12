@@ -259,7 +259,7 @@
       "desc": "Kuis interaktif & games seru",
       "small": "Coming Soon",
       "route": "/quiz",
-      "status": "active",
+      "status": "coming",
       "minTier": 3
     },
     {
@@ -269,7 +269,7 @@
       "desc": "Games seru untuk mengisi waktu",
       "small": "Coming Soon",
       "route": "/games",
-      "status": "active",
+      "status": "coming",
       "minTier": 3
     }
   ]

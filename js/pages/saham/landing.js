@@ -74,7 +74,15 @@ export function render() {
       if (m.status === 'coming') {
         btn.disabled = true;
       } else {
-        btn.addEventListener('click', () => navigate(m.route));
+        btn.addEventListener('click', () => {
+          // Belum login: langsung pop-up login, tanpa redirect ke halaman.
+          if (!store.token) {
+            store.pendingRoute = m.route;
+            showLogin();
+            return;
+          }
+          navigate(m.route);
+        });
       }
       item.appendChild(btn);
 

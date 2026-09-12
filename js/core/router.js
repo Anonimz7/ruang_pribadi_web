@@ -206,7 +206,19 @@ export async function navigate(path, push = true) {
     window.scrollTo(0, 0);
   } catch (err) {
     console.error('[Router] Page load error:', err);
-    app.innerHTML = `<div class="empty"><div class="empty__title">Page Error</div><div class="empty__desc">${err.message}</div></div>`;
+    const wrap = document.createElement('div');
+    wrap.className = 'empty';
+    wrap.innerHTML = `
+      <div class="empty__title">Halaman Gagal Dimuat</div>
+      <div class="empty__desc">Modul halaman tidak dapat dimuat${err?.name ? ' (' + err.name + ')' : ''}. Kemungkinan cache browser masih menyimpan kegagalan lama — coba muat ulang.</div>
+    `;
+    const btn = document.createElement('button');
+    btn.className = 'btn btn--primary';
+    btn.textContent = 'Muat Ulang';
+    btn.addEventListener('click', () => window.location.reload());
+    wrap.appendChild(btn);
+    app.innerHTML = '';
+    app.appendChild(wrap);
   }
 }
 
