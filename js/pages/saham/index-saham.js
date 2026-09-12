@@ -14,6 +14,23 @@ const MODES = {
   custom: 'Custom Weight',
 };
 
+// Responsive tweaks modal anggota: rapi di layar sempit tanpa mengubah desktop
+(function injectIdxMemberStyles() {
+  if (document.getElementById('idx-members-styles')) return;
+  const st = document.createElement('style');
+  st.id = 'idx-members-styles';
+  st.textContent = `
+    @media (max-width: 720px) {
+      .idx-members-modal .m-toolbar .search { flex: 1 1 100% !important; min-width: 0 !important; }
+      .idx-members-modal .m-toolbar .field { flex: 1 1 calc(50% - var(--s-2)) !important; width: auto !important; min-width: 0 !important; }
+      .idx-members-modal .m-footer { flex-direction: column; align-items: stretch; }
+      .idx-members-modal .m-footer > div { margin-left: 0 !important; }
+      .idx-members-modal .m-footer .btn { flex: 1 1 100%; }
+    }
+  `;
+  document.head.appendChild(st);
+})();
+
 function fmtLevel(v) {
   if (v == null || isNaN(v)) return '-';
   return v.toLocaleString('id-ID', { maximumFractionDigits: 2 });
@@ -36,7 +53,7 @@ export function render() {
   const state = {
     indices: [],
     selected: null,      // selected detail payload { index, members, series, contributions }
-    compareId: '',       // comparison index id ('' = none, 'ihsg' = IHSG)
+    compareId: '',       // comparison index id ('' = none, 'ihsg'/'mci' = IHSG EWI/MCI)
     chart: null,
     loading: true,
     searchDebounce: null,
@@ -255,6 +272,7 @@ export function render() {
     const compareSel = createEl('select', { class: 'field__select', style: { width: 'auto' } });
     compareSel.appendChild(createEl('option', { value: '' }, ['Tanpa pembanding']));
     compareSel.appendChild(createEl('option', { value: 'ihsg' }, ['IHSG (EWI)']));
+    compareSel.appendChild(createEl('option', { value: 'mci' }, ['IHSG (MCI)']));
     state.indices
       .filter((i) => String(i.id) !== String(idx.id))
       .forEach((i) => compareSel.appendChild(createEl('option', { value: String(i.id) }, [i.name])));
@@ -300,11 +318,13 @@ export function render() {
     }];
     const colors = ['#2563eb'];
 
-    if (state.compareId === 'ihsg') {
+    if (state.compareId === 'ihsg' || state.compareId === 'mci') {
+      const key = state.compareId === 'ihsg' ? 'ewi' : 'mci';
+      const label = state.compareId === 'ihsg' ? 'IHSG (EWI)' : 'IHSG (MCI)';
       try {
         const radar = await Api.get('/idx/market/radar', { days: daysW });
-        const pts = (radar?.data || []).filter(inWindow).map((p) => ({ date: p.date, close: p.ewi }));
-        seriesArr.push({ name: 'IHSG', type: 'line', data: norm(pts, 'close') });
+        const pts = (radar?.data || []).filter(inWindow).map((p) => ({ date: p.date, close: p[key] }));
+        seriesArr.push({ name: label, type: 'line', data: norm(pts, 'close') });
         colors.push('#059669');
       } catch (e) {
         toast('Gagal memuat IHSG: ' + (e.message || e), { type: 'warn' });
@@ -605,7 +625,7 @@ export function render() {
       });
     }
 
-    const content = createEl('div', { style: { display: 'flex', flexDirection: 'column', gap: 'var(--s-3)' } });
+    const content = createEl('div', { class: 'idx-members-modal', style: { display: 'flex', flexDirection: 'column', gap: 'var(--s-3)' } });
     const modal = createModal({ title: `Anggota: ${idx.name}`, content, width: '760px' });
     const isCustom = idx.weighting_mode === 'custom';
 
@@ -654,7 +674,7 @@ export function render() {
     fillBtn.addEventListener('click', distributeRemaining);
 
     // Toolbar: search + cascading sector filters (seperti halaman Stock List)
-    const toolbar = createEl('div', { style: { display: 'flex', gap: 'var(--s-2)', flexWrap: 'wrap', alignItems: 'flex-end' } });
+    const toolbar = createEl('div', { class: 'm-toolbar', style: { display: 'flex', gap: 'var(--s-2)', flexWrap: 'wrap', alignItems: 'flex-end' } });
     const searchWrap = createEl('div', { class: 'search', style: { flex: '1', minWidth: '200px' } });
     searchWrap.innerHTML = `
       <span class="search__icon">${icons['search']}</span>
@@ -681,7 +701,7 @@ export function render() {
     // Bulk add: tempel daftar ticker langsung
     const bulkWrap = createEl('div', { class: 'card', style: { padding: 'var(--s-3)' } });
     bulkWrap.innerHTML = `
-      <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:var(--s-2);">
+      <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:var(--s-2);flex-wrap:wrap;row-gap:var(--s-1);">
         <b style="font-size:var(--text-sm);">Tambah Langsung</b>
         <span style="font-size:var(--text-xs);color:var(--c-text-3);">tempel ticker, pisahkan dengan koma / baris / spasi</span>
       </div>`;
@@ -690,7 +710,7 @@ export function render() {
       placeholder: 'contoh: BBCA, BBRI, TLKM\nUNVR ASII',
     });
     bulkWrap.appendChild(bulkInput);
-    const bulkRow = createEl('div', { style: { display: 'flex', gap: 'var(--s-2)', marginTop: 'var(--s-2)', alignItems: 'center' } });
+    const bulkRow = createEl('div', { style: { display: 'flex', gap: 'var(--s-2)', marginTop: 'var(--s-2)', alignItems: 'center', flexWrap: 'wrap' } });
     const bulkBtn = createEl('button', { class: 'btn btn--secondary btn--sm' });
     bulkBtn.innerHTML = `${icons['plus']} Tambah ke Pilihan`;
     const unknownHint = createEl('span', { style: { fontSize: 'var(--text-xs)', color: 'var(--c-text-3)' } });
@@ -722,7 +742,7 @@ export function render() {
     const tableWrap = createEl('div', { class: 'table-wrap', style: { maxHeight: '40vh', overflowY: 'auto' } });
     content.appendChild(tableWrap);
 
-    const pagRow = createEl('div', { style: { display: 'flex', alignItems: 'center', gap: 'var(--s-2)', fontSize: 'var(--text-sm)', color: 'var(--c-text-3)' } });
+    const pagRow = createEl('div', { style: { display: 'flex', alignItems: 'center', gap: 'var(--s-2)', rowGap: 'var(--s-2)', flexWrap: 'wrap', fontSize: 'var(--text-sm)', color: 'var(--c-text-3)' } });
     content.appendChild(pagRow);
 
     // Selected counter + select/deselect all
@@ -927,16 +947,18 @@ export function render() {
       pagRow.append(info, prev, next);
     }
 
-    const footer = createEl('div', { style: { display: 'flex', gap: 'var(--s-2)', alignItems: 'center' } });
+    const footer = createEl('div', { class: 'm-footer', style: { display: 'flex', flexWrap: 'wrap', gap: 'var(--s-2)', alignItems: 'center' } });
+    const ftLeft = createEl('div', { style: { display: 'flex', gap: 'var(--s-2)', flexWrap: 'wrap', alignItems: 'center' } });
+    const ftRight = createEl('div', { style: { display: 'flex', gap: 'var(--s-2)', flexWrap: 'wrap', alignItems: 'center', marginLeft: 'auto' } });
     const previewBtn = createEl('button', { class: 'btn btn--secondary' });
     previewBtn.innerHTML = `${icons['radar']} Preview`;
-    footer.appendChild(previewBtn);
-    footer.appendChild(createEl('span', { style: { flex: '1' } }, []));
+    ftLeft.appendChild(previewBtn);
     const cancelBtn = createEl('button', { class: 'btn btn--secondary' }, ['Batal']);
     cancelBtn.addEventListener('click', () => modal.close());
     const saveBtn = createEl('button', { class: 'btn btn--primary' }, ['Simpan Anggota']);
     saveBtn.addEventListener('click', handleSave);
-    footer.append(cancelBtn, saveBtn);
+    ftRight.append(cancelBtn, saveBtn);
+    footer.append(ftLeft, ftRight);
     content.appendChild(footer);
 
     previewBtn.addEventListener('click', handlePreview);
@@ -973,6 +995,7 @@ export function render() {
         const sum = tickers.reduce((a, t) => a + (Number(state2.weights[t]) || 0), 0);
         if (Math.abs(sum - 100) > 0.01) { toast('Total bobot harus 100%', { type: 'error' }); return; }
       }
+      setSaving(true);
       try {
         const body = { tickers };
         if (isCustom) body.weight_map = state2.weights;
@@ -981,8 +1004,18 @@ export function render() {
         modal.close();
         await Promise.all([loadIndices(), selectIndex(idx.id)]);
       } catch (e) {
+        setSaving(false);
         toast(e.message || 'Gagal menyimpan anggota', { type: 'error' });
       }
+    }
+
+    function setSaving(on) {
+      [saveBtn, cancelBtn, previewBtn].forEach((b) => {
+        b.disabled = on;
+        b.style.opacity = on ? '0.6' : '';
+        b.style.cursor = on ? 'wait' : '';
+      });
+      saveBtn.textContent = on ? 'Menyimpan...' : 'Simpan Anggota';
     }
 
     // Init
