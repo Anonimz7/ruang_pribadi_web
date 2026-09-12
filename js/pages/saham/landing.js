@@ -1,7 +1,7 @@
-/* pages/landing.js — Landing pilih portal (kartu diatur config + filter tier).
+/* pages/landing.js — Landing pilih portal (kartu diatur config).
  * Entri dibaca dari menu_config.json -> 'landing' (fetchLandingConfig).
- * Setiap kartu punya minTier; kartu 'active' hanya tampil bila
- * Auth.canAccess(key, minTier) — konsisten dengan drawer & router.
+ * Keempat kartu selalu tampil, terlepas login/tier — gate terjadi saat
+ * klik: router meminta login (guest) atau menolak (tier kurang).
  */
 import { store, subscribe } from '../../core/state.js';
 import { Auth } from '../../core/auth.js';
@@ -51,14 +51,6 @@ export function render() {
     topbar.appendChild(logoutBtn);
   }
 
-  function visibleMenus(menus) {
-    return menus.filter((m) => {
-      // Kartu 'coming' (Quiz/Games) tetap tampil, butuh login pun tidak.
-      if (m.status === 'coming') return true;
-      return Auth.canAccess(m.key, m.minTier);
-    });
-  }
-
   function renderMenu(menus) {
     card.innerHTML = '';
 
@@ -68,10 +60,9 @@ export function render() {
     header.appendChild(createEl('p', {}, ['Klik tombol untuk memulai']));
     card.appendChild(header);
 
-    // Grid menu — hanya kartu yang tier-nya mengizinkan
+    // Grid menu — semua kartu tampil; akses dicek saat klik (router)
     const grid = createEl('div', { class: 'landing-grid' });
-    const items = visibleMenus(menus);
-    items.forEach((m) => {
+    menus.forEach((m) => {
       const item = createEl('div', {
         class: 'landing-item' + (m.status === 'coming' ? ' landing-item--coming' : ''),
       }, []);

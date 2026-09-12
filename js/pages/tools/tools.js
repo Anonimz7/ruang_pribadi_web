@@ -7,6 +7,7 @@ import { icons } from '../../ui/icons.js';
 import { Auth } from '../../core/auth.js';
 import { store, subscribe } from '../../core/state.js';
 import { fetchMenuConfig, ROUTE_MAP } from '../../core/menu-config.js';
+import { showLogin } from '../login-modal.js';
 
 // route -> app key (dibalik dari ROUTE_MAP)
 const ROUTE_TO_KEY = {};
@@ -65,10 +66,18 @@ export function render() {
     const externalVisible = Auth.canAccess(EXTERNAL_TOOL.key, minTierMap[EXTERNAL_TOOL.key] ?? 1);
 
     if (visible.length === 0 && !externalVisible) {
-      grid.appendChild(createEl('p', { class: 'empty' },
-        [store.token
-          ? 'Akses Tools membutuhkan tier Premium ke atas.'
-          : 'Login dengan akun Premium untuk mengakses Tools.']));
+      if (!store.token) {
+        const empty = createEl('div', { class: 'tools-empty' }, []);
+        empty.appendChild(createEl('p', { class: 'empty' },
+          ['Login dengan akun Premium untuk mengakses Tools.']));
+        const loginBtn = createEl('button', { class: 'btn btn--primary' }, ['Login']);
+        loginBtn.addEventListener('click', () => showLogin());
+        empty.appendChild(loginBtn);
+        grid.appendChild(empty);
+      } else {
+        grid.appendChild(createEl('p', { class: 'empty' },
+          ['Akses Tools membutuhkan tier Premium ke atas.']));
+      }
       return;
     }
 
