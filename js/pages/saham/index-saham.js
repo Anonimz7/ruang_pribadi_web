@@ -368,12 +368,13 @@ export function render() {
     }
 
     const table = createEl('table', { class: 'table' });
-    table.innerHTML = `<thead><tr><th>Ticker</th><th>Kontribusi</th><th>Bobot Rata-rata</th><th>Hari</th></tr></thead>`;
+    table.innerHTML = `<thead><tr><th style="width:40px;">#</th><th>Ticker</th><th>Kontribusi</th><th>Bobot Rata-rata</th><th>Hari</th></tr></thead>`;
     const tbody = createEl('tbody');
-    [...tops, ...bottoms].forEach((c) => {
+    [...tops, ...bottoms].forEach((c, i) => {
       const tr = createEl('tr', {});
       const color = c.contribution_pct >= 0 ? 'var(--c-accent)' : 'var(--c-danger)';
       tr.innerHTML = `
+        <td style="color:var(--c-text-3);">${i + 1}</td>
         <td style="font-weight:600;">${c.ticker}</td>
         <td style="color:${color};font-weight:600;">${fmtPct(c.contribution_pct)}</td>
         <td>${c.avg_weight_pct != null ? c.avg_weight_pct.toLocaleString('id-ID') + '%' : '-'}</td>
@@ -399,13 +400,14 @@ export function render() {
     }
 
     const table = createEl('table', { class: 'table' });
-    table.innerHTML = `<thead><tr><th>Ticker</th><th>Perusahaan</th><th>Sektor</th>${idx.weighting_mode === 'custom' ? '<th>Bobot</th>' : ''}<th>Status</th></tr></thead>`;
+    table.innerHTML = `<thead><tr><th style="width:40px;">#</th><th>Ticker</th><th>Perusahaan</th><th>Sektor</th>${idx.weighting_mode === 'custom' ? '<th>Bobot</th>' : ''}<th>Status</th></tr></thead>`;
     const tbody = createEl('tbody');
-    members.forEach((m) => {
+    members.forEach((m, i) => {
       const tr = createEl('tr', {});
       const badge = DelistedBadge({ labelDelisted: m.label_delisted, stockStatus: m.stock_status, statusReason: m.status_reason, small: true, nowrap: true });
       const sectorBadge = StockSectorBadge(m.sector, true);
       tr.innerHTML = `
+        <td style="color:var(--c-text-3);">${i + 1}</td>
         <td style="font-weight:600;">${m.ticker}</td>
         <td style="font-size:var(--text-sm);color:var(--c-text-2);">${m.company_name || '-'}</td>
         <td>${sectorBadge ? sectorBadge.outerHTML : '<span class="badge badge--neutral">-</span>'}</td>
