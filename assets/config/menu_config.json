@@ -94,7 +94,7 @@
       "label": "Reports",
       "section": "market",
       "portal": "saham",
-      "minTier": 1
+      "minTier": 2
     },
     {
       "key": "index_saham",
@@ -102,7 +102,7 @@
       "label": "Index Saham",
       "section": "market",
       "portal": "saham",
-      "minTier": 1
+      "minTier": 2
     },
     {
       "key": "video_downloader",
