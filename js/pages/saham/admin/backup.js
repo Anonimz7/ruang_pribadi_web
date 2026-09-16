@@ -4,6 +4,7 @@ import { icons } from '../../../ui/icons.js';
 import Api from '../../../core/api.js';
 import { toast } from '../../../ui/toast.js';
 import { createModal } from '../../../ui/modal.js';
+import { store } from '../../../core/state.js';
 import { ApiConfig } from '../../../core/api-config.js';
 
 function formatBytes(bytes) {
@@ -420,7 +421,9 @@ export function render() {
 
   // ═══ WEBSOCKET ══════════════════════════════════════════
   function initWebSocket() {
-    const wsUrl = ApiConfig.baseUrl.replace(/^http/, 'ws') + '/ws/backup-progress';
+    let wsUrl = ApiConfig.baseUrl.replace(/^http/, 'ws') + '/ws/backup-progress';
+    const token = store.token;
+    if (token) wsUrl += '?token=' + encodeURIComponent(token);
     try {
       state.ws = new WebSocket(wsUrl);
     } catch (e) {

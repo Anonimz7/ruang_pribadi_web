@@ -3,6 +3,7 @@ import { createEl } from '../../../utils/dom.js';
 import { icons } from '../../../ui/icons.js';
 import Api from '../../../core/api.js';
 import { toast } from '../../../ui/toast.js';
+import { store } from '../../../core/state.js';
 import { ApiConfig } from '../../../core/api-config.js';
 
 const LOG_TYPES = ['scraping', 'bot', 'proxy', 'server'];
@@ -333,7 +334,9 @@ export function render() {
   }
 
   function initWebSocket() {
-    const wsUrl = ApiConfig.baseUrl.replace(/^http/, 'ws') + '/ws/scraper-status';
+    let wsUrl = ApiConfig.baseUrl.replace(/^http/, 'ws') + '/ws/scraper-status';
+    const token = store.token;
+    if (token) wsUrl += '?token=' + encodeURIComponent(token);
     try {
       state.ws = new WebSocket(wsUrl);
     } catch (e) {

@@ -15,18 +15,18 @@ function formatBytes(bytes) {
   return parseFloat((bytes / Math.pow(k, i)).toFixed(1)) + ' ' + sizes[i];
 }
 
-function formatDate(dtStr) {
-  if (!dtStr) return '';
-  const dt = new Date(dtStr);
-  if (isNaN(dt.getTime())) {
-    // Try epoch seconds
-    const epoch = parseInt(dtStr, 10);
-    if (!isNaN(epoch)) {
-      const d2 = new Date(epoch * 1000);
-      if (!isNaN(d2.getTime())) return formatDateObj(d2);
-    }
+function formatDate(dtVal) {
+  if (!dtVal) return '';
+  // Backend sends createdAt as epoch SECONDS (int(stat.st_mtime)).
+  // JS Date treats bare numbers as epoch MILLISECONDS, so convert first.
+  if (typeof dtVal === 'number' || (typeof dtVal === 'string' && /^\d+$/.test(dtVal.trim()))) {
+    const epoch = Number(dtVal);
+    const d2 = new Date(epoch * 1000);
+    if (!isNaN(d2.getTime())) return formatDateObj(d2);
     return '';
   }
+  const dt = new Date(dtVal);
+  if (isNaN(dt.getTime())) return '';
   return formatDateObj(dt);
 }
 
@@ -86,7 +86,11 @@ async function deleteRecord(record) {
 
 function playVideo(record) {
   if (!record.fileName) return;
-  const url = ApiConfig.baseUrl + ApiConfig.prefix + '/video/stream/' + encodeURIComponent(record.fileName);
+  // Backend route: /api/video/download-file/{user_id}/{file_name}.
+  // The old /video/stream/ endpoint does not exist (404 on every play).
+  const userId = store.user?.user_id;
+  if (!userId) return;
+  const url = ApiConfig.baseUrl + ApiConfig.prefix + '/video/download-file/' + userId + '/' + encodeURIComponent(record.fileName);
   const token = store.token;
   const fullUrl = token ? `${url}?token=${token}` : url;
   window.open(fullUrl, '_blank');
@@ -96,7 +100,9 @@ function playVideo(record) {
 function connectWebSocket() {
   const userId = store.user?.user_id || store.username;
   if (!userId) return;
-  const wsUrl = ApiConfig.baseUrl.replace(/^http/, 'ws') + '/ws/video-progress/' + userId;
+  let wsUrl = ApiConfig.baseUrl.replace(/^http/, 'ws') + '/ws/video-progress/' + userId;
+  const token = store.token;
+  if (token) wsUrl += '?token=' + encodeURIComponent(token);
   try {
     state.ws = new WebSocket(wsUrl);
     state.ws.onmessage = (event) => {

@@ -105,7 +105,8 @@ const state = {
   audioOnly: false, groupExpanded: {}, audioExpanded: true,
   downloading: false, progress: 0, downloadStatus: '', downloadId: null,
   downloadSpeed: null, downloadEta: null, error: null,
-  activeDownloads: [], ws: null, pollTimer: null, activePollTimer: null,
+  activeDownloads: [], ws: null, wsRetries: 0, wsReconnectTimer: null,
+  pollTimer: null, activePollTimer: null,
 };
 
 /* ─── Persistence ─── */
@@ -164,42 +165,66 @@ function startActiveDownloadsPolling() {
 
 /* ─── WebSocket ─── */
 function connectProgressWebSocket() {
-  if (state.ws) { try { state.ws.close(); } catch (_) {} }
+  if (state.ws) { try { state.ws.close(); } catch (_) {} state.ws = null; }
+  if (state.wsReconnectTimer) { clearTimeout(state.wsReconnectTimer); state.wsReconnectTimer = null; }
   const userId = store.user?.user_id || store.username;
   if (!userId) return;
-  const wsUrl = ApiConfig.baseUrl.replace(/^http/, 'ws') + '/ws/video-progress/' + userId;
+  let wsUrl = ApiConfig.baseUrl.replace(/^http/, 'ws') + '/ws/video-progress/' + userId;
+  const token = store.token;
+  if (token) wsUrl += '?token=' + encodeURIComponent(token);
+  state.wsRetries = 0;
+  openProgressWebSocket(wsUrl);
+}
+
+function openProgressWebSocket(wsUrl) {
   try {
     state.ws = new WebSocket(wsUrl);
-    state.ws.onmessage = (event) => {
-      try {
-        const msg = JSON.parse(event.data);
-        const fn = msg.filename;
-        if (state.downloadId && fn && fn !== state.downloadId) return;
-        if (msg.status === 'downloading') {
-          state.progress = msg.progress || 0;
-          state.downloadSpeed = msg.speed || null;
-          state.downloadEta = msg.eta || null;
-          state.downloadStatus = `Mengunduh... ${state.progress.toFixed(1)}%`;
-          renderProgress();
-        } else if (msg.status === 'completed') {
-          clearDownloadState(); state.downloading = false; state.progress = 100;
-          state.downloadStatus = 'Selesai!'; state.downloadId = null;
-          state.downloadSpeed = null; state.downloadEta = null;
-          stopPolling(); checkActiveDownloads(); toast('Download selesai!', 'success');
-          renderAll();
-        } else if (msg.status === 'error') {
-          clearDownloadState(); state.downloading = false;
-          state.error = 'Download gagal: ' + (msg.message || 'Unknown');
-          state.downloadId = null; state.downloadSpeed = null; state.downloadEta = null;
-          stopPolling(); checkActiveDownloads(); renderAll();
-        } else if (msg.status === 'cancelled') {
-          clearDownloadState(); state.downloading = false; state.downloadStatus = 'Dibatalkan';
-          state.downloadId = null; state.downloadSpeed = null; state.downloadEta = null;
-          stopPolling(); checkActiveDownloads(); renderAll();
-        }
-      } catch (_) {}
-    };
-  } catch (_) {}
+  } catch (_) { return; }
+  state.ws.onmessage = (event) => {
+    try {
+      const msg = JSON.parse(event.data);
+      const fn = msg.filename;
+      // Strict filter (Bug 14): while tracking one download, ignore snapshot
+      // messages and progress from any OTHER download. Snapshot entries sent
+      // by the server on connect also carry filenames, so they are dropped
+      // here instead of corrupting the current progress UI.
+      if (state.downloadId && (!fn || fn !== state.downloadId)) return;
+      if (msg.status === 'downloading') {
+        state.progress = msg.progress || 0;
+        state.downloadSpeed = msg.speed || null;
+        state.downloadEta = msg.eta || null;
+        state.downloadStatus = `Mengunduh... ${state.progress.toFixed(1)}%`;
+        renderProgress();
+      } else if (msg.status === 'completed') {
+        clearDownloadState(); state.downloading = false; state.progress = 100;
+        state.downloadStatus = 'Selesai!'; state.downloadId = null;
+        state.downloadSpeed = null; state.downloadEta = null;
+        stopPolling(); checkActiveDownloads(); toast('Download selesai!', 'success');
+        renderAll();
+      } else if (msg.status === 'error') {
+        clearDownloadState(); state.downloading = false;
+        state.error = 'Download gagal: ' + (msg.message || 'Unknown');
+        state.downloadId = null; state.downloadSpeed = null; state.downloadEta = null;
+        stopPolling(); checkActiveDownloads(); renderAll();
+      } else if (msg.status === 'cancelled') {
+        clearDownloadState(); state.downloading = false; state.downloadStatus = 'Dibatalkan';
+        state.downloadId = null; state.downloadSpeed = null; state.downloadEta = null;
+        stopPolling(); checkActiveDownloads(); renderAll();
+      }
+    } catch (_) {}
+  };
+  state.ws.onerror = () => { try { state.ws.close(); } catch (_) {} };
+  state.ws.onclose = (event) => {
+    state.ws = null;
+    // Auto-reconnect with exponential backoff while a download is active (Bug 7).
+    // Skip reconnecting when the server explicitly rejected us (4401 auth) —
+    // retrying would loop forever on an invalid/expired token.
+    if (state.downloading && state.downloadId && (!event || event.code !== 4401)) {
+      const delay = Math.min(500 * Math.pow(2, state.wsRetries || 0), 10000);
+      state.wsRetries = (state.wsRetries || 0) + 1;
+      state.wsReconnectTimer = setTimeout(() => openProgressWebSocket(wsUrl), delay);
+    }
+  };
 }
 
 /* ─── Polling fallback ─── */
@@ -699,6 +724,7 @@ function renderAll() {
 function cleanup() {
   stopPolling();
   if (state.activePollTimer) { clearInterval(state.activePollTimer); state.activePollTimer = null; }
+  if (state.wsReconnectTimer) { clearTimeout(state.wsReconnectTimer); state.wsReconnectTimer = null; }
   if (state.ws) { try { state.ws.close(); } catch (_) {} state.ws = null; }
   rootEl = null; refs = {};
 }
@@ -711,7 +737,8 @@ export function render() {
     audioOnly: false, groupExpanded: {}, audioExpanded: true,
     downloading: false, progress: 0, downloadStatus: '', downloadId: null,
     downloadSpeed: null, downloadEta: null, error: null,
-    activeDownloads: [], ws: null, pollTimer: null, activePollTimer: null,
+    activeDownloads: [], ws: null, wsRetries: 0, wsReconnectTimer: null,
+    pollTimer: null, activePollTimer: null,
   });
 
   rootEl = createEl('div', { class: 'video-page', style: { maxWidth: '720px', margin: '0 auto', padding: 'var(--s-4)' } });
