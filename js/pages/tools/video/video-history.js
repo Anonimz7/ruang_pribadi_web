@@ -97,6 +97,18 @@ function playVideo(record) {
   window.open(fullUrl, '_blank');
 }
 
+function downloadVideo(record) {
+  if (!record.fileName) return;
+  const userId = store.user?.user_id || store.user?.id || store.username;
+  if (!userId) return;
+  // Backend route: /api/video/download-file/{user_id}/{file_name} — sends
+  // Content-Disposition: attachment, so the browser downloads the file.
+  const url = ApiConfig.baseUrl + ApiConfig.prefix + '/video/download-file/' + userId + '/' + encodeURIComponent(record.fileName);
+  const token = store.token;
+  const fullUrl = token ? `${url}?token=${token}` : url;
+  window.open(fullUrl, '_blank');
+}
+
 /* ─── WebSocket ─── */
 function connectWebSocket() {
   const userId = store.user?.user_id || store.username;
@@ -207,6 +219,9 @@ function renderList() {
           <button class="btn btn--ghost btn--sm" style="padding:var(--s-2);width:36px;height:36px;min-width:36px;min-height:36px;color:var(--c-success);" aria-label="Putar video" data-play="${record.fileName || ''}">
             ${icons.play}
           </button>
+          <button class="btn btn--ghost btn--sm" style="padding:var(--s-2);width:36px;height:36px;min-width:36px;min-height:36px;color:var(--c-primary);" aria-label="Unduh video" data-download="${record.fileName || ''}">
+            ${icons.download}
+          </button>
           <button class="btn btn--ghost btn--sm" style="padding:var(--s-2);width:36px;height:36px;min-width:36px;min-height:36px;color:var(--c-danger);" aria-label="Hapus video" data-delete="${record.fileName || ''}">
             ${icons.trash}
           </button>
@@ -229,6 +244,9 @@ function renderList() {
     // Button handlers
     const playBtn = card.querySelector('[data-play]');
     if (playBtn) on(playBtn, 'click', (e) => { e.stopPropagation(); playVideo(record); });
+
+    const dlBtn = card.querySelector('[data-download]');
+    if (dlBtn) on(dlBtn, 'click', (e) => { e.stopPropagation(); downloadVideo(record); });
 
     const delBtn = card.querySelector('[data-delete]');
     if (delBtn) on(delBtn, 'click', (e) => { e.stopPropagation(); deleteRecord(record); });
