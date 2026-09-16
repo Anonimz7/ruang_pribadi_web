@@ -86,11 +86,12 @@ async function deleteRecord(record) {
 
 function playVideo(record) {
   if (!record.fileName) return;
-  // Backend route: /api/video/download-file/{user_id}/{file_name}.
-  // The old /video/stream/ endpoint does not exist (404 on every play).
-  const userId = store.user?.user_id;
+  // User object from /api/auth uses `id`, not `user_id`; accept both.
+  const userId = store.user?.user_id || store.user?.id || store.username;
   if (!userId) return;
-  const url = ApiConfig.baseUrl + ApiConfig.prefix + '/video/download-file/' + userId + '/' + encodeURIComponent(record.fileName);
+  // Backend route: /api/video/stream/{user_id}/{file_name} — streams inline
+  // (no attachment header), so the browser actually plays the video.
+  const url = ApiConfig.baseUrl + ApiConfig.prefix + '/video/stream/' + userId + '/' + encodeURIComponent(record.fileName);
   const token = store.token;
   const fullUrl = token ? `${url}?token=${token}` : url;
   window.open(fullUrl, '_blank');

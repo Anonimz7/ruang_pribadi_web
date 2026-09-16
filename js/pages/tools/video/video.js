@@ -113,8 +113,22 @@ const state = {
 function saveDownloadState(downloadId, url, formatId, audioOnly) {
   localStorage.setItem(PERSIST_KEY, JSON.stringify({
     download_id: downloadId, url, format_id: formatId, audio_only: audioOnly,
+    progress: 0, status: 'downloading',
     started_at: new Date().toISOString(),
   }));
+}
+
+function savePersistedProgress(progress, status) {
+  // Keep localStorage in sync so a refresh restores instantly (~0ms) with
+  // the last known progress, then reconciles with the server in background.
+  try {
+    const raw = localStorage.getItem(PERSIST_KEY);
+    if (!raw) return;
+    const data = JSON.parse(raw);
+    if (typeof progress === 'number') data.progress = progress;
+    if (status) data.status = status;
+    localStorage.setItem(PERSIST_KEY, JSON.stringify(data));
+  } catch (_) {}
 }
 
 function clearDownloadState() { localStorage.removeItem(PERSIST_KEY); }
@@ -122,30 +136,44 @@ function clearDownloadState() { localStorage.removeItem(PERSIST_KEY); }
 async function restorePersistedDownload() {
   const raw = localStorage.getItem(PERSIST_KEY);
   if (!raw) return;
+  let data = null;
+  try { data = JSON.parse(raw); } catch (_) { clearDownloadState(); return; }
+  const downloadId = data.download_id;
+  if (!downloadId) { clearDownloadState(); return; }
+
+  // Optimistic restore: show the card IMMEDIATELY from local state — no
+  // network round trip. The server reconciles the real progress below.
+  state.downloading = true; state.downloadId = downloadId;
+  state.progress = data.progress || 0;
+  state.downloadStatus = data.status === 'interrupted' ? 'Menyambung ulang...' : 'Mengunduh...';
+  state.error = null;
+  startStatusPolling(downloadId); connectProgressWebSocket();
+  renderAll();
+
+  // Reconcile with server in background.
   try {
-    const data = JSON.parse(raw);
-    const downloadId = data.download_id;
-    if (!downloadId) { clearDownloadState(); return; }
     const status = await Api.get('/video/status/' + downloadId);
     const st = status?.status || 'not_found';
     if (st === 'downloading' || st === 'interrupted') {
-      state.downloading = true; state.downloadId = downloadId;
-      state.progress = status?.progress || 0;
+      state.progress = status?.progress || state.progress;
       state.downloadStatus = st === 'interrupted' ? 'Menyambung ulang...' : 'Mengunduh...';
-      state.error = null;
-      startStatusPolling(downloadId); connectProgressWebSocket();
-      // Render immediately — the progress card must appear now, not after
-      // the first WS snapshot or 10s polling tick.
-      renderAll();
+      savePersistedProgress(state.progress, st);
+      renderProgress();
     } else if (st === 'completed') {
-      clearDownloadState(); state.downloading = false; state.progress = 100;
+      stopPolling(); clearDownloadState(); state.downloading = false; state.progress = 100;
       state.downloadStatus = 'Selesai!';
       toast('Download selesai: ' + (status?.file_name || ''), 'success');
+      renderAll();
     } else if (st === 'failed') {
-      clearDownloadState(); state.downloading = false;
+      stopPolling(); clearDownloadState(); state.downloading = false;
       state.error = 'Download gagal: ' + (status?.error || 'Unknown error');
       renderAll();
-    } else { clearDownloadState(); }
+    } else {
+      // 'not_found' — backend record disappeared (restart cleanup etc).
+      stopPolling(); clearDownloadState(); state.downloading = false;
+      state.downloadId = null; state.downloadStatus = ''; state.error = null;
+      renderAll();
+    }
   } catch (_) {}
 }
 
@@ -198,6 +226,7 @@ function openProgressWebSocket(wsUrl) {
         state.downloadSpeed = msg.speed || null;
         state.downloadEta = msg.eta || null;
         state.downloadStatus = `Mengunduh... ${state.progress.toFixed(1)}%`;
+        savePersistedProgress(state.progress, 'downloading');
         renderProgress();
       } else if (msg.status === 'completed') {
         clearDownloadState(); state.downloading = false; state.progress = 100;
@@ -242,7 +271,9 @@ function startStatusPolling(downloadId) {
       const pct = status?.progress || 0, speed = status?.speed || null, eta = status?.eta || null;
       if (st === 'downloading' || st === 'interrupted') {
         state.progress = pct; state.downloadSpeed = speed; state.downloadEta = eta;
-        state.downloadStatus = `Mengunduh... ${pct.toFixed(1)}%`; renderProgress();
+        state.downloadStatus = `Mengunduh... ${pct.toFixed(1)}%`;
+        savePersistedProgress(pct, st);
+        renderProgress();
       } else if (st === 'completed') {
         stopPolling(); clearDownloadState(); state.downloading = false; state.progress = 100;
         state.downloadStatus = 'Selesai!'; state.downloadId = null;
