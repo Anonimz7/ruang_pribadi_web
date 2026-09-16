@@ -134,6 +134,9 @@ async function restorePersistedDownload() {
       state.downloadStatus = st === 'interrupted' ? 'Menyambung ulang...' : 'Mengunduh...';
       state.error = null;
       startStatusPolling(downloadId); connectProgressWebSocket();
+      // Render immediately — the progress card must appear now, not after
+      // the first WS snapshot or 10s polling tick.
+      renderAll();
     } else if (st === 'completed') {
       clearDownloadState(); state.downloading = false; state.progress = 100;
       state.downloadStatus = 'Selesai!';
@@ -141,6 +144,7 @@ async function restorePersistedDownload() {
     } else if (st === 'failed') {
       clearDownloadState(); state.downloading = false;
       state.error = 'Download gagal: ' + (status?.error || 'Unknown error');
+      renderAll();
     } else { clearDownloadState(); }
   } catch (_) {}
 }
@@ -248,6 +252,14 @@ function startStatusPolling(downloadId) {
         stopPolling(); clearDownloadState(); state.downloading = false;
         state.error = 'Download gagal: ' + (status?.error || 'Unknown error');
         state.downloadId = null; state.downloadSpeed = null; state.downloadEta = null;
+        renderAll();
+      } else {
+        // 'not_found' (or any other): the backend record disappeared — e.g.
+        // server restart cleaned up an interrupted entry, or the download
+        // was never tracked. Stop polling instead of looping forever.
+        stopPolling(); clearDownloadState(); state.downloading = false;
+        state.downloadId = null; state.downloadStatus = '';
+        state.downloadSpeed = null; state.downloadEta = null; state.error = null;
         renderAll();
       }
     } catch (_) {}
