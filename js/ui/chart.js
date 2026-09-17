@@ -8,7 +8,7 @@ export async function loadApexCharts() {
   if (window.ApexCharts) return window.ApexCharts;
   apexPromise = new Promise((resolve, reject) => {
     const script = document.createElement('script');
-    script.src = 'https://cdn.jsdelivr.net/npm/apexcharts@3.54.0/dist/apexcharts.min.js';
+    script.src = 'https://cdn.jsdelivr.net/npm/apexcharts@7.4.0/dist/apexcharts.min.js';
     script.onload = () => resolve(window.ApexCharts);
     script.onerror = () => reject(new Error('Failed to load ApexCharts'));
     document.head.appendChild(script);
