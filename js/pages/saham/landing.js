@@ -11,6 +11,7 @@ import { icons } from '../../ui/icons.js';
 import { fetchLandingConfig } from '../../core/menu-config.js';
 import { showLogin } from '../login-modal.js';
 import { openProfileModal } from './profile.js';
+import { createThemeToggle } from '../../ui/theme-toggle.js';
 
 export function render() {
   const page = createEl('div', { class: 'landing-page' });
@@ -19,12 +20,15 @@ export function render() {
   const topbar = createEl('div', { class: 'landing-topbar' });
   page.appendChild(topbar);
 
+  const themeToggle = createThemeToggle();
+
   // Card utama
   const card = createEl('div', { class: 'landing-card' });
   page.appendChild(card);
 
   function renderTopbar() {
     topbar.innerHTML = '';
+    topbar.appendChild(themeToggle.el);
     const isLoggedIn = !!store.token;
 
     if (!isLoggedIn) {
@@ -112,6 +116,7 @@ export function render() {
   renderTopbar();
 
   page._cleanup = () => {
+    themeToggle.destroy();
     unsubs.forEach((u) => u());
   };
 

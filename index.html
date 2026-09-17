@@ -5,6 +5,13 @@
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
   <title>Ruang Pribadi</title>
   <meta name="description" content="Ruang Pribadi — Personal productivity & market intelligence dashboard">
+  <script>
+    (function () {
+      var mode = localStorage.getItem('rp-theme') || 'system';
+      var dark = mode === 'dark' || (mode === 'system' && window.matchMedia('(prefers-color-scheme: dark)').matches);
+      document.documentElement.setAttribute('data-theme', dark ? 'dark' : 'light');
+    })();
+  </script>
   <link rel="stylesheet" href="css/00-reset.css">
   <link rel="stylesheet" href="css/01-tokens.css">
   <link rel="stylesheet" href="css/02-base.css">

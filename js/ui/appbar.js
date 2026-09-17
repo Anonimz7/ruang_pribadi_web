@@ -4,6 +4,7 @@ import { navigate } from '../core/router.js';
 import { Auth } from '../core/auth.js';
 import { icons } from './icons.js';
 import { showLogin } from '../pages/login-modal.js';
+import { createThemeToggle } from './theme-toggle.js';
 
 export function createAppBar() {
   const el = document.createElement('header');
@@ -30,16 +31,7 @@ export function createAppBar() {
   actions.className = 'appbar__actions';
 
   // Theme toggle
-  const themeBtn = document.createElement('button');
-  themeBtn.className = 'appbar__btn tooltip';
-  themeBtn.innerHTML = icons['moon'];
-  themeBtn.setAttribute('aria-label', 'Toggle theme');
-  themeBtn.addEventListener('click', () => {
-    const modes = ['light', 'dark', 'system'];
-    const idx = modes.indexOf(store.theme);
-    store.theme = modes[(idx + 1) % modes.length];
-  });
-  actions.appendChild(themeBtn);
+  actions.appendChild(createThemeToggle().el);
 
   // Home button (di tengah antara theme & login)
   const homeBtn = document.createElement('button');
@@ -128,11 +120,6 @@ export function createAppBar() {
       '/saham/admin/idx-upload': 'IDX Upload',
     };
     title.textContent = map[path] || 'Ruang Pribadi';
-  });
-
-  // Theme icon sync
-  subscribe('theme', (mode) => {
-    themeBtn.innerHTML = icons[mode === 'dark' ? 'sun' : 'moon'];
   });
 
   return el;

@@ -4,17 +4,7 @@ import { store, subscribe } from './state.js';
 import { initRouter, navigate } from './router.js';
 import { createDrawer } from '../ui/drawer.js';
 import { createAppBar } from '../ui/appbar.js';
-
-function initTheme() {
-  const apply = (mode) => {
-    const isDark = mode === 'dark' || (mode === 'system' && window.matchMedia('(prefers-color-scheme: dark)').matches);
-    document.documentElement.setAttribute('data-theme', isDark ? 'dark' : 'light');
-    localStorage.setItem('rp-theme', mode);
-  };
-  apply(store.theme);
-  window.matchMedia('(prefers-color-scheme: dark)').addEventListener('change', () => apply(store.theme));
-  subscribe('theme', apply);
-}
+import { initTheme } from './theme.js';
 
 function initDrawerToggle() {
   subscribe('drawerOpen', (open) => {
