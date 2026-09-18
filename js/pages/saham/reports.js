@@ -54,8 +54,15 @@ function fileRowHtml(f) {
         <div>${formatSize(f)}</div>
       </div>
       <a href="${downloadUrl(f.path)}" class="btn btn--secondary btn--sm" title="Download" aria-label="Download ${name}">${icons['download']}</a>
+      <button type="button" class="btn btn--ghost btn--sm" data-delete="${f.path}" title="Hapus" aria-label="Hapus ${name}" style="color:var(--c-danger);">${icons['trash']}</button>
     </div>
   `;
+}
+
+function attachDeleteHandlers(root) {
+  root.querySelectorAll('[data-delete]').forEach(btn => {
+    btn.addEventListener('click', () => deleteReportFile(btn.dataset.delete));
+  });
 }
 
 export function render() {
@@ -190,6 +197,7 @@ export function render() {
       });
     }
     resultCard.appendChild(body);
+    attachDeleteHandlers(body);
   }
 
   // ── Riwayat (dikelompokkan per tanggal) ──
@@ -217,6 +225,7 @@ export function render() {
       });
     }
     historyCard.appendChild(body);
+    attachDeleteHandlers(body);
   }
 
   // ── Actions ──
@@ -273,6 +282,22 @@ export function render() {
     } finally {
       state.generating = false;
       renderGenerateCard();
+    }
+  }
+
+  async function deleteReportFile(path) {
+    if (!confirm('Hapus file laporan ini?')) return;
+    try {
+      const enc = String(path).split('/').map(encodeURIComponent).join('/');
+      const res = await Api.delete('/reports/files/' + enc);
+      if (res?.success) {
+        toast('File laporan dihapus', { type: 'success' });
+        loadReportFiles();
+      } else {
+        toast('Gagal hapus file', { type: 'error' });
+      }
+    } catch (e) {
+      toast('Gagal hapus: ' + (e.message || e), { type: 'error' });
     }
   }
 
