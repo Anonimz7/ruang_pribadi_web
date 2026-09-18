@@ -6,6 +6,14 @@ import { toast } from '../../ui/toast.js';
 
 const PERIOD_OPTIONS = [6, 12, 24, 48, 72];
 
+function hourOptionsHtml(selected) {
+  return Array.from({ length: 24 }, (_, h) => {
+    const label = String(h).padStart(2, '0') + ':00';
+    const sel = h === selected ? ' selected' : '';
+    return `<option value="${h}"${sel}>${label}</option>`;
+  }).join('');
+}
+
 function formatBytes(bytes) {
   if (!bytes || bytes === 0) return '0 B';
   const k = 1024;
@@ -56,6 +64,7 @@ export function render() {
     reportGroups: [],
     generated: null,
     autoSend: false,
+    sendHour: null,
     generating: false,
     sinceHours: 24,
   };
@@ -90,6 +99,14 @@ export function render() {
 
     const hasLast = !!(state.lastReport && state.lastReport.last_report_at);
     const body = createEl('div', {}, []);
+    const hourSel = state.autoSend ? `
+      <div class="reports-page__autosend-hour" style="display:flex;align-items:center;gap:var(--s-3);margin-top:var(--s-3);">
+        <span style="font-size:var(--text-sm);color:var(--c-text-2);">Jam pengiriman</span>
+        <select id="auto-send-hour" style="flex:1;max-width:140px;padding:var(--s-2) var(--s-3);border:1px solid var(--c-border);border-radius:var(--radius);background:var(--c-surface-2);color:var(--c-text-1);font-size:var(--text-sm);">
+          ${hourOptionsHtml(state.sendHour)}
+        </select>
+      </div>
+    ` : '';
     body.innerHTML = `
       <div class="reports-page__last-status">
         <span class="reports-page__last-icon">${icons['file-text']}</span>
@@ -105,9 +122,12 @@ export function render() {
         </span>
         <span class="toggle ${state.autoSend ? 'toggle--on' : ''}" id="auto-send-toggle" role="switch" aria-checked="${state.autoSend}" aria-label="Auto-send"></span>
       </label>
+      ${hourSel}
     `;
     lastCard.appendChild(body);
     body.querySelector('#auto-send-toggle').addEventListener('click', toggleAutoSend);
+    const hourEl = body.querySelector('#auto-send-hour');
+    if (hourEl) hourEl.addEventListener('change', () => saveSendHour(hourEl));
   }
 
   // ── Periode + Tombol Generate ──
@@ -203,15 +223,29 @@ export function render() {
   async function toggleAutoSend() {
     const val = !state.autoSend;
     state.autoSend = val;
+    if (val && state.sendHour == null) state.sendHour = 7;
     renderLastCard();
     try {
       // Backend membaca auto_send sebagai query param (bukan body)
-      await Api.put('/reports/preferences?auto_send=' + val);
+      let url = '/reports/preferences?auto_send=' + val;
+      if (val && state.sendHour != null) url += '&report_send_hour=' + state.sendHour;
+      await Api.put(url);
       toast(val ? 'Auto-send aktif' : 'Auto-send dinonaktifkan', { type: 'success' });
     } catch (e) {
       state.autoSend = !val;
       renderLastCard();
       toast('Gagal simpan preferensi: ' + (e.message || e), { type: 'error' });
+    }
+  }
+
+  async function saveSendHour(hourEl) {
+    const val = parseInt(hourEl.value, 10);
+    state.sendHour = val;
+    try {
+      await Api.put('/reports/preferences?report_send_hour=' + val);
+      toast('Jam pengiriman: ' + String(val).padStart(2, '0') + ':00', { type: 'success' });
+    } catch (e) {
+      toast('Gagal simpan jam: ' + (e.message || e), { type: 'error' });
     }
   }
 
@@ -248,6 +282,7 @@ export function render() {
       const res = await Api.get('/reports/last');
       state.lastReport = res;
       state.autoSend = res?.auto_send || false;
+      state.sendHour = res?.report_send_hour != null ? res.report_send_hour : null;
     } catch (e) {
       console.error('[Reports] Failed to load last report:', e);
     }
