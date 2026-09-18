@@ -33,6 +33,8 @@ export function render() {
     sinceHours: 24,
     filterDomain: '',
     searchTerm: '',
+    viewMode: 'all',
+    grouped: null,
   };
 
   const container = createEl('div', { class: 'news-page' }, []);
@@ -63,7 +65,10 @@ export function render() {
 
   // Tabs
   const tabs = createEl('div', { class: 'tabs' });
-  tabs.appendChild(createEl('button', { class: 'tabs__item tabs__item--active' }, ['All Articles']));
+  const tabAll = createEl('button', { class: 'tabs__item tabs__item--active' }, ['All Articles']);
+  const tabGrouped = createEl('button', { class: 'tabs__item' }, ['By Topic']);
+  tabs.appendChild(tabAll);
+  tabs.appendChild(tabGrouped);
   container.appendChild(tabs);
 
   // Articles list container
@@ -95,18 +100,36 @@ export function render() {
   timeFilter.addEventListener('change', (e) => {
     state.sinceHours = parseInt(e.target.value);
     state.page = 1;
-    loadArticles();
+    if (state.viewMode === 'grouped') loadGrouped();
+    else loadArticles();
   });
 
   domainFilter.addEventListener('change', (e) => {
     state.filterDomain = e.target.value;
     state.page = 1;
-    loadArticles();
+    if (state.viewMode === 'all') loadArticles();
   });
 
   refreshBtn.addEventListener('click', () => {
     loadDomains();
+    if (state.viewMode === 'grouped') loadGrouped();
+    else loadArticles();
+  });
+
+  tabAll.addEventListener('click', () => {
+    if (state.viewMode === 'all') return;
+    state.viewMode = 'all';
+    tabAll.classList.add('tabs__item--active');
+    tabGrouped.classList.remove('tabs__item--active');
     loadArticles();
+  });
+
+  tabGrouped.addEventListener('click', () => {
+    if (state.viewMode === 'grouped') return;
+    state.viewMode = 'grouped';
+    tabGrouped.classList.add('tabs__item--active');
+    tabAll.classList.remove('tabs__item--active');
+    loadGrouped();
   });
 
   // ---- Functions ----
@@ -190,6 +213,113 @@ export function render() {
       `;
       list.appendChild(item);
     });
+    listContainer.appendChild(list);
+  }
+
+  async function loadGrouped() {
+    listContainer.innerHTML = '';
+    pagination.innerHTML = '';
+
+    const loading = createEl('div', { class: 'card', style: { padding: 'var(--s-8)', textAlign: 'center', color: 'var(--c-text-2)' } });
+    loading.innerHTML = `
+      <div style="font-size:36px;margin-bottom:var(--s-3);opacity:0.4;">${icons['layers']}</div>
+      <div style="font-size:var(--text-sm);">Mengelompokkan artikel berdasarkan topik...</div>
+      <div style="font-size:var(--text-xs);color:var(--c-text-3);margin-top:var(--s-1);">Bisa butuh beberapa detik</div>
+    `;
+    listContainer.appendChild(loading);
+
+    try {
+      const data = await Api.get('/news/articles/grouped', { since_hours: state.sinceHours });
+      state.grouped = data;
+      renderGrouped(data);
+    } catch (e) {
+      listContainer.innerHTML = `
+        <div class="empty-state" style="text-align:center;padding:var(--s-8);">
+          <p style="color:var(--c-danger);">Gagal memuat: ${e.message || e}</p>
+        </div>
+      `;
+    }
+  }
+
+  function renderGrouped(data) {
+    listContainer.innerHTML = '';
+    const groups = data.groups || [];
+
+    if (!groups.length) {
+      listContainer.innerHTML = `
+        <div class="empty-state" style="text-align:center;padding:var(--s-8);">
+          <div style="font-size:48px;margin-bottom:var(--s-4);opacity:0.3;">${icons['layers']}</div>
+          <p style="color:var(--c-text-2);">Tidak ada artikel untuk dikelompokkan.</p>
+        </div>
+      `;
+      return;
+    }
+
+    const multi = groups.filter(g => g.count > 1);
+    const singles = groups.filter(g => g.count === 1);
+    const list = createEl('div', { style: { display: 'flex', flexDirection: 'column', gap: 'var(--s-3)' } });
+
+    multi.forEach(g => {
+      const master = g.master;
+      const related = g.related || [];
+      const domains = new Set([master.domain, ...related.map(r => r.domain)]);
+      const card = createEl('div', {
+        class: 'card',
+        style: { padding: 'var(--s-4)', borderLeft: '4px solid var(--c-accent)' }
+      });
+      card.innerHTML = `
+        <div style="display:flex;align-items:flex-start;gap:var(--s-3);">
+          <div style="width:44px;height:44px;border-radius:var(--radius);background:var(--c-accent);color:#fff;display:flex;align-items:center;justify-content:center;font-weight:700;font-size:var(--text-md);flex-shrink:0;">${g.count}</div>
+          <div style="flex:1;min-width:0;">
+            <div style="font-size:var(--text-xs);color:var(--c-text-3);text-transform:uppercase;letter-spacing:0.05em;margin-bottom:var(--s-1);">Topik</div>
+            <div style="font-weight:700;font-size:var(--text-md);margin-bottom:var(--s-2);">
+              <a href="${master.url}" target="_blank" rel="noopener" style="color:var(--c-text-1);">${master.title}</a>
+            </div>
+            <div style="display:flex;gap:var(--s-2);align-items:center;flex-wrap:wrap;font-size:var(--text-xs);color:var(--c-text-3);margin-bottom:var(--s-2);">
+              ${[...domains].map(d => `<span class="badge badge--neutral">${d}</span>`).join('')}
+              <span>${formatTimeAgo(master.pub_display)}</span>
+              ${domains.size > 1 ? `<span class="badge badge--primary">${domains.size} sumber</span>` : ''}
+              <span class="badge badge--primary">${master.language || 'en'}</span>
+            </div>
+            ${related.length ? `
+              <details>
+                <summary style="cursor:pointer;font-size:var(--text-sm);color:var(--c-text-2);">${related.length} artikel terkait</summary>
+                <div style="margin-top:var(--s-2);display:flex;flex-direction:column;gap:var(--s-2);">
+                  ${related.map(r => `
+                    <div style="display:flex;align-items:center;gap:var(--s-2);font-size:var(--text-xs);">
+                      <span class="badge badge--neutral">${r.domain}</span>
+                      <a href="${r.url}" target="_blank" rel="noopener" style="color:var(--c-text-2);text-decoration:none;flex:1;min-width:0;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;">${r.title}</a>
+                    </div>
+                  `).join('')}
+                </div>
+              </details>
+            ` : ''}
+          </div>
+        </div>
+      `;
+      list.appendChild(card);
+    });
+
+    if (singles.length) {
+      const singleCard = createEl('div', { class: 'card', style: { padding: 'var(--s-4)' } });
+      singleCard.innerHTML = `
+        <div style="font-weight:700;font-size:var(--text-sm);margin-bottom:var(--s-3);color:var(--c-text-2);">Berita unik lainnya (${singles.length})</div>
+        <div style="display:flex;flex-direction:column;gap:var(--s-2);">
+          ${singles.map(g => {
+            const a = g.master;
+            return `
+              <div style="display:flex;align-items:center;gap:var(--s-2);font-size:var(--text-sm);">
+                <span class="badge badge--neutral">${a.domain}</span>
+                <a href="${a.url}" target="_blank" rel="noopener" style="color:var(--c-text-1);text-decoration:none;flex:1;min-width:0;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;">${a.title}</a>
+                <span style="color:var(--c-text-3);font-size:var(--text-xs);flex-shrink:0;">${formatTimeAgo(a.pub_display)}</span>
+              </div>
+            `;
+          }).join('')}
+        </div>
+      `;
+      list.appendChild(singleCard);
+    }
+
     listContainer.appendChild(list);
   }
 
