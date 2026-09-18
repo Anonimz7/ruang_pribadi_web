@@ -104,22 +104,22 @@ export function render() {
     pagination.innerHTML = '';
 
     try {
-      const params = {};
+      const params = {
+        page: state.page,
+        per_page: state.perPage,
+      };
       if (state.searchTerm) params.q = state.searchTerm;
       if (state.statusFilter) params.status = state.statusFilter;
 
       const data = await Api.get('/admin/stocks/status', params);
-      const all = Array.isArray(data) ? data : [];
-      state.total = all.length;
-      const start = (state.page - 1) * state.perPage;
-      state.stocks = all.slice(start, start + state.perPage);
+      state.stocks = (data && data.stocks) || [];
+      state.total = (data && data.total) || 0;
 
       // Kalau halaman aktif melebihi total (mis. hasil filter berubah),
       // lompat balik ke halaman terakhir yang valid.
       if (state.stocks.length === 0 && state.page > 1 && state.total > 0) {
         state.page = Math.ceil(state.total / state.perPage);
-        const s = (state.page - 1) * state.perPage;
-        state.stocks = all.slice(s, s + state.perPage);
+        return loadStocks();
       }
     } catch (e) {
       state.stocks = [];
