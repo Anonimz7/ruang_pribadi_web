@@ -35,9 +35,42 @@ export function render() {
     searchTerm: '',
     viewMode: 'all',
     grouped: null,
+    singles: [],
+    singlesTotal: 0,
+    singlesPage: 1,
+    singlesPerPage: 50,
   };
 
   const container = createEl('div', { class: 'news-page' }, []);
+
+  // Scoped styles for the By Topic accordion
+  const topicStyle = createEl('style', {}, []);
+  topicStyle.textContent = `
+    .news-topic details > summary { list-style: none; cursor: pointer; }
+    .news-topic details > summary::-webkit-details-marker { display: none; }
+    .news-topic details > summary:hover { background: var(--c-surface-2); }
+    .news-topic details[open] > summary { background: var(--c-surface-2); }
+    .news-topic details[open] .news-topic__chevron { transform: rotate(180deg); }
+    .news-topic__chevron { transition: transform 0.15s ease; flex-shrink: 0; color: var(--c-text-3); }
+    .news-topic__badge { min-width: 30px; height: 30px; border-radius: 8px; background: var(--c-accent); color: #fff; display: inline-flex; align-items: center; justify-content: center; font-size: var(--text-xs); font-weight: 700; flex-shrink: 0; }
+    .news-topic__badge--single { background: var(--c-surface-2); color: var(--c-text-3); }
+    .news-topic__title { font-weight: 500; font-size: var(--text-sm); overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+    .news-topic__title a { color: var(--c-text-1); text-decoration: none; }
+    .news-topic__title a:hover { color: var(--c-accent); }
+    .news-topic__meta { display: flex; align-items: center; gap: var(--s-2); font-size: var(--text-xs); color: var(--c-text-3); margin-top: 4px; flex-wrap: wrap; }
+    .news-topic__avatar { width: 18px; height: 18px; border-radius: 50%; display: inline-flex; align-items: center; justify-content: center; font-size: 9px; font-weight: 700; color: #fff; flex-shrink: 0; }
+    .news-topic__avatar--sm { width: 16px; height: 16px; font-size: 8px; }
+    .news-topic__lang { border: 1px solid var(--c-border); border-radius: 4px; padding: 0 4px; font-size: 9px; text-transform: uppercase; letter-spacing: 0.03em; }
+    .news-topic__related { display: flex; align-items: center; gap: var(--s-2); padding: var(--s-2); border-radius: var(--radius); text-decoration: none; transition: background 0.15s ease; }
+    .news-topic__related:hover { background: var(--c-surface-2); }
+    .news-topic__related-title { font-size: var(--text-xs); color: var(--c-text-2); flex: 1; min-width: 0; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+    .news-topic__related:hover .news-topic__related-title { color: var(--c-accent); }
+    .news-topic__dot { width: 5px; height: 5px; border-radius: 50%; background: var(--c-border); flex-shrink: 0; }
+    .news-topic__dot--single { width: 8px; height: 8px; border-radius: 50%; background: var(--c-accent); opacity: 0.45; flex-shrink: 0; }
+    .news-topic > details:last-child { border-bottom: none; }
+    .news-topic__single:last-child { border-bottom: none; }
+  `;
+  container.appendChild(topicStyle);
 
   // Header
   container.appendChild(createEl('h1', {}, ['News Intelligence']));
@@ -229,7 +262,11 @@ export function render() {
     listContainer.appendChild(loading);
 
     try {
-      const data = await Api.get('/news/articles/grouped', { since_hours: state.sinceHours });
+      const data = await Api.get('/news/articles/grouped', {
+        since_hours: state.sinceHours,
+        singles_page: 1,
+        singles_per_page: state.singlesPerPage,
+      });
       state.grouped = data;
       renderGrouped(data);
     } catch (e) {
@@ -241,6 +278,14 @@ export function render() {
     }
   }
 
+const AVATAR_COLORS = ['#5B8DEF', '#E07B54', '#4CAF7D', '#9B6FE0', '#D9A13B', '#E05B8A', '#3BA8C9', '#8A9A5B'];
+
+  function avatarColor(domain) {
+    let h = 0;
+    for (let i = 0; i < domain.length; i++) h = (h * 31 + domain.charCodeAt(i)) >>> 0;
+    return AVATAR_COLORS[h % AVATAR_COLORS.length];
+  }
+
   function renderGrouped(data) {
     listContainer.innerHTML = '';
     const groups = data.groups || [];
@@ -248,79 +293,175 @@ export function render() {
     if (!groups.length) {
       listContainer.innerHTML = `
         <div class="empty-state" style="text-align:center;padding:var(--s-8);">
-          <div style="font-size:48px;margin-bottom:var(--s-4);opacity:0.3;">${icons['layers']}</div>
-          <p style="color:var(--c-text-2);">Tidak ada artikel untuk dikelompokkan.</p>
+          <p style="color:var(--c-text-3);">Tidak ada artikel untuk dikelompokkan.</p>
         </div>
       `;
       return;
     }
 
-    const multi = groups.filter(g => g.count > 1);
-    const singles = groups.filter(g => g.count === 1);
-    const list = createEl('div', { style: { display: 'flex', flexDirection: 'column', gap: 'var(--s-3)' } });
+    const multi = data.groups || [];
+    const singles = data.singles || [];
+    state.singles = singles;
+    state.singlesTotal = data.singles_total || 0;
+    state.singlesPage = data.singles_page || 1;
+    state.singlesPerPage = data.singles_per_page || state.singlesPerPage;
+    const list = createEl('div', { class: 'news-topic', style: { display: 'flex', flexDirection: 'column' } });
 
     multi.forEach(g => {
       const master = g.master;
       const related = g.related || [];
-      const domains = new Set([master.domain, ...related.map(r => r.domain)]);
-      const card = createEl('div', {
-        class: 'card',
-        style: { padding: 'var(--s-4)', borderLeft: '4px solid var(--c-accent)' }
-      });
-      card.innerHTML = `
-        <div style="display:flex;align-items:flex-start;gap:var(--s-3);">
-          <div style="width:44px;height:44px;border-radius:var(--radius);background:var(--c-accent);color:#fff;display:flex;align-items:center;justify-content:center;font-weight:700;font-size:var(--text-md);flex-shrink:0;">${g.count}</div>
-          <div style="flex:1;min-width:0;">
-            <div style="font-size:var(--text-xs);color:var(--c-text-3);text-transform:uppercase;letter-spacing:0.05em;margin-bottom:var(--s-1);">Topik</div>
-            <div style="font-weight:700;font-size:var(--text-md);margin-bottom:var(--s-2);">
-              <a href="${master.url}" target="_blank" rel="noopener" style="color:var(--c-text-1);">${master.title}</a>
-            </div>
-            <div style="display:flex;gap:var(--s-2);align-items:center;flex-wrap:wrap;font-size:var(--text-xs);color:var(--c-text-3);margin-bottom:var(--s-2);">
-              ${[...domains].map(d => `<span class="badge badge--neutral">${d}</span>`).join('')}
-              <span>${formatTimeAgo(master.pub_display)}</span>
-              ${domains.size > 1 ? `<span class="badge badge--primary">${domains.size} sumber</span>` : ''}
-              <span class="badge badge--primary">${master.language || 'en'}</span>
-            </div>
-            ${related.length ? `
-              <details>
-                <summary style="cursor:pointer;font-size:var(--text-sm);color:var(--c-text-2);">${related.length} artikel terkait</summary>
-                <div style="margin-top:var(--s-2);display:flex;flex-direction:column;gap:var(--s-2);">
-                  ${related.map(r => `
-                    <div style="display:flex;align-items:center;gap:var(--s-2);font-size:var(--text-xs);">
-                      <span class="badge badge--neutral">${r.domain}</span>
-                      <a href="${r.url}" target="_blank" rel="noopener" style="color:var(--c-text-2);text-decoration:none;flex:1;min-width:0;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;">${r.title}</a>
-                    </div>
-                  `).join('')}
-                </div>
-              </details>
-            ` : ''}
+      const domains = [...new Set([master.domain, ...related.map(r => r.domain)])];
+
+      const row = createEl('details');
+      row.style.cssText = 'border-bottom:1px solid var(--c-border);';
+
+      const summary = createEl('summary');
+      summary.style.cssText = 'display:flex;align-items:center;gap:var(--s-3);padding:var(--s-3) var(--s-2);border-radius:var(--radius);transition:background 0.15s ease;user-select:none;';
+
+      summary.innerHTML = `
+        <span class="news-topic__badge">${g.count}</span>
+        <span style="flex:1;min-width:0;">
+          <div class="news-topic__title">
+            <a href="${master.url}" target="_blank" rel="noopener">${master.title}</a>
           </div>
-        </div>
+          <div class="news-topic__meta">
+            ${domains.map(d => `<span class="news-topic__avatar" data-domain="${d}">${d.substring(0, 1).toUpperCase()}</span>`).join('')}
+            <span>${formatTimeAgo(master.pub_display)}</span>
+            <span class="news-topic__lang">${master.language || 'en'}</span>
+          </div>
+        </span>
+        <span class="news-topic__chevron">
+          <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><polyline points="6 9 12 15 18 9"/></svg>
+        </span>
       `;
-      list.appendChild(card);
+
+      const relatedBox = createEl('div');
+      relatedBox.style.cssText = 'padding:0 0 var(--s-3) 44px;display:flex;flex-direction:column;';
+
+      related.forEach(r => {
+        const item = createEl('a');
+        item.href = r.url;
+        item.target = '_blank';
+        item.rel = 'noopener';
+        item.className = 'news-topic__related';
+        item.innerHTML = `
+          <span class="news-topic__dot"></span>
+          <span class="news-topic__avatar news-topic__avatar--sm" data-domain="${r.domain}">${r.domain.substring(0, 1).toUpperCase()}</span>
+          <span class="news-topic__related-title">${r.title}</span>
+        `;
+        relatedBox.appendChild(item);
+      });
+
+      row.appendChild(summary);
+      row.appendChild(relatedBox);
+      list.appendChild(row);
     });
 
-    if (singles.length) {
-      const singleCard = createEl('div', { class: 'card', style: { padding: 'var(--s-4)' } });
-      singleCard.innerHTML = `
-        <div style="font-weight:700;font-size:var(--text-sm);margin-bottom:var(--s-3);color:var(--c-text-2);">Berita unik lainnya (${singles.length})</div>
-        <div style="display:flex;flex-direction:column;gap:var(--s-2);">
-          ${singles.map(g => {
-            const a = g.master;
-            return `
-              <div style="display:flex;align-items:center;gap:var(--s-2);font-size:var(--text-sm);">
-                <span class="badge badge--neutral">${a.domain}</span>
-                <a href="${a.url}" target="_blank" rel="noopener" style="color:var(--c-text-1);text-decoration:none;flex:1;min-width:0;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;">${a.title}</a>
-                <span style="color:var(--c-text-3);font-size:var(--text-xs);flex-shrink:0;">${formatTimeAgo(a.pub_display)}</span>
-              </div>
-            `;
-          }).join('')}
-        </div>
+    if (singles.length || state.singlesTotal) {
+      const section = createEl('details');
+      section.style.cssText = 'margin-top:var(--s-4);';
+
+      const summary = createEl('summary');
+      summary.style.cssText = 'display:flex;align-items:center;gap:var(--s-2);padding:var(--s-2);border-radius:var(--radius);cursor:pointer;user-select:none;font-size:var(--text-xs);color:var(--c-text-3);text-transform:uppercase;letter-spacing:0.05em;';
+      summary.innerHTML = `
+        <span>Berita unik lainnya · ${state.singlesTotal}</span>
+        <span class="news-topic__chevron">
+          <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><polyline points="6 9 12 15 18 9"/></svg>
+        </span>
       `;
-      list.appendChild(singleCard);
+      section.appendChild(summary);
+
+      const body = createEl('div');
+      body.style.cssText = 'display:flex;flex-direction:column;';
+      section.appendChild(body);
+
+      renderSinglesPage(body);
+      list.appendChild(section);
     }
 
+    list.querySelectorAll('.news-topic__avatar').forEach(el => {
+      el.style.background = avatarColor(el.dataset.domain);
+    });
+
     listContainer.appendChild(list);
+  }
+
+  function renderSinglesPage(body) {
+    const singles = state.singles || [];
+    const perPage = state.singlesPerPage;
+    const total = state.singlesTotal || singles.length;
+    const totalPages = Math.max(1, Math.ceil(total / perPage));
+    const page = state.singlesPage;
+    const start = (page - 1) * perPage;
+
+    body.innerHTML = '';
+
+    const rows = createEl('div', { style: { display: 'flex', flexDirection: 'column' } });
+    singles.forEach(g => {
+      const master = g.master;
+      const row = createEl('div');
+      row.className = 'news-topic__single';
+      row.style.cssText = 'border-bottom:1px solid var(--c-border);padding:var(--s-3) var(--s-2);display:flex;align-items:center;gap:var(--s-3);border-radius:var(--radius);transition:background 0.15s ease;';
+      row.innerHTML = `
+        <span class="news-topic__dot--single"></span>
+        <span style="flex:1;min-width:0;">
+          <div class="news-topic__title">
+            <a href="${master.url}" target="_blank" rel="noopener">${master.title}</a>
+          </div>
+          <div class="news-topic__meta">
+            <span class="news-topic__avatar" data-domain="${master.domain}">${master.domain.substring(0, 1).toUpperCase()}</span>
+            <span>${formatTimeAgo(master.pub_display)}</span>
+            <span class="news-topic__lang">${master.language || 'en'}</span>
+          </div>
+        </span>
+      `;
+      rows.appendChild(row);
+    });
+    body.appendChild(rows);
+
+    rows.querySelectorAll('.news-topic__avatar').forEach(el => {
+      el.style.background = avatarColor(el.dataset.domain);
+    });
+
+    if (totalPages > 1) {
+      const pager = createEl('div');
+      pager.style.cssText = 'display:flex;align-items:center;justify-content:space-between;gap:var(--s-2);padding:var(--s-3) var(--s-2);';
+      pager.innerHTML = `
+        <span style="font-size:var(--text-xs);color:var(--c-text-3);">${start + 1}-${Math.min(start + perPage, total)} dari ${total}</span>
+        <div style="display:flex;gap:var(--s-2);">
+          <button class="btn btn--ghost btn--sm" ${page <= 1 ? 'disabled' : ''}>Prev</button>
+          <button class="btn btn--primary btn--sm">${page}</button>
+          <button class="btn btn--ghost btn--sm" ${page >= totalPages ? 'disabled' : ''}>Next</button>
+        </div>
+      `;
+      const prevBtn = pager.querySelector('button:first-of-type');
+      const nextBtn = pager.querySelector('button:last-of-type');
+      prevBtn.addEventListener('click', () => {
+        if (state.singlesPage > 1) loadSinglesPage(body, state.singlesPage - 1);
+      });
+      nextBtn.addEventListener('click', () => {
+        if (state.singlesPage < totalPages) loadSinglesPage(body, state.singlesPage + 1);
+      });
+      body.appendChild(pager);
+    }
+  }
+
+  async function loadSinglesPage(body, page) {
+    state.singlesPage = page;
+    body.innerHTML = '<div style="padding:var(--s-4);text-align:center;color:var(--c-text-3);font-size:var(--text-xs);">Memuat...</div>';
+    try {
+      const data = await Api.get('/news/articles/grouped', {
+        since_hours: state.sinceHours,
+        singles_page: page,
+        singles_per_page: state.singlesPerPage,
+      });
+      state.singles = data.singles || [];
+      state.singlesTotal = data.singles_total || 0;
+      state.singlesPerPage = data.singles_per_page || state.singlesPerPage;
+      renderSinglesPage(body);
+    } catch (e) {
+      body.innerHTML = `<div style="padding:var(--s-4);text-align:center;color:var(--c-danger);font-size:var(--text-xs);">Gagal memuat: ${e.message || e}</div>`;
+    }
   }
 
   function renderPagination() {
