@@ -105,6 +105,7 @@ export function render() {
     lastCard.querySelector('.card__head').innerHTML = '<div class="card__title">Laporan Terakhir</div>';
 
     const hasLast = !!(state.lastReport && state.lastReport.last_report_at);
+    const hasAuto = !!(state.lastReport && state.lastReport.last_auto_send_at);
     const body = createEl('div', {}, []);
     const hourSel = state.autoSend ? `
       <div class="reports-page__autosend-hour" style="display:flex;align-items:center;gap:var(--s-3);margin-top:var(--s-3);">
@@ -117,9 +118,11 @@ export function render() {
     body.innerHTML = `
       <div class="reports-page__last-status">
         <span class="reports-page__last-icon">${icons['file-text']}</span>
-        <div>
-          <div style="font-weight:600;font-size:var(--text-sm);color:${hasLast ? 'var(--c-accent)' : 'var(--c-text-3)'};">${hasLast ? 'Sudah pernah dikirim' : 'Belum ada laporan'}</div>
-          ${hasLast ? `<div style="font-size:var(--text-xs);color:var(--c-text-3);margin-top:2px;">Terakhir: ${formatDate(state.lastReport.last_report_at)}</div>` : ''}
+        <div style="display:flex;flex-direction:column;gap:4px;">
+          <div style="font-weight:600;font-size:var(--text-sm);color:${hasLast ? 'var(--c-accent)' : 'var(--c-text-3)'};">${hasLast ? 'Generate terakhir' : 'Belum ada laporan'}</div>
+          ${hasLast ? `<div style="font-size:var(--text-xs);color:var(--c-text-3);">${formatDate(state.lastReport.last_report_at)}</div>` : ''}
+          <div style="font-weight:600;font-size:var(--text-sm);color:${hasAuto ? 'var(--c-accent)' : 'var(--c-text-3)'};">${hasAuto ? 'Auto-send terakhir' : 'Belum ada auto-send'}</div>
+          ${hasAuto ? `<div style="font-size:var(--text-xs);color:var(--c-text-3);">${formatDate(state.lastReport.last_auto_send_at)}</div>` : ''}
         </div>
       </div>
       <label class="reports-page__autosend">
@@ -307,8 +310,7 @@ export function render() {
       const res = await Api.get('/reports/last');
       state.lastReport = res;
       state.autoSend = res?.auto_send || false;
-      state.sendHour = res?.report_send_hour != null ? res.report_send_hour : null;
-    } catch (e) {
+      state.sendHour = res?.report_send_hour != null ? res.report_send_hour : null;    } catch (e) {
       console.error('[Reports] Failed to load last report:', e);
     }
     renderLastCard();

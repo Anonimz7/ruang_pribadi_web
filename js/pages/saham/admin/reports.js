@@ -6,7 +6,7 @@ import { toast } from '../../../ui/toast.js';
 
 export function render() {
   const state = {
-    prefs: { auto_send: false, last_report_at: null },
+    prefs: { auto_send: false, last_report_at: null, last_auto_send_at: null },
     saving: false,
   };
 
@@ -29,9 +29,10 @@ export function render() {
       state.prefs = {
         auto_send: res?.auto_send || false,
         last_report_at: res?.last_report_at || null,
+        last_auto_send_at: res?.last_auto_send_at || null,
       };
     } catch (e) {
-      state.prefs = { auto_send: false, last_report_at: null };
+      state.prefs = { auto_send: false, last_report_at: null, last_auto_send_at: null };
     }
     renderPrefs();
   }
@@ -47,8 +48,9 @@ export function render() {
         <label class="field__label">Auto-send reports to email</label>
         <div class="toggle ${state.prefs.auto_send ? 'toggle--on' : 'toggle--off'}" id="auto-send-toggle"></div>
       </div>
-      <div style="${state.prefs.last_report_at ? '' : 'display:none;'}font-size:var(--text-sm);color:var(--c-text-3);">
-        Last sent: ${state.prefs.last_report_at ? new Date(state.prefs.last_report_at).toLocaleString('id-ID') : '-'}
+      <div style="font-size:var(--text-sm);color:var(--c-text-3);">
+        Generate terakhir: ${state.prefs.last_report_at ? new Date(state.prefs.last_report_at).toLocaleString('id-ID') : '-'}<br>
+        Auto-send terakhir: ${state.prefs.last_auto_send_at ? new Date(state.prefs.last_auto_send_at).toLocaleString('id-ID') : '-'}
       </div>
       <div style="display:flex;gap:var(--s-3);">
         <button class="btn btn--primary" id="save-prefs" ${state.saving ? 'disabled' : ''}>
