@@ -5,6 +5,7 @@ import Api from '../../core/api.js';
 import { toast } from '../../ui/toast.js';
 
 const PERIOD_OPTIONS = [6, 12, 24, 48, 72];
+const CARD_STATE_KEY = 'reports:collapsed';
 
 function hourOptionsHtml(selected) {
   return Array.from({ length: 24 }, (_, h) => {
@@ -69,12 +70,26 @@ export function render() {
   const state = {
     lastReport: null,
     reportGroups: [],
+    autoGroups: [],
     generated: null,
     autoSend: false,
     sendHour: null,
     generating: false,
     sinceHours: 24,
+    collapsed: loadCollapsed(),
   };
+
+  function loadCollapsed() {
+    try {
+      return JSON.parse(localStorage.getItem(CARD_STATE_KEY)) || {};
+    } catch (e) {
+      return {};
+    }
+  }
+
+  function saveCollapsed() {
+    localStorage.setItem(CARD_STATE_KEY, JSON.stringify(state.collapsed));
+  }
 
   const container = createEl('div', { class: 'reports-page', style: { maxWidth: '760px', margin: '0 auto', padding: 'var(--s-4)' } });
 
@@ -95,8 +110,36 @@ export function render() {
   container.appendChild(resultCard);
 
   // Riwayat
-  const historyCard = createEl('div', { class: 'card' });
+  const historyCard = createEl('div', { class: 'card', style: { marginBottom: 'var(--s-4)' } });
   container.appendChild(historyCard);
+
+  // Riwayat auto-send
+  const autoCard = createEl('div', { class: 'card' });
+  container.appendChild(autoCard);
+
+  // ── Card head dengan toggle collapse ──
+  function renderCardHead(card, title, body, cardId) {
+    card.innerHTML = '';
+    const head = createEl('div', {
+      class: 'card__head',
+      style: { cursor: 'pointer', userSelect: 'none', display: 'flex', justifyContent: 'space-between', alignItems: 'center' },
+    });
+    const isCollapsed = !!state.collapsed[cardId];
+    head.innerHTML = `
+      <div class="card__title">${title}</div>
+      <span class="reports-page__chevron" style="transform:rotate(${isCollapsed ? -90 : 0}deg);transition:transform .15s;color:var(--c-text-3);">${icons['chevron-down'] || ''}</span>
+    `;
+    card.appendChild(head);
+    body.style.display = isCollapsed ? 'none' : '';
+    card.appendChild(body);
+    head.addEventListener('click', () => {
+      state.collapsed[cardId] = !state.collapsed[cardId];
+      saveCollapsed();
+      const hidden = !!state.collapsed[cardId];
+      body.style.display = hidden ? 'none' : '';
+      head.querySelector('.reports-page__chevron').style.transform = `rotate(${hidden ? -90 : 0}deg)`;
+    });
+  }
 
   // ── Laporan Terakhir + Auto-Send ──
   function renderLastCard() {
@@ -203,15 +246,11 @@ export function render() {
     attachDeleteHandlers(body);
   }
 
-  // ── Riwayat (dikelompokkan per tanggal) ──
+  // ── Riwayat manual (dikelompokkan per tanggal) ──
   function renderHistory() {
-    historyCard.innerHTML = '';
-    historyCard.appendChild(createEl('div', { class: 'card__head' }, [], []));
-    historyCard.querySelector('.card__head').innerHTML = '<div class="card__title">Laporan Sebelumnya</div>';
-
     const body = createEl('div', {}, []);
     if (!state.reportGroups.length) {
-      body.innerHTML = '<p style="color:var(--c-text-3);font-size:var(--text-sm);">Belum ada laporan.</p>';
+      body.innerHTML = '<p style="color:var(--c-text-3);font-size:var(--text-sm);">Belum ada laporan manual.</p>';
     } else {
       state.reportGroups.forEach(g => {
         const files = g.files || [];
@@ -227,7 +266,31 @@ export function render() {
         `;
       });
     }
-    historyCard.appendChild(body);
+    renderCardHead(historyCard, 'Laporan Sebelumnya (Manual)', body, 'history');
+    attachDeleteHandlers(body);
+  }
+
+  // ── Riwayat auto-send ──
+  function renderAutoHistory() {
+    const body = createEl('div', {}, []);
+    if (!state.autoGroups.length) {
+      body.innerHTML = '<p style="color:var(--c-text-3);font-size:var(--text-sm);">Belum ada auto-send.</p>';
+    } else {
+      state.autoGroups.forEach(g => {
+        const files = g.files || [];
+        body.innerHTML += `
+          <div class="reports-page__group">
+            <div class="reports-page__group-head">
+              <span style="color:var(--c-accent);">${icons['file-text']}</span>
+              <span>${g.date}</span>
+              <span class="reports-page__group-count">${files.length} file</span>
+            </div>
+            ${files.map(fileRowHtml).join('')}
+          </div>
+        `;
+      });
+    }
+    renderCardHead(autoCard, 'Auto-Send Laporan', body, 'auto');
     attachDeleteHandlers(body);
   }
 
@@ -318,13 +381,22 @@ export function render() {
 
   async function loadReportFiles() {
     historyCard.innerHTML = '<div class="skeleton" style="height:80px;width:100%;border-radius:6px;"></div>';
+    autoCard.innerHTML = '<div class="skeleton" style="height:80px;width:100%;border-radius:6px;"></div>';
 
     try {
       const res = await Api.get('/reports/files');
-      state.reportGroups = res?.files || [];
+      const groups = res?.files || [];
+      // Pisahkan per sumber; file lama tanpa penanda tetap "manual".
+      const split = (source) => groups
+        .map(g => ({ date: g.date, files: (g.files || []).filter(f => (f.source || 'manual') === source) }))
+        .filter(g => g.files.length);
+      state.reportGroups = split('manual');
+      state.autoGroups = split('auto');
       renderHistory();
+      renderAutoHistory();
     } catch (e) {
       historyCard.innerHTML = '<div class="empty" style="padding:var(--s-4);color:var(--c-danger);"><p>Gagal memuat riwayat: ' + (e.message || e) + '</p></div>';
+      autoCard.innerHTML = '';
     }
   }
 
