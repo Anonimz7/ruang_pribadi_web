@@ -118,7 +118,7 @@ export function render() {
   container.appendChild(autoCard);
 
   // ── Card head dengan toggle collapse ──
-  function renderCardHead(card, title, body, cardId) {
+  function renderCardHead(card, title, body, cardId, titleIcon) {
     card.innerHTML = '';
     const head = createEl('div', {
       class: 'card__head',
@@ -126,18 +126,37 @@ export function render() {
     });
     const isCollapsed = !!state.collapsed[cardId];
     head.innerHTML = `
-      <div class="card__title">${title}</div>
-      <span class="reports-page__chevron" style="transform:rotate(${isCollapsed ? -90 : 0}deg);transition:transform .15s;color:var(--c-text-3);">${icons['chevron-down'] || ''}</span>
+      <div class="card__title" style="display:flex;align-items:center;gap:var(--s-2);">
+        <span style="color:var(--c-accent);display:inline-flex;">${titleIcon || icons['file-text']}</span>
+        <span>${title}</span>
+      </div>
+      <span class="reports-page__toggle-icon" role="button" tabindex="0"
+            aria-expanded="${!isCollapsed}" aria-label="${isCollapsed ? 'Tampilkan' : 'Sembunyikan'} ${title}"
+            style="display:inline-flex;align-items:center;justify-content:center;width:28px;height:28px;border:1px solid var(--c-border);border-radius:var(--radius);background:var(--c-surface-2);color:var(--c-text-2);">
+        ${isCollapsed ? icons['chevron-right'] : icons['chevron-down']}
+      </span>
     `;
     card.appendChild(head);
     body.style.display = isCollapsed ? 'none' : '';
     card.appendChild(body);
-    head.addEventListener('click', () => {
+
+    function toggle() {
       state.collapsed[cardId] = !state.collapsed[cardId];
       saveCollapsed();
       const hidden = !!state.collapsed[cardId];
       body.style.display = hidden ? 'none' : '';
-      head.querySelector('.reports-page__chevron').style.transform = `rotate(${hidden ? -90 : 0}deg)`;
+      const btn = head.querySelector('.reports-page__toggle-icon');
+      btn.innerHTML = hidden ? icons['chevron-right'] : icons['chevron-down'];
+      btn.setAttribute('aria-expanded', String(!hidden));
+      btn.setAttribute('aria-label', (hidden ? 'Tampilkan' : 'Sembunyikan') + ' ' + title);
+    }
+    const toggleBtn = head.querySelector('.reports-page__toggle-icon');
+    head.addEventListener('click', toggle);
+    toggleBtn.addEventListener('keydown', (e) => {
+      if (e.key === 'Enter' || e.key === ' ') {
+        e.preventDefault();
+        toggle();
+      }
     });
   }
 
@@ -266,7 +285,7 @@ export function render() {
         `;
       });
     }
-    renderCardHead(historyCard, 'Laporan Sebelumnya (Manual)', body, 'history');
+    renderCardHead(historyCard, 'Laporan Sebelumnya (Manual)', body, 'history', icons['file-text']);
     attachDeleteHandlers(body);
   }
 
@@ -290,7 +309,7 @@ export function render() {
         `;
       });
     }
-    renderCardHead(autoCard, 'Auto-Send Laporan', body, 'auto');
+    renderCardHead(autoCard, 'Auto-Send Laporan', body, 'auto', icons['refresh']);
     attachDeleteHandlers(body);
   }
 
