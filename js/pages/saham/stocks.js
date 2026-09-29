@@ -63,6 +63,8 @@ class StockAnalysis {
     this.sector = data.sector || null;
     this.primarySector = data.primary_sector || null;
     this.subSector = data.sub_sector || null;
+    this.remarks = data.remarks || null;
+    this.remarksText = data.remarks_text || null;
     this.labelDelisted = data.label_delisted ?? null;
     this.stockStatus = data.stock_status || null;
     this.statusReason = data.status_reason || null;
@@ -185,7 +187,8 @@ function formatReasonLines(text) {
 function StockInfoCard(stock) {
   const hasSector = !!(stock.sector || stock.primarySector);
   const hasCore = !!(stock.coreBusiness && stock.coreBusiness.length > 0);
-  if (!hasSector && !hasCore && stock.labelDelisted == null) return null;
+  const hasRemarks = !!(stock.remarksText || stock.remarks);
+  if (!hasSector && !hasCore && !hasRemarks && stock.labelDelisted == null) return null;
   const card = createEl('div', { class: 'card', style: { marginTop: 'var(--s-3)', background: 'var(--c-surface-2)' } });
   let html = `<div style="display:flex;align-items:center;gap:var(--s-2);margin-bottom:var(--s-3);">
     <span style="color:var(--c-primary);">${icons['globe']}</span>
@@ -195,6 +198,7 @@ function StockInfoCard(stock) {
   if (stock.sector) html += `<div style="display:flex;gap:var(--s-2);margin-bottom:var(--s-1);"><span style="width:120px;flex-shrink:0;font-size:var(--text-sm);font-weight:600;color:var(--c-text-2);">Sektor</span><span style="font-size:var(--text-sm);color:var(--c-text);">${stock.sector}</span></div>`;
   if (stock.primarySector) html += `<div style="display:flex;gap:var(--s-2);margin-bottom:var(--s-1);"><span style="width:120px;flex-shrink:0;font-size:var(--text-sm);font-weight:600;color:var(--c-text-2);">Sub Sektor Primer</span><span style="font-size:var(--text-sm);color:var(--c-text);">${stock.primarySector}</span></div>`;
   if (stock.subSector) html += `<div style="display:flex;gap:var(--s-2);margin-bottom:var(--s-1);"><span style="width:120px;flex-shrink:0;font-size:var(--text-sm);font-weight:600;color:var(--c-text-2);">Sub Sektor</span><span style="font-size:var(--text-sm);color:var(--c-text);">${stock.subSector}</span></div>`;
+  if (hasRemarks) html += `<div style="display:flex;gap:var(--s-2);margin-bottom:var(--s-1);"><span style="width:120px;flex-shrink:0;font-size:var(--text-sm);font-weight:600;color:var(--c-text-2);">Remarks</span><span style="font-size:var(--text-sm);color:var(--c-text);" title="Kode IDX: ${stock.remarks || ''}">${stock.remarksText || stock.remarks}</span></div>`;
   if (stock.sector || stock.subSector) {
     html += `<div style="display:flex;gap:var(--s-1);flex-wrap:wrap;margin-top:var(--s-2);">`;
     if (stock.sector) { const b = StockSectorBadge(stock.sector); if (b) html += b.outerHTML; }

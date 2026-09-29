@@ -22,6 +22,8 @@ export class StockProfile extends StockListItem {
   constructor(data = {}) {
     super(data);
     this.coreBusiness = data.core_business || null;
+    this.remarks = data.remarks || null;
+    this.remarksText = data.remarks_text || null;
   }
 }
 
