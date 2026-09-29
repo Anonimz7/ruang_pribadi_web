@@ -236,8 +236,8 @@ function StockInfoCard(stock) {
   return card;
 }
 
-/* ─── Riwayat Remarks (lazy, per ticker) ─── */
-const REMARKS_HISTORY_SHOWN = 20; // batas baris yang ditampilkan
+/* ─── Riwayat Remarks (lazy, per ticker, pagination) ─── */
+const REMARKS_HISTORY_PAGE = 20; // baris per halaman (total riwayat max ±127)
 
 function escText(value) {
   return String(value ?? '')
@@ -257,18 +257,29 @@ async function fetchRemarksHistory(ticker) {
   return state.remarksHistory[ticker];
 }
 
-function renderRemarksHistory(res) {
-  const items = (res.items || []).slice(0, REMARKS_HISTORY_SHOWN);
-  if (!items.length) {
+function renderRemarksHistory(res, start = 0) {
+  const all = res.items || [];
+  const total = res.count || all.length;
+  if (!all.length) {
     return '<div style="font-size:var(--text-xs);color:var(--c-text-2);">Belum ada riwayat perubahan remarks.</div>';
   }
-  let html = items.map((it) => `
+  const end = Math.min(start + REMARKS_HISTORY_PAGE, all.length);
+  let html = all.slice(start, end).map((it) => `
     <div style="display:flex;gap:var(--s-2);font-size:var(--text-xs);margin-bottom:2px;align-items:baseline;">
       <span style="flex-shrink:0;width:76px;color:var(--c-text-2);">${escText(it.date)}</span>
       <span style="color:var(--c-text);min-width:0;" title="Kode IDX: ${escText(it.remarks || '')}">${escText(it.text || it.remarks || '')}</span>
     </div>`).join('');
-  if ((res.count || 0) > items.length) {
-    html += `<div style="font-size:var(--text-xs);color:var(--c-text-2);margin-top:var(--s-1);">…menampilkan ${items.length} dari ${res.count} perubahan</div>`;
+
+  if (all.length > REMARKS_HISTORY_PAGE) {
+    html += `
+      <div class="stocks-page__remarks-history-nav">
+        <button type="button" class="stocks-page__remarks-nav-btn" data-nav="prev"${start > 0 ? '' : ' disabled'}>‹ Sebelumnya</button>
+        <span class="stocks-page__remarks-nav-info">${start + 1}–${end} dari ${total}</span>
+        <button type="button" class="stocks-page__remarks-nav-btn" data-nav="next"${end < all.length ? '' : ' disabled'}>Berikutnya ›</button>
+      </div>`;
+  } else if (total > all.length) {
+    // cadangan bila server membatasi jumlah item yang dikirim
+    html += `<div style="font-size:var(--text-xs);color:var(--c-text-2);margin-top:var(--s-1);">…menampilkan ${all.length} dari ${total} perubahan</div>`;
   }
   return html;
 }
@@ -284,6 +295,30 @@ function wireRemarksHistory(card, ticker) {
   const btn = card.querySelector('.stocks-page__remarks-history-btn');
   const list = card.querySelector('.stocks-page__remarks-history-list');
   if (!btn || !list) return;
+  let res = null;   // data (di-cache di state.remarksHistory)
+  let start = 0;    // offset halaman aktif
+
+  const paint = () => { list.innerHTML = res ? renderRemarksHistory(res, start) : ''; };
+
+  // Pagination dikendalikan lewat delegation agar tetap hidup
+  // setiap kali isi list diganti (innerHTML).
+  list.addEventListener('click', (e) => {
+    const nav = e.target.closest('[data-nav]');
+    if (!nav || !res) return;
+    const count = (res.items || []).length;
+    const maxStart = Math.max(0, Math.ceil(count / REMARKS_HISTORY_PAGE) - 1) * REMARKS_HISTORY_PAGE;
+    start = nav.dataset.nav === 'next'
+      ? Math.min(start + REMARKS_HISTORY_PAGE, maxStart)
+      : Math.max(start - REMARKS_HISTORY_PAGE, 0);
+    paint();
+    // pertahankan fokus pada tombol navigasi (elemennya diganti paint)
+    const want = nav.dataset.nav;
+    const same = list.querySelector(`[data-nav="${want}"]`);
+    const alt = list.querySelector('[data-nav]:not([disabled])');
+    if (same && !same.disabled) same.focus();
+    else if (alt) alt.focus();
+  });
+
   btn.addEventListener('click', async () => {
     const open = btn.getAttribute('aria-expanded') === 'true';
     if (open) {
@@ -293,14 +328,15 @@ function wireRemarksHistory(card, ticker) {
     }
     setRemarksHistoryBtn(btn, true);
     list.style.display = '';
-    if (list.dataset.loaded) return;
+    if (res) return;
     list.innerHTML = '<div style="font-size:var(--text-xs);color:var(--c-text-2);">Memuat riwayat…</div>';
     try {
-      const res = await fetchRemarksHistory(ticker);
-      list.innerHTML = renderRemarksHistory(res);
-      list.dataset.loaded = '1';
+      res = await fetchRemarksHistory(ticker);
+      start = 0;
+      paint();
     } catch (e) {
       console.error('[Stocks] remarks history error:', e);
+      res = null;
       list.innerHTML = '';
       list.style.display = 'none';
       btn.remove();
