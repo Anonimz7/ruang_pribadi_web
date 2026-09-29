@@ -204,8 +204,8 @@ function StockInfoCard(stock) {
       <span style="width:120px;flex-shrink:0;"></span>
       <span style="min-width:0;">
         <button type="button" class="stocks-page__remarks-history-btn" aria-expanded="false"
-          style="display:inline-flex;align-items:center;gap:var(--s-1);font-size:var(--text-xs);color:var(--c-text-2);background:none;border:1px solid var(--c-border);border-radius:var(--radius);padding:2px var(--s-2);cursor:pointer;">
-          ${icons['chevron-right']}<span>Riwayat Remarks</span>
+          aria-label="Tampilkan riwayat perubahan remarks">
+          <span>Riwayat Remarks</span>${icons['chevron-right']}
         </button>
         <div class="stocks-page__remarks-history-list" style="display:none;margin-top:var(--s-2);"></div>
       </span>
@@ -274,8 +274,10 @@ function renderRemarksHistory(res) {
 }
 
 function setRemarksHistoryBtn(btn, open) {
-  btn.innerHTML = `${open ? icons['chevron-down'] : icons['chevron-right']}<span>Riwayat Remarks</span>`;
+  btn.innerHTML = `<span>Riwayat Remarks</span>${open ? icons['chevron-down'] : icons['chevron-right']}`;
   btn.setAttribute('aria-expanded', String(open));
+  btn.setAttribute('aria-label',
+    (open ? 'Sembunyikan' : 'Tampilkan') + ' riwayat perubahan remarks');
 }
 
 function wireRemarksHistory(card, ticker) {
