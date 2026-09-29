@@ -65,6 +65,7 @@ class StockAnalysis {
     this.subSector = data.sub_sector || null;
     this.remarks = data.remarks || null;
     this.remarksText = data.remarks_text || null;
+    this.remarksSegments = data.remarks_segments || null;
     this.labelDelisted = data.label_delisted ?? null;
     this.stockStatus = data.stock_status || null;
     this.statusReason = data.status_reason || null;
@@ -199,7 +200,7 @@ function StockInfoCard(stock) {
   if (stock.primarySector) html += `<div style="display:flex;gap:var(--s-2);margin-bottom:var(--s-1);"><span style="width:120px;flex-shrink:0;font-size:var(--text-sm);font-weight:600;color:var(--c-text-2);">Sub Sektor Primer</span><span style="font-size:var(--text-sm);color:var(--c-text);">${stock.primarySector}</span></div>`;
   if (stock.subSector) html += `<div style="display:flex;gap:var(--s-2);margin-bottom:var(--s-1);"><span style="width:120px;flex-shrink:0;font-size:var(--text-sm);font-weight:600;color:var(--c-text-2);">Sub Sektor</span><span style="font-size:var(--text-sm);color:var(--c-text);">${stock.subSector}</span></div>`;
   if (hasRemarks) {
-    html += `<div style="display:flex;gap:var(--s-2);margin-bottom:var(--s-1);"><span style="width:120px;flex-shrink:0;font-size:var(--text-sm);font-weight:600;color:var(--c-text-2);">Remarks</span><span style="font-size:var(--text-sm);color:var(--c-text);" title="Kode IDX: ${stock.remarks || ''}">${stock.remarksText || stock.remarks}</span></div>`;
+    html += `<div style="display:flex;gap:var(--s-2);margin-bottom:var(--s-1);"><span style="width:120px;flex-shrink:0;font-size:var(--text-sm);font-weight:600;color:var(--c-text-2);">Remarks</span><span style="font-size:var(--text-sm);color:var(--c-text);" title="Kode IDX: ${escText(stock.remarks || '')}">${remarksSegmentsHtml(stock.remarksSegments, stock.remarksText || stock.remarks)}</span></div>`;
     html += `<div style="display:flex;gap:var(--s-2);margin-bottom:var(--s-1);">
       <span style="width:120px;flex-shrink:0;"></span>
       <span style="min-width:0;">
@@ -248,6 +249,25 @@ function escText(value) {
     .replace(/'/g, '&#39;');
 }
 
+/* Warna potongan remarks: danger = sanksi/pelanggaran berat (merah),
+   warning = pelanggaran administratif (oranye), info = teks biasa. */
+const REMARKS_TONE_STYLE = {
+  danger: 'color:var(--c-danger);font-weight:600;',
+  warning: 'color:var(--c-warn);',
+};
+
+function remarksSegmentsHtml(segments, fallback) {
+  const list = (Array.isArray(segments) ? segments : []).filter((s) => s && s.text);
+  if (!list.length) return escText(fallback || '');
+  return list.map((s, i) => {
+    const style = REMARKS_TONE_STYLE[s.tone];
+    const body = style
+      ? `<span style="${style}">${escText(s.text)}</span>`
+      : escText(s.text);
+    return i ? ` · ${body}` : body;
+  }).join('');
+}
+
 async function fetchRemarksHistory(ticker) {
   if (state.remarksHistory[ticker]) return state.remarksHistory[ticker];
   const res = await Api.get(`/idx/stocks/${ticker}/remarks-history`, { limit: 500 });
@@ -267,7 +287,7 @@ function renderRemarksHistory(res, start = 0) {
   let html = all.slice(start, end).map((it) => `
     <div style="display:flex;gap:var(--s-2);font-size:var(--text-xs);margin-bottom:2px;align-items:baseline;">
       <span style="flex-shrink:0;width:76px;color:var(--c-text-2);">${escText(it.date)}</span>
-      <span style="color:var(--c-text);min-width:0;" title="Kode IDX: ${escText(it.remarks || '')}">${escText(it.text || it.remarks || '')}</span>
+      <span style="color:var(--c-text);min-width:0;" title="Kode IDX: ${escText(it.remarks || '')}">${remarksSegmentsHtml(it.segments, it.text || it.remarks || '')}</span>
     </div>`).join('');
 
   if (all.length > REMARKS_HISTORY_PAGE) {
