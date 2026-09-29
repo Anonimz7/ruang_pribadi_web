@@ -73,6 +73,22 @@ export class StockAnalysis extends StockProfile {
   }
 }
 
+export class RemarksHistoryItem {
+  constructor(data = {}) {
+    this.date = data.date || '';
+    this.remarks = data.remarks || null;
+    this.text = data.text || null;
+  }
+}
+
+export class RemarksHistoryResponse {
+  constructor(data = {}) {
+    this.ticker = data.ticker || '';
+    this.count = (data.count ?? 0) * 1;
+    this.items = (data.items || []).map((i) => new RemarksHistoryItem(i));
+  }
+}
+
 export class StockListResponse {
   constructor(data = {}) {
     this.total = (data.total ?? 0) * 1;

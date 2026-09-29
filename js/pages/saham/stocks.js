@@ -198,7 +198,19 @@ function StockInfoCard(stock) {
   if (stock.sector) html += `<div style="display:flex;gap:var(--s-2);margin-bottom:var(--s-1);"><span style="width:120px;flex-shrink:0;font-size:var(--text-sm);font-weight:600;color:var(--c-text-2);">Sektor</span><span style="font-size:var(--text-sm);color:var(--c-text);">${stock.sector}</span></div>`;
   if (stock.primarySector) html += `<div style="display:flex;gap:var(--s-2);margin-bottom:var(--s-1);"><span style="width:120px;flex-shrink:0;font-size:var(--text-sm);font-weight:600;color:var(--c-text-2);">Sub Sektor Primer</span><span style="font-size:var(--text-sm);color:var(--c-text);">${stock.primarySector}</span></div>`;
   if (stock.subSector) html += `<div style="display:flex;gap:var(--s-2);margin-bottom:var(--s-1);"><span style="width:120px;flex-shrink:0;font-size:var(--text-sm);font-weight:600;color:var(--c-text-2);">Sub Sektor</span><span style="font-size:var(--text-sm);color:var(--c-text);">${stock.subSector}</span></div>`;
-  if (hasRemarks) html += `<div style="display:flex;gap:var(--s-2);margin-bottom:var(--s-1);"><span style="width:120px;flex-shrink:0;font-size:var(--text-sm);font-weight:600;color:var(--c-text-2);">Remarks</span><span style="font-size:var(--text-sm);color:var(--c-text);" title="Kode IDX: ${stock.remarks || ''}">${stock.remarksText || stock.remarks}</span></div>`;
+  if (hasRemarks) {
+    html += `<div style="display:flex;gap:var(--s-2);margin-bottom:var(--s-1);"><span style="width:120px;flex-shrink:0;font-size:var(--text-sm);font-weight:600;color:var(--c-text-2);">Remarks</span><span style="font-size:var(--text-sm);color:var(--c-text);" title="Kode IDX: ${stock.remarks || ''}">${stock.remarksText || stock.remarks}</span></div>`;
+    html += `<div style="display:flex;gap:var(--s-2);margin-bottom:var(--s-1);">
+      <span style="width:120px;flex-shrink:0;"></span>
+      <span style="min-width:0;">
+        <button type="button" class="stocks-page__remarks-history-btn" aria-expanded="false"
+          style="display:inline-flex;align-items:center;gap:var(--s-1);font-size:var(--text-xs);color:var(--c-text-2);background:none;border:1px solid var(--c-border);border-radius:var(--radius);padding:2px var(--s-2);cursor:pointer;">
+          ${icons['chevron-right']}<span>Riwayat Remarks</span>
+        </button>
+        <div class="stocks-page__remarks-history-list" style="display:none;margin-top:var(--s-2);"></div>
+      </span>
+    </div>`;
+  }
   if (stock.sector || stock.subSector) {
     html += `<div style="display:flex;gap:var(--s-1);flex-wrap:wrap;margin-top:var(--s-2);">`;
     if (stock.sector) { const b = StockSectorBadge(stock.sector); if (b) html += b.outerHTML; }
@@ -215,12 +227,84 @@ function StockInfoCard(stock) {
     html += `<a href="https://www.google.com/search?udm=50&q=${query}" target="_blank" rel="noopener" class="btn btn--secondary stocks-page__learn-btn" style="margin-top:var(--s-3);font-size:var(--text-sm);">Pelajari ${stock.companyName}</a>`;
   }
   card.innerHTML = html;
+  if (hasRemarks) wireRemarksHistory(card, stock.ticker);
   const headSpan = card.querySelector('span:last-child');
   if (headSpan) {
     const badge = DelistedBadge({ labelDelisted: stock.labelDelisted, stockStatus: stock.stockStatus, statusReason: stock.statusReason });
     if (badge) headSpan.appendChild(badge);
   }
   return card;
+}
+
+/* ─── Riwayat Remarks (lazy, per ticker) ─── */
+const REMARKS_HISTORY_SHOWN = 20; // batas baris yang ditampilkan
+
+function escText(value) {
+  return String(value ?? '')
+    .replace(/&/g, '&amp;')
+    .replace(/</g, '&lt;')
+    .replace(/>/g, '&gt;')
+    .replace(/"/g, '&quot;')
+    .replace(/'/g, '&#39;');
+}
+
+async function fetchRemarksHistory(ticker) {
+  if (state.remarksHistory[ticker]) return state.remarksHistory[ticker];
+  const res = await Api.get(`/idx/stocks/${ticker}/remarks-history`, { limit: 500 });
+  state.remarksHistory[ticker] = (res && Array.isArray(res.items))
+    ? res
+    : { ticker, count: 0, items: [] };
+  return state.remarksHistory[ticker];
+}
+
+function renderRemarksHistory(res) {
+  const items = (res.items || []).slice(0, REMARKS_HISTORY_SHOWN);
+  if (!items.length) {
+    return '<div style="font-size:var(--text-xs);color:var(--c-text-2);">Belum ada riwayat perubahan remarks.</div>';
+  }
+  let html = items.map((it) => `
+    <div style="display:flex;gap:var(--s-2);font-size:var(--text-xs);margin-bottom:2px;align-items:baseline;">
+      <span style="flex-shrink:0;width:76px;color:var(--c-text-2);">${escText(it.date)}</span>
+      <span style="color:var(--c-text);min-width:0;" title="Kode IDX: ${escText(it.remarks || '')}">${escText(it.text || it.remarks || '')}</span>
+    </div>`).join('');
+  if ((res.count || 0) > items.length) {
+    html += `<div style="font-size:var(--text-xs);color:var(--c-text-2);margin-top:var(--s-1);">…menampilkan ${items.length} dari ${res.count} perubahan</div>`;
+  }
+  return html;
+}
+
+function setRemarksHistoryBtn(btn, open) {
+  btn.innerHTML = `${open ? icons['chevron-down'] : icons['chevron-right']}<span>Riwayat Remarks</span>`;
+  btn.setAttribute('aria-expanded', String(open));
+}
+
+function wireRemarksHistory(card, ticker) {
+  const btn = card.querySelector('.stocks-page__remarks-history-btn');
+  const list = card.querySelector('.stocks-page__remarks-history-list');
+  if (!btn || !list) return;
+  btn.addEventListener('click', async () => {
+    const open = btn.getAttribute('aria-expanded') === 'true';
+    if (open) {
+      setRemarksHistoryBtn(btn, false);
+      list.style.display = 'none';
+      return;
+    }
+    setRemarksHistoryBtn(btn, true);
+    list.style.display = '';
+    if (list.dataset.loaded) return;
+    list.innerHTML = '<div style="font-size:var(--text-xs);color:var(--c-text-2);">Memuat riwayat…</div>';
+    try {
+      const res = await fetchRemarksHistory(ticker);
+      list.innerHTML = renderRemarksHistory(res);
+      list.dataset.loaded = '1';
+    } catch (e) {
+      console.error('[Stocks] remarks history error:', e);
+      list.innerHTML = '';
+      list.style.display = 'none';
+      btn.remove();
+      toast('Gagal memuat riwayat remarks', 'danger');
+    }
+  });
 }
 
 /* ─── Constants ─── */
@@ -440,6 +524,7 @@ const state = {
   selectedTicker: '', days: 30, analysis: null, loading: false,
   compareMode: false, compareTickers: [], compareData: {}, compareLoading: false,
   charts: [],
+  remarksHistory: {}, // cache riwayat remarks per ticker (diambil sekali)
 };
 
 /* ─── API ─── */
