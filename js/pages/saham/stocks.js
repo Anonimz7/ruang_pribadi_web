@@ -200,7 +200,7 @@ function StockInfoCard(stock) {
   if (stock.primarySector) html += `<div style="display:flex;gap:var(--s-2);margin-bottom:var(--s-1);"><span style="width:120px;flex-shrink:0;font-size:var(--text-sm);font-weight:600;color:var(--c-text-2);">Sub Sektor Primer</span><span style="font-size:var(--text-sm);color:var(--c-text);">${stock.primarySector}</span></div>`;
   if (stock.subSector) html += `<div style="display:flex;gap:var(--s-2);margin-bottom:var(--s-1);"><span style="width:120px;flex-shrink:0;font-size:var(--text-sm);font-weight:600;color:var(--c-text-2);">Sub Sektor</span><span style="font-size:var(--text-sm);color:var(--c-text);">${stock.subSector}</span></div>`;
   if (hasRemarks) {
-    html += `<div style="display:flex;gap:var(--s-2);margin-bottom:var(--s-1);"><span style="width:120px;flex-shrink:0;font-size:var(--text-sm);font-weight:600;color:var(--c-text-2);">Remarks</span><span style="font-size:var(--text-sm);color:var(--c-text);" title="Kode IDX: ${escText(stock.remarks || '')}">${remarksSegmentsHtml(stock.remarksSegments, stock.remarksText || stock.remarks)}</span></div>`;
+    html += `<div style="display:flex;gap:var(--s-2);margin-bottom:var(--s-1);"><span style="width:120px;flex-shrink:0;font-size:var(--text-sm);font-weight:600;color:var(--c-text-2);">Remarks</span><span style="font-size:var(--text-sm);color:var(--c-text);">${remarksSegmentsHtml(stock.remarksSegments, stock.remarksText || stock.remarks)}</span></div>`;
     html += `<div style="display:flex;gap:var(--s-2);margin-bottom:var(--s-1);">
       <span style="width:120px;flex-shrink:0;"></span>
       <span style="min-width:0;">
@@ -287,7 +287,7 @@ function renderRemarksHistory(res, start = 0) {
   let html = all.slice(start, end).map((it) => `
     <div style="display:flex;gap:var(--s-2);font-size:var(--text-xs);margin-bottom:2px;align-items:baseline;">
       <span style="flex-shrink:0;width:76px;color:var(--c-text-2);">${escText(it.date)}</span>
-      <span style="color:var(--c-text);min-width:0;" title="Kode IDX: ${escText(it.remarks || '')}">${remarksSegmentsHtml(it.segments, it.text || it.remarks || '')}</span>
+      <span style="color:var(--c-text);min-width:0;">${remarksSegmentsHtml(it.segments, it.text || it.remarks || '')}</span>
     </div>`).join('');
 
   if (all.length > REMARKS_HISTORY_PAGE) {
