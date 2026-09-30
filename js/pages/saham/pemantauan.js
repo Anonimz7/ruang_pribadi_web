@@ -54,6 +54,7 @@ export function render() {
     counts: { danger: 0, warning: 0, flagged: 0, clean: 0 },
     dataDate: null,
     latestFlag: null,
+    groups: {}, // jumlah saham per tanggal utk seluruh hasil filter (bukan per halaman)
     expanded: null, // ticker yang sedang dibuka
     error: '',
   };
@@ -232,13 +233,17 @@ export function render() {
     }
 
     // Pemisah tanggal hanya berguna saat urutan "terbaru → terlama".
-    const groups = new Map();
+    // `state.groups` berisi jumlah per tanggal atas SELURUH hasil filter, jadi
+    // grup yang melewati batas halaman tetap menampilkan angka sebenarnya;
+    // Map cadangan (hitungan dalam halaman ini) dipakai bila server lama.
+    const pageGroups = new Map();
     if (state.sort === 'recent') {
       state.items.forEach((s) => {
         const key = s.flag_since || '';
-        groups.set(key, (groups.get(key) || 0) + 1);
+        pageGroups.set(key, (pageGroups.get(key) || 0) + 1);
       });
     }
+    const groupCount = (key) => state.groups[key] ?? pageGroups.get(key) ?? 0;
 
     // URL lengkap (path + query sekarang) supaya tautan "tab baru" memuat ulang
     // app di rute yang sama — konsisten dengan Stock List.
@@ -251,7 +256,7 @@ export function render() {
       if (group && group !== lastGroup) {
         lastGroup = group;
         rows.push(`<tr class="pemantauan-page__group">
-          <td colspan="4">${esc(fmtDate(group))} · ${groups.get(group)} saham
+          <td colspan="4">${esc(fmtDate(group))} · ${groupCount(group)} saham
             <span class="pemantauan-page__tone">(${esc(relLabel(group))})</span></td>
         </tr>`);
       }
@@ -365,6 +370,7 @@ export function render() {
       state.counts = data.counts || state.counts;
       state.dataDate = data.data_date || null;
       state.latestFlag = data.latest_flag || null;
+      state.groups = data.groups || {};
       state.error = '';
     } catch (e) {
       state.items = [];
