@@ -240,7 +240,7 @@ export function render() {
             <tr class="stock-list-page__row${delisted ? ' stock-list-page__row--delisted' : ''}" data-ticker="${s.ticker}"${delisted ? '' : ' data-open="1"'}>
               <td>${delisted
                 ? `<span class="stock-list-page__ticker stock-list-page__ticker--delisted">${s.ticker}</span>`
-                : `<a href="#/saham/stocks" class="stock-list-page__ticker" onclick="localStorage.setItem('stocks_initial_ticker','${s.ticker}')">${s.ticker}</a>`}
+                : `<a href="${analysisUrl}" target="_blank" rel="noopener" class="stock-list-page__ticker" title="Analisis ${s.ticker} (buka di tab baru)" onclick="localStorage.setItem('stocks_initial_ticker','${s.ticker}')">${s.ticker}</a>`}
               </td>
               <td style="font-weight:500;">${s.company_name}</td>
               <td>${sectorBadge ? sectorBadge.outerHTML : '<span class="badge badge--neutral">-</span>'}</td>
@@ -257,16 +257,17 @@ export function render() {
     `;
     tableWrap.appendChild(table);
 
-    // Klik baris → buka analisis saham (kecuali sudah delisted).
-    // Ticker juga link langsung (pola sama dengan halaman Market).
+    // Klik baris → buka analisis saham di TAB BARU (kecuali sudah delisted).
+    // Tautan di dalam baris (ticker, tombol view) sudah punya perilakunya sendiri,
+    // jadi tidak boleh ikut kena handler ini.
     table.addEventListener('click', (e) => {
-      // Sel aksi punya perilakunya sendiri (buka tab baru) — jangan ikut
-      // memindah tab ini ke halaman analisis.
-      if (e.target.closest('.table__actions')) return;
+      if (e.target.closest('a, .table__actions')) return;
       const tr = e.target.closest('tr[data-open]');
       if (!tr) return;
       localStorage.setItem('stocks_initial_ticker', tr.dataset.ticker);
-      location.hash = '#/saham/stocks';
+      const win = window.open(analysisUrl, '_blank');
+      if (win) win.opener = null; // cegah tab baru mengakses window induk
+      else location.hash = '#/saham/stocks'; // fallback bila popup diblokir
     });
   }
 
