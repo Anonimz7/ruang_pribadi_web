@@ -217,6 +217,9 @@ export function render() {
     }
 
     const table = createEl('table', { class: 'table' });
+    // URL lengkap (path + query sekarang) supaya tautan "tab baru" memuat ulang app
+    // di rute yang sama — href hanya "#/..." juga bisa, tapi ini lebih eksplisit.
+    const analysisUrl = `${location.pathname}${location.search}#/saham/stocks`;
     table.innerHTML = `
       <thead><tr>
         <th>Ticker</th><th>Name</th><th>Sector</th><th>Sub Sector</th><th>Status</th><th></th>
@@ -232,7 +235,7 @@ export function render() {
             nowrap: true
           });
           const sectorBadge = StockSectorBadge(s.sector, true);
-          const eyeTitle = delisted ? 'Saham telah delisted' : `Analisis ${s.ticker}`;
+          const eyeTitle = delisted ? 'Saham telah delisted' : `Analisis ${s.ticker} (buka di tab baru)`;
           return `
             <tr class="stock-list-page__row${delisted ? ' stock-list-page__row--delisted' : ''}" data-ticker="${s.ticker}"${delisted ? '' : ' data-open="1"'}>
               <td>${delisted
@@ -244,7 +247,9 @@ export function render() {
               <td style="font-size:var(--text-sm);color:var(--c-text-3);">${s.sub_sector || '-'}</td>
               <td style="white-space:nowrap;">${statusBadge.outerHTML}</td>
               <td><div class="table__actions">
-                <button class="btn btn--ghost btn--sm" ${delisted ? 'disabled' : ''} title="${eyeTitle}" aria-label="${eyeTitle}">${icons['eye']}</button>
+                ${delisted
+                  ? `<button class="btn btn--ghost btn--sm" disabled title="${eyeTitle}" aria-label="${eyeTitle}">${icons['eye']}</button>`
+                  : `<a class="btn btn--ghost btn--sm" href="${analysisUrl}" target="_blank" rel="noopener" title="${eyeTitle}" aria-label="${eyeTitle}" onclick="localStorage.setItem('stocks_initial_ticker','${s.ticker}')">${icons['eye']}</a>`}
               </div></td>
             </tr>`;
         }).join('')}
@@ -255,6 +260,9 @@ export function render() {
     // Klik baris → buka analisis saham (kecuali sudah delisted).
     // Ticker juga link langsung (pola sama dengan halaman Market).
     table.addEventListener('click', (e) => {
+      // Sel aksi punya perilakunya sendiri (buka tab baru) — jangan ikut
+      // memindah tab ini ke halaman analisis.
+      if (e.target.closest('.table__actions')) return;
       const tr = e.target.closest('tr[data-open]');
       if (!tr) return;
       localStorage.setItem('stocks_initial_ticker', tr.dataset.ticker);
