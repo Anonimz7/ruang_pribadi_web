@@ -22,7 +22,6 @@ export class StockProfile extends StockListItem {
   constructor(data = {}) {
     super(data);
     this.coreBusiness = data.core_business || null;
-    this.remarks = data.remarks || null;
     this.remarksText = data.remarks_text || null;
     this.remarksSegments = data.remarks_segments || null;
   }
@@ -77,7 +76,6 @@ export class StockAnalysis extends StockProfile {
 export class RemarksHistoryItem {
   constructor(data = {}) {
     this.date = data.date || '';
-    this.remarks = data.remarks || null;
     this.text = data.text || null;
     this.segments = Array.isArray(data.segments) ? data.segments : [];
   }
