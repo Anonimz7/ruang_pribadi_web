@@ -50,7 +50,7 @@
 .drawer__avatar {
   width: 40px; height: 40px;
   border-radius: 50%;
-  background: var(--c-primary);
+  background: var(--c-primary-fill);
   color: #fff;
   display: flex; align-items: center; justify-content: center;
   font-weight: 600; font-size: var(--text-md);

@@ -21,7 +21,7 @@ code { padding: 0.125rem 0.375rem; }
 pre  { padding: var(--s-4); overflow-x: auto; }
 
 ::selection {
-  background: var(--c-primary);
+  background: var(--c-primary-fill);
   color: #fff;
 }
 

@@ -27,9 +27,9 @@ const CSS = `
   .bk-filename { display: block; margin-bottom: var(--s-3); font-style: italic; color: var(--c-text-2); font-size: .9em; }
   .bk-btn { padding: 14px 24px; margin: 8px 8px 8px 0; border-radius: 10px; border: none; color: #fff; font-weight: 700; cursor: pointer; font-size: 1em; transition: all .3s; box-shadow: 0 4px 10px rgba(0,0,0,.3); }
   .bk-btn:hover { transform: translateY(-2px); }
-  .bk-btn-green { background: var(--c-success, #4caf50); }
-  .bk-btn-blue { background: var(--c-primary); }
-  .bk-btn-orange { background: var(--c-accent, #ff5722); }
+  .bk-btn-green { background: var(--c-success-fill, #4caf50); }
+  .bk-btn-blue { background: var(--c-primary-fill, var(--c-primary)); }
+  .bk-btn-orange { background: var(--c-accent-fill, #ff5722); }
   .bk-btn-purple { background: #9c27b0; }
   .bk-btn-red { background: #cc0000; }
   .bk-table-wrap { margin-top: var(--s-4); text-align: left; padding: var(--s-4); background: var(--c-surface); border-radius: var(--radius); border: 1px solid var(--c-border); }

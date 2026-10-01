@@ -5,7 +5,7 @@ import { createEl } from '../../../utils/dom.js';
 
 const CSS = `
   .md-page { max-width: 1200px; margin: 0 auto; padding: var(--s-2); }
-  .md-hero { background: var(--c-primary); color: #fff; padding: var(--s-5); border-radius: var(--radius); margin-bottom: var(--s-5); position: relative; }
+  .md-hero { background: var(--c-primary-fill); color: #fff; padding: var(--s-5); border-radius: var(--radius); margin-bottom: var(--s-5); position: relative; }
   .md-hero h1 { font-size: var(--text-lg); margin: 0 0 var(--s-2); }
   .md-hero p { margin: 0; opacity: .9; }
   .md-controls { background: var(--c-surface); padding: var(--s-4); border-radius: var(--radius); margin-bottom: var(--s-5); display: grid; grid-template-columns: repeat(auto-fill, minmax(180px,1fr)); gap: var(--s-4); border: 1px solid var(--c-border); }
@@ -13,19 +13,19 @@ const CSS = `
   .md-field label { margin-bottom: var(--s-1); font-weight: 600; color: var(--c-primary); font-size: var(--text-sm); }
   .md-field select, .md-field input { padding: 8px 10px; border: 2px solid var(--c-border); border-radius: var(--radius); background: var(--c-surface-2); color: var(--c-text); font-size: var(--text-sm); }
   .md-field select:focus, .md-field input:focus { border-color: var(--c-primary); outline: none; }
-  .md-gen-btn { background: var(--c-primary); color: #fff; border: none; border-radius: var(--radius); padding: 10px 14px; font-weight: 600; text-transform: uppercase; letter-spacing: 1px; cursor: pointer; align-self: end; }
+  .md-gen-btn { background: var(--c-primary-fill); color: #fff; border: none; border-radius: var(--radius); padding: 10px 14px; font-weight: 600; text-transform: uppercase; letter-spacing: 1px; cursor: pointer; align-self: end; }
   .md-gen-btn:hover { filter: brightness(1.1); transform: translateY(-1px); }
   .md-tables { display: grid; grid-template-columns: repeat(auto-fill, minmax(320px,1fr)); gap: var(--s-5); }
   .md-table { background: var(--c-surface); border: 1px solid var(--c-border); border-radius: var(--radius); padding: var(--s-4); display: flex; flex-direction: column; gap: var(--s-3); }
   .md-table-title { text-align: center; margin: 0; padding-bottom: var(--s-2); border-bottom: 2px solid var(--c-primary); color: var(--c-primary); font-size: var(--text-base); }
   .md-table table { width: 100%; border-collapse: collapse; }
   .md-table th, .md-table td { padding: 8px; text-align: center; border: 1px solid var(--c-border); }
-  .md-table th { background: var(--c-primary); color: #fff; font-weight: 600; }
+  .md-table th { background: var(--c-primary-fill); color: #fff; font-weight: 600; }
   .md-table tr:nth-child(even) { background: var(--c-surface-2); }
   .md-answer-cell { background: var(--c-accent-soft, transparent); }
   .md-user-answer { width: 60px; padding: 6px; border: 1px solid var(--c-border); border-radius: 4px; text-align: center; background: var(--c-surface-2); color: var(--c-text); font-size: .95rem; }
   .md-validate-wrap { display: flex; justify-content: center; }
-  .md-validate-btn { padding: 10px 20px; background: var(--c-accent, #ff6b6b); border: none; color: #fff; border-radius: var(--radius); cursor: pointer; font-weight: 600; }
+  .md-validate-btn { padding: 10px 20px; background: var(--c-accent-fill, #ff6b6b); border: none; color: #fff; border-radius: var(--radius); cursor: pointer; font-weight: 600; }
   .md-validate-btn:hover { filter: brightness(1.05); }
   .md-overlay { position: fixed; inset: 0; background: rgba(0,0,0,.5); display: none; align-items: center; justify-content: center; z-index: 1000; }
   .md-overlay.open { display: flex; }
@@ -38,7 +38,7 @@ const CSS = `
   .md-mistake { padding: var(--s-2) 0; border-bottom: 1px solid var(--c-border); }
   .md-total { margin-top: var(--s-4); padding-top: var(--s-3); border-top: 2px solid var(--c-primary); font-weight: 600; text-align: center; }
   .md-actions { display: flex; justify-content: flex-end; margin-top: var(--s-4); }
-  .md-close-btn { background: var(--c-primary); color: #fff; border: none; border-radius: var(--radius); padding: 10px 20px; cursor: pointer; font-weight: 600; }
+  .md-close-btn { background: var(--c-primary-fill); color: #fff; border: none; border-radius: var(--radius); padding: 10px 20px; cursor: pointer; font-weight: 600; }
   @media (max-width: 768px) { .md-tables { grid-template-columns: 1fr; } .md-controls { grid-template-columns: 1fr; } }
 `;
 

@@ -27,7 +27,7 @@ const CSS = `
   .cts-box:hover { transform: scale(1.05); box-shadow: 0 5px 15px rgba(0,0,0,.2); z-index: 10; }
   .cts-box[draggable="true"] { cursor: grab; }
   .cts-box.dragging { opacity: .4; transform: scale(.95); cursor: grabbing; }
-  .cts-notif { position: fixed; bottom: 20px; left: 50%; transform: translateX(-50%); background: var(--c-success, #2ecc71); color: #fff; padding: 10px 20px; border-radius: 5px; box-shadow: var(--shadow); opacity: 0; visibility: hidden; transition: opacity .3s, visibility .3s; z-index: 1000; }
+  .cts-notif { position: fixed; bottom: 20px; left: 50%; transform: translateX(-50%); background: var(--c-success-fill, #2ecc71); color: #fff; padding: 10px 20px; border-radius: 5px; box-shadow: var(--shadow); opacity: 0; visibility: hidden; transition: opacity .3s, visibility .3s; z-index: 1000; }
   .cts-notif.show { opacity: 1; visibility: visible; }
   @media (max-width: 900px) {
     .cts-controls { grid-template-columns: 1fr 1fr; } .cts-wide { grid-column: 1 / -1; }

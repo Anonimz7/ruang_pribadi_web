@@ -105,7 +105,7 @@ export async function initApp() {
         <div>
           <h2 style="color:var(--c-danger);margin-bottom:var(--s-3);">Initialization Error</h2>
           <p style="color:var(--c-text-2);margin-bottom:var(--s-2);">${err.message || err}</p>
-          <button onclick="window.location.reload()" style="padding:var(--s-2) var(--s-4);background:var(--c-primary);color:white;border:none;border-radius:var(--s-2);cursor:pointer;">
+          <button onclick="window.location.reload()" style="padding:var(--s-2) var(--s-4);background:var(--c-primary-fill);color:white;border:none;border-radius:var(--s-2);cursor:pointer;">
             Reload
           </button>
         </div>

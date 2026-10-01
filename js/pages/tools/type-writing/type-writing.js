@@ -22,7 +22,7 @@ const CSS = `
   .tw-nav { display: flex; flex-direction: column; gap: var(--s-4); }
   .tw-btn {
     display: flex; align-items: center; justify-content: center; gap: 12px;
-    background: var(--c-primary); color: #fff; text-decoration: none; padding: 15px 25px;
+    background: var(--c-primary-fill); color: #fff; text-decoration: none; padding: 15px 25px;
     border-radius: var(--radius); font-size: 1.05em; cursor: pointer; border: none;
     transition: background-color .3s, transform .2s, box-shadow .2s; box-shadow: var(--shadow);
   }

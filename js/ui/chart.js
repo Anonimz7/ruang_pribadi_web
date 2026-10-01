@@ -20,7 +20,7 @@ function getThemeColors() {
   const isDark = document.documentElement.getAttribute('data-theme') === 'dark';
   return {
     isDark,
-    text: isDark ? '#a3a3a3' : '#616161',
+    text: isDark ? '#b0b0b0' : '#4d4d4d',
     grid: isDark ? '#2a2a2a' : '#e0e0e0',
     border: isDark ? '#404040' : '#bdbdbd',
   };

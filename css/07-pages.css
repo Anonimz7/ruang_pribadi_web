@@ -80,9 +80,9 @@
 }
 
 .math-keypad-btn--primary {
-  background: var(--c-primary);
+  background: var(--c-primary-fill);
   color: #fff;
-  border-color: var(--c-primary);
+  border-color: var(--c-primary-fill);
 }
 
 .math-keypad-btn--primary:hover {
@@ -96,7 +96,7 @@
 }
 
 .math-keypad-btn--warn:hover {
-  background: var(--c-warn);
+  background: var(--c-warn-fill);
   color: #fff;
 }
 
@@ -300,8 +300,8 @@
   flex-shrink: 0;
 }
 .pw-option__check--checked {
-  background: var(--c-primary);
-  border-color: var(--c-primary);
+  background: var(--c-primary-fill);
+  border-color: var(--c-primary-fill);
   color: #fff;
 }
 .pw-option__check svg {
@@ -632,7 +632,7 @@
   padding: var(--s-3);
   border: none;
   border-radius: var(--radius-sm);
-  background: var(--c-primary);
+  background: var(--c-primary-fill);
   color: white;
   font-size: 15px;
   font-weight: 600;
@@ -705,7 +705,7 @@
   width: 26px;
   height: 26px;
   border-radius: 50%;
-  background: var(--c-primary);
+  background: var(--c-primary-fill);
   color: #fff;
   display: flex;
   align-items: center;
@@ -1345,8 +1345,8 @@
 }
 .reports-page__chip--active,
 .reports-page__chip--active:hover {
-  background: var(--c-accent);
-  border-color: var(--c-accent);
+  background: var(--c-accent-fill);
+  border-color: var(--c-accent-fill);
   color: #fff;
 }
 .reports-page__last-status {
@@ -1620,8 +1620,8 @@
 }
 .admin-stock-status__chip--active,
 .admin-stock-status__chip--active:hover {
-  background: var(--c-primary);
-  border-color: var(--c-primary);
+  background: var(--c-primary-fill);
+  border-color: var(--c-primary-fill);
   color: #fff;
 }
 .admin-stock-status__company {
@@ -1741,8 +1741,8 @@ a.admin-stock-status__ticker:hover {
 }
 .admin-users__chip--active,
 .admin-users__chip--active:hover {
-  background: var(--c-primary);
-  border-color: var(--c-primary);
+  background: var(--c-primary-fill);
+  border-color: var(--c-primary-fill);
   color: #fff;
 }
 .admin-users__hint {
@@ -1871,8 +1871,8 @@ a.admin-stock-status__ticker:hover {
 .admin-dashboard__logtab:hover { border-color: var(--c-primary); color: var(--c-primary); }
 .admin-dashboard__logtab--active,
 .admin-dashboard__logtab--active:hover {
-  background: var(--c-primary);
-  border-color: var(--c-primary);
+  background: var(--c-primary-fill);
+  border-color: var(--c-primary-fill);
   color: #fff;
 }
 .admin-dashboard__logheader {
@@ -2242,8 +2242,8 @@ button.admin-sitemaps__lang:hover { filter: brightness(0.92); }
   color: #fff;
   flex-shrink: 0;
 }
-.profile-hero__avatar--admin { background: var(--c-accent); }
-.profile-hero__avatar--guest { background: var(--c-warn); }
+.profile-hero__avatar--admin { background: var(--c-accent-fill); }
+.profile-hero__avatar--guest { background: var(--c-warn-fill); }
 .profile-hero__info {
   display: flex;
   flex-direction: column;
@@ -2426,7 +2426,7 @@ button.admin-sitemaps__lang:hover { filter: brightness(0.92); }
   align-items: center;
   justify-content: center;
   border-radius: var(--radius);
-  background: var(--c-primary);
+  background: var(--c-primary-fill);
   color: #fff;
 }
 .tool-card__icon svg {

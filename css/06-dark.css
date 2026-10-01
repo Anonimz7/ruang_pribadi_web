@@ -12,9 +12,40 @@
 [data-theme="dark"] .field__select,
 [data-theme="dark"] .field__textarea {
   background: var(--dark-surface);
-  border-color: var(--dark-border);
+  border-color: var(--c-border-strong);
 }
 [data-theme="dark"] .skeleton {
   background: linear-gradient(90deg, var(--dark-surface-2) 25%, var(--dark-surface-3) 50%, var(--dark-surface-2) 75%);
   background-size: 200% 100%;
+}
+
+/* Fill terang di mode gelap (warn/danger/success/aksen) → label jadi gelap
+   agar kontras teks tetap >= 4.5 dan pasangan fill tetap ΔE >= 20 di CVD.
+   Primer tetap fill biru pekat + teks putih. */
+[data-theme="dark"] .btn--warn,
+[data-theme="dark"] .btn--accent,
+[data-theme="dark"] .btn--danger:hover,
+[data-theme="dark"] .math-keypad-btn--warn:hover,
+[data-theme="dark"] .profile-hero__avatar--guest,
+[data-theme="dark"] .profile-hero__avatar--admin,
+[data-theme="dark"] .reports-page__chip--active,
+[data-theme="dark"] .reports-page__chip--active:hover,
+[data-theme="dark"] .news-topic__badge,
+[data-theme="dark"] .bk-btn-green,
+[data-theme="dark"] .bk-btn-orange,
+[data-theme="dark"] .md-validate-btn,
+[data-theme="dark"] .cts-notif {
+  color: #0a0a0a;
+}
+[data-theme="dark"] .btn--warn:hover {
+  background: #fcd34d;
+}
+
+/* Cincin fokus di latar gelap: --c-primary-bg (#16233a) terlalu redup,
+   ganti dengan glow biru transparan; indikator utama tetap border terang. */
+[data-theme="dark"] .field__input:focus,
+[data-theme="dark"] .field__select:focus,
+[data-theme="dark"] .field__textarea:focus,
+[data-theme="dark"] .search__input:focus {
+  box-shadow: 0 0 0 3px rgba(96, 165, 250, 0.35);
 }

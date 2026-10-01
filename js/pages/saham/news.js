@@ -52,7 +52,7 @@ export function render() {
     .news-topic details[open] > summary { background: var(--c-surface-2); }
     .news-topic details[open] .news-topic__chevron { transform: rotate(180deg); }
     .news-topic__chevron { transition: transform 0.15s ease; flex-shrink: 0; color: var(--c-text-3); }
-    .news-topic__badge { min-width: 30px; height: 30px; border-radius: 8px; background: var(--c-accent); color: #fff; display: inline-flex; align-items: center; justify-content: center; font-size: var(--text-xs); font-weight: 700; flex-shrink: 0; }
+    .news-topic__badge { min-width: 30px; height: 30px; border-radius: 8px; background: var(--c-accent-fill); color: #fff; display: inline-flex; align-items: center; justify-content: center; font-size: var(--text-xs); font-weight: 700; flex-shrink: 0; }
     .news-topic__badge--single { background: var(--c-surface-2); color: var(--c-text-3); }
     .news-topic__title { font-weight: 500; font-size: var(--text-sm); overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
     .news-topic__title a { color: var(--c-text-1); text-decoration: none; }
