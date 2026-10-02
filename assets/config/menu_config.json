@@ -256,7 +256,7 @@
       "num": "2",
       "label": "Tools",
       "desc": "Kalkulator, konversi & produktivitas",
-      "small": "Khusus Premium+",
+      "small": "Tools",
       "route": "/tools",
       "status": "active",
       "minTier": 1

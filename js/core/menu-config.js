@@ -89,7 +89,7 @@ export async function fetchMenuConfig() {
 // Section -> human-readable label + route mapping
 export const MENU_SECTIONS = [
   { value: 'system', label: 'System', path: '/' },
-  { value: 'menu', label: 'Menu', path: '/tools' },
+  { value: 'menu', label: 'TOOLS', path: '/tools' },
   { value: 'quiz', label: 'Quiz', path: '/quiz' },
   { value: 'games', label: 'Games', path: '/games' },
   { value: 'market', label: 'Market', path: '/saham/news' },
