@@ -24,10 +24,10 @@ const routes = {
   '/quiz': () => import('../pages/coming-soon.js'),
   '/games': () => import('../pages/coming-soon.js'),
   // Tools & Quiz — tetap flat (belum di-portal-kan)
-  '/math-speed': () => import('../pages/tools/math-speed-2/math-speed.js'),
+  '/math-speed': () => import('../pages/quiz/math-speed-2/math-speed.js'),
   '/password': () => import('../pages/tools/password-gen/password-gen.js'),
-  '/gacha': () => import('../pages/tools/gacha/gacha.js'),
-  '/rolling': () => import('../pages/tools/rolling/rolling.js'),
+  '/gacha': () => import('../pages/games/gacha/gacha.js'),
+  '/rolling': () => import('../pages/games/rolling/rolling.js'),
   '/diagram': () => import('../pages/tools/diagram/diagram.js'),
   '/bahasa': () => import('../pages/tools/bahasa/bahasa.js'),
   '/video': () => import('../pages/tools/video/video.js'),
@@ -50,14 +50,14 @@ const routes = {
   '/saham/admin/idx-upload': () => import('../pages/saham/admin/idx-upload.js'),
   // Tools — dikonversi dari HTML standalone ke ES module
   '/color-palate': () => import('../pages/tools/Color-Palate/color-palate.js'),
-  '/math-dasar': () => import('../pages/tools/Math-Dasar/math-dasar.js'),
+  '/math-dasar': () => import('../pages/quiz/Math-Dasar/math-dasar.js'),
   '/bacak': () => import('../pages/tools/bacak/bacak.js'),
   '/tint-shade': () => import('../pages/tools/Color-Tint-Shade/color-tint-shade.js'),
   '/color-blind': () => import('../pages/tools/color-blind/color-blind.js'),
   '/jepunese': () => import('../pages/tools/jepunese/jepunese.js'),
   '/bahasa-interaktif': () => import('../pages/tools/Pembelajaran-Bahasa-Interaktif/bahasa-interaktif.js'),
   '/type-writing': () => import('../pages/tools/type-writing/type-writing.js'),
-  '/math-speed-legacy': () => import('../pages/tools/math-speed/math-speed.js'),
+  '/math-speed-legacy': () => import('../pages/quiz/math-speed/math-speed.js'),
 };
 
 /**

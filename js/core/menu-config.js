@@ -156,5 +156,5 @@ export const ROUTE_MAP = {
 
 // Menu key -> URL yang dibuka di tab baru (tool HTML standalone, tanpa konversi SPA)
 export const EXTERNAL_URLS = {
-  deck_of_cards: '/js/pages/tools/deck-of-cards-old/index.html',
+  deck_of_cards: '/js/pages/games/deck-of-cards-old/index.html',
 };

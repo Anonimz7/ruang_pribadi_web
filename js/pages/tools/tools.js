@@ -37,7 +37,7 @@ const TOOLS = [
 // Tool yang dibuka di tab baru (standalone HTML)
 const EXTERNAL_TOOL = {
   key: 'deck_of_cards',
-  url: '/js/pages/tools/deck-of-cards-old/index.html',
+  url: '/js/pages/games/deck-of-cards-old/index.html',
   icon: 'grid',
   label: 'Deck of Cards',
   desc: 'Main kartu remi interaktif',
