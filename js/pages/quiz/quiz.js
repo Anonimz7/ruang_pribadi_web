@@ -1,6 +1,6 @@
-/* pages/tools/tools.js — Hub Tools (paket tier: Premium+).
+/* pages/quiz/quiz.js — Hub Quiz (paket tier: Premium+).
  * Kartu difilter oleh Auth.canAccess(key, minTier) dari menu config —
- * jadi akses tiap tool bisa diatur lewat minTier / grant per-user. */
+ * jadi akses tiap kuis bisa diatur lewat minTier / grant per-user. */
 import { createEl } from '../../utils/dom.js';
 import { navigate } from '../../core/router.js';
 import { icons } from '../../ui/icons.js';
@@ -15,26 +15,18 @@ for (const [key, route] of Object.entries(ROUTE_MAP)) {
   ROUTE_TO_KEY[route] = key;
 }
 
-const TOOLS = [
-  { route: '/password', icon: 'key', label: 'Password Generator', desc: 'Buat password acak yang kuat' },
-  { route: '/diagram', icon: 'git-branch', label: 'Render Diagram', desc: 'Buat & render diagram dari kode' },
-  { route: '/bahasa', icon: 'globe', label: 'Bahasa', desc: 'Terjemahan & belajar bahasa' },
-  { route: '/video', icon: 'download', label: 'Video Downloader', desc: 'Unduh video dari URL' },
-  { route: '/color-palate', icon: 'grid', label: 'Color Palate', desc: 'Kumpulan warna & referensi' },
-  { route: '/bacak', icon: 'grid', label: 'CSV Shuffler', desc: 'Acak & filter data CSV' },
-  { route: '/tint-shade', icon: 'grid', label: 'Tint & Shade', desc: 'Buat gradasi warna' },
-  { route: '/color-blind', icon: 'grid', label: 'Edukasi Warna', desc: 'Simulasi & pencampuran warna' },
-  { route: '/jepunese', icon: 'globe', label: 'Jepunese', desc: 'Belajar karakter Jepang' },
-  { route: '/bahasa-interaktif', icon: 'book-open', label: 'Bahasa Interaktif', desc: 'Latihan bahasa drag & drop' },
-  { route: '/type-writing', icon: 'article', label: 'Type Writing', desc: 'Mode pengetik natural' },
+const QUIZ = [
+  { route: '/math-speed', icon: 'calculate', label: 'Math Speed', desc: 'Latihan hitung cepat dengan rekor' },
+  { route: '/math-speed-legacy', icon: 'calculate', label: 'Math Speed (Old)', desc: 'Versi lama Math Speed' },
+  { route: '/math-dasar', icon: 'calculate', label: 'Math Dasar', desc: 'Tabel matematika interaktif' },
 ];
 
 export function render() {
   const page = createEl('div', { class: 'tools-page' });
 
   const header = createEl('div', { class: 'page-head' });
-  header.appendChild(createEl('h1', {}, ['Tools']));
-  header.appendChild(createEl('p', { class: 'page-head__sub' }, ['Kumpulan tool produktivitas.']));
+  header.appendChild(createEl('h1', {}, ['Quiz']));
+  header.appendChild(createEl('p', { class: 'page-head__sub' }, ['Latihan & kuis matematika.']));
   page.appendChild(header);
 
   const grid = createEl('div', { class: 'tool-grid' });
@@ -47,21 +39,21 @@ export function render() {
   function renderGrid(minTierMap) {
     grid.innerHTML = '';
 
-    const visible = TOOLS.filter((t) =>
+    const visible = QUIZ.filter((t) =>
       Auth.canAccess(keyOf(t.route), minTierMap[keyOf(t.route)] ?? 1));
 
     if (visible.length === 0) {
       if (!store.token) {
         const empty = createEl('div', { class: 'tools-empty' }, []);
         empty.appendChild(createEl('p', { class: 'empty' },
-          ['Login dengan akun Premium untuk mengakses Tools.']));
+          ['Login dengan akun Premium untuk mengakses Quiz.']));
         const loginBtn = createEl('button', { class: 'btn btn--primary' }, ['Login']);
         loginBtn.addEventListener('click', () => showLogin());
         empty.appendChild(loginBtn);
         grid.appendChild(empty);
       } else {
         grid.appendChild(createEl('p', { class: 'empty' },
-          ['Akses Tools membutuhkan tier Premium ke atas.']));
+          ['Akses Quiz membutuhkan tier Premium ke atas.']));
       }
       return;
     }

@@ -266,9 +266,9 @@
       "num": "3",
       "label": "Quiz",
       "desc": "Kuis interaktif & games seru",
-      "small": "Coming Soon",
+      "small": "Latihan matematika",
       "route": "/quiz",
-      "status": "coming",
+      "status": "active",
       "minTier": 3
     },
     {
@@ -276,9 +276,9 @@
       "num": "4",
       "label": "Games",
       "desc": "Games seru untuk mengisi waktu",
-      "small": "Coming Soon",
+      "small": "Gacha, rolling & kartu",
       "route": "/games",
-      "status": "coming",
+      "status": "active",
       "minTier": 3
     }
   ]

@@ -19,10 +19,10 @@ const routes = {
   '/': () => import('../pages/saham/landing.js'),
   '/profile': () => import('../pages/saham/profile.js'),
   '/saham': () => import('../pages/saham/hub.js'),
-  // Landing menu (hub Tools + placeholder Quiz/Games)
+  // Landing menu (hub Tools, Quiz, Games)
   '/tools': () => import('../pages/tools/tools.js'),
-  '/quiz': () => import('../pages/coming-soon.js'),
-  '/games': () => import('../pages/coming-soon.js'),
+  '/quiz': () => import('../pages/quiz/quiz.js'),
+  '/games': () => import('../pages/games/games.js'),
   // Tools & Quiz — tetap flat (belum di-portal-kan)
   '/math-speed': () => import('../pages/quiz/math-speed-2/math-speed.js'),
   '/password': () => import('../pages/tools/password-gen/password-gen.js'),

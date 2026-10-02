@@ -1,12 +1,12 @@
-/* pages/tools/tools.js — Hub Tools (paket tier: Premium+).
+/* pages/games/games.js — Hub Games (paket tier: Premium+).
  * Kartu difilter oleh Auth.canAccess(key, minTier) dari menu config —
- * jadi akses tiap tool bisa diatur lewat minTier / grant per-user. */
+ * jadi akses tiap game bisa diatur lewat minTier / grant per-user. */
 import { createEl } from '../../utils/dom.js';
 import { navigate } from '../../core/router.js';
 import { icons } from '../../ui/icons.js';
 import { Auth } from '../../core/auth.js';
 import { store, subscribe } from '../../core/state.js';
-import { fetchMenuConfig, ROUTE_MAP } from '../../core/menu-config.js';
+import { fetchMenuConfig, ROUTE_MAP, EXTERNAL_URLS } from '../../core/menu-config.js';
 import { showLogin } from '../login-modal.js';
 
 // route -> app key (dibalik dari ROUTE_MAP)
@@ -15,26 +15,26 @@ for (const [key, route] of Object.entries(ROUTE_MAP)) {
   ROUTE_TO_KEY[route] = key;
 }
 
-const TOOLS = [
-  { route: '/password', icon: 'key', label: 'Password Generator', desc: 'Buat password acak yang kuat' },
-  { route: '/diagram', icon: 'git-branch', label: 'Render Diagram', desc: 'Buat & render diagram dari kode' },
-  { route: '/bahasa', icon: 'globe', label: 'Bahasa', desc: 'Terjemahan & belajar bahasa' },
-  { route: '/video', icon: 'download', label: 'Video Downloader', desc: 'Unduh video dari URL' },
-  { route: '/color-palate', icon: 'grid', label: 'Color Palate', desc: 'Kumpulan warna & referensi' },
-  { route: '/bacak', icon: 'grid', label: 'CSV Shuffler', desc: 'Acak & filter data CSV' },
-  { route: '/tint-shade', icon: 'grid', label: 'Tint & Shade', desc: 'Buat gradasi warna' },
-  { route: '/color-blind', icon: 'grid', label: 'Edukasi Warna', desc: 'Simulasi & pencampuran warna' },
-  { route: '/jepunese', icon: 'globe', label: 'Jepunese', desc: 'Belajar karakter Jepang' },
-  { route: '/bahasa-interaktif', icon: 'book-open', label: 'Bahasa Interaktif', desc: 'Latihan bahasa drag & drop' },
-  { route: '/type-writing', icon: 'article', label: 'Type Writing', desc: 'Mode pengetik natural' },
+const GAMES = [
+  { route: '/gacha', icon: 'dice', label: 'Gacha Luck', desc: 'Coba keberuntungan gacha' },
+  { route: '/rolling', icon: 'target', label: 'Rolling Yes/No', desc: 'Putuskan dengan lempar acak' },
 ];
+
+// Game yang dibuka di tab baru (standalone HTML)
+const EXTERNAL_GAME = {
+  key: 'deck_of_cards',
+  url: EXTERNAL_URLS.deck_of_cards,
+  icon: 'grid',
+  label: 'Deck of Cards',
+  desc: 'Main kartu remi interaktif',
+};
 
 export function render() {
   const page = createEl('div', { class: 'tools-page' });
 
   const header = createEl('div', { class: 'page-head' });
-  header.appendChild(createEl('h1', {}, ['Tools']));
-  header.appendChild(createEl('p', { class: 'page-head__sub' }, ['Kumpulan tool produktivitas.']));
+  header.appendChild(createEl('h1', {}, ['Games']));
+  header.appendChild(createEl('p', { class: 'page-head__sub' }, ['Kumpulan game untuk mengisi waktu.']));
   page.appendChild(header);
 
   const grid = createEl('div', { class: 'tool-grid' });
@@ -47,26 +47,27 @@ export function render() {
   function renderGrid(minTierMap) {
     grid.innerHTML = '';
 
-    const visible = TOOLS.filter((t) =>
+    const visible = GAMES.filter((t) =>
       Auth.canAccess(keyOf(t.route), minTierMap[keyOf(t.route)] ?? 1));
+    const externalVisible = Auth.canAccess(EXTERNAL_GAME.key, minTierMap[EXTERNAL_GAME.key] ?? 1);
 
-    if (visible.length === 0) {
+    if (visible.length === 0 && !externalVisible) {
       if (!store.token) {
         const empty = createEl('div', { class: 'tools-empty' }, []);
         empty.appendChild(createEl('p', { class: 'empty' },
-          ['Login dengan akun Premium untuk mengakses Tools.']));
+          ['Login dengan akun Premium untuk mengakses Games.']));
         const loginBtn = createEl('button', { class: 'btn btn--primary' }, ['Login']);
         loginBtn.addEventListener('click', () => showLogin());
         empty.appendChild(loginBtn);
         grid.appendChild(empty);
       } else {
         grid.appendChild(createEl('p', { class: 'empty' },
-          ['Akses Tools membutuhkan tier Premium ke atas.']));
+          ['Akses Games membutuhkan tier Premium ke atas.']));
       }
       return;
     }
 
-    visible.forEach((t) => {
+    const buildCard = (t, external) => {
       const card = createEl('button', { class: 'tool-card' }, []);
       card.type = 'button';
       const icon = createEl('span', { class: 'tool-card__icon' });
@@ -76,9 +77,16 @@ export function render() {
       body.appendChild(createEl('span', { class: 'tool-card__label' }, [t.label]));
       body.appendChild(createEl('span', { class: 'tool-card__desc' }, [t.desc]));
       card.appendChild(body);
-      card.addEventListener('click', () => navigate(t.route));
+      if (external) {
+        card.addEventListener('click', () => window.open(t.url, '_blank', 'noopener'));
+      } else {
+        card.addEventListener('click', () => navigate(t.route));
+      }
       grid.appendChild(card);
-    });
+    };
+
+    visible.forEach((t) => buildCard(t, false));
+    if (externalVisible) buildCard(EXTERNAL_GAME, true);
   }
 
   // Render awal + re-render saat sesi berubah

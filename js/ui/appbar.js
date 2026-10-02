@@ -88,6 +88,8 @@ export function createAppBar() {
     const map = {
       '/': 'Beranda',
       '/profile': 'Profile',
+      '/quiz': 'Quiz',
+      '/games': 'Games',
       '/math-speed': 'Math Speed',
       '/password': 'Password Generator',
       '/gacha': 'Gacha Luck',
