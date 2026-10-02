@@ -12,14 +12,14 @@
       "key": "math_speed",
       "icon": "Icons.calculate",
       "label": "Math Speed",
-      "section": "menu",
+      "section": "quiz",
       "minTier": 1
     },
     {
       "key": "math_speed_legacy",
       "icon": "Icons.calculate",
       "label": "Math Speed (Old)",
-      "section": "menu",
+      "section": "quiz",
       "minTier": 1
     },
     {
@@ -33,14 +33,14 @@
       "key": "gacha_luck",
       "icon": "Icons.casino",
       "label": "Gacha Luck",
-      "section": "menu",
+      "section": "games",
       "minTier": 1
     },
     {
       "key": "rolling",
       "icon": "Icons.change_circle",
       "label": "Rolling Yes/No",
-      "section": "menu",
+      "section": "games",
       "minTier": 1
     },
     {
@@ -131,7 +131,7 @@
       "key": "math_dasar",
       "icon": "Icons.calculate",
       "label": "Math Dasar",
-      "section": "menu",
+      "section": "quiz",
       "minTier": 1
     },
     {
@@ -180,7 +180,7 @@
       "key": "deck_of_cards",
       "icon": "Icons.grid",
       "label": "Deck of Cards",
-      "section": "menu",
+      "section": "games",
       "minTier": 1
     },
     {

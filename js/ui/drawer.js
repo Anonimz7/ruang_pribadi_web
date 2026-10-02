@@ -28,6 +28,23 @@ function toNavItem(app) {
 }
 
 /**
+ * Section milik halaman aktif (mode non-portal).
+ * Urutan lookup: path section di MENU_SECTIONS (hub '/quiz', '/games', '/tools')
+ * → ROUTE_MAP → section aplikasi. null = halaman tidak dikenal, pakai perilaku lama.
+ */
+function sectionOfCurrentPage() {
+  const path = store.currentPage;
+  if (!path || !menuConfig) return null;
+
+  const bySectionPath = MENU_SECTIONS.find((s) => s.path === path);
+  if (bySectionPath) return bySectionPath.value === 'system' ? null : bySectionPath.value;
+
+  const key = Object.keys(ROUTE_MAP).find((k) => ROUTE_MAP[k] === path);
+  if (!key) return null;
+  return menuConfig.find((app) => app.key === key)?.section || null;
+}
+
+/**
  * Filter menu items based on login status and tier (rank <= minTier).
  * Returns array of { section, label, items: [...] }
  */
@@ -79,8 +96,10 @@ function filterMenuItems() {
     // Guest (logout) di mode non-portal: tampilkan System + section Menu (tools publik)
     // tanpa filter tier, agar /tools tetap bernavigasi walau belum login.
     // Media/Market/Admin (milik portal Saham) sudah ter-exclude oleh !app.portal.
+    const currentSection = sectionOfCurrentPage();
     for (const { value: sec, label: secLabel } of MENU_SECTIONS) {
       if (sec === 'system') continue;
+      if (currentSection && sec !== currentSection) continue;
       const items = menuConfig.filter((app) => app.section === sec && !app.portal && app.inDrawer !== false);
       if (items.length === 0) continue;
       sections.push({ label: secLabel, items: items.map(toNavItem) });
@@ -91,8 +110,10 @@ function filterMenuItems() {
   // For logged-in users: filter menu, media, market, admin sections
   // Item milik portal (mis. portal === 'saham') TIDAK ditampilkan di mode non-portal,
   // karena itu eksklusif milik halaman-halaman dalam portal tersebut.
+  const currentSection = sectionOfCurrentPage();
   for (const { value: sec, label: secLabel } of MENU_SECTIONS) {
     if (sec === 'system') continue;
+    if (currentSection && sec !== currentSection) continue;
 
     let items = menuConfig.filter((app) => app.section === sec && !app.portal && app.inDrawer !== false);
 
@@ -281,6 +302,10 @@ export async function createDrawer() {
     renderDrawer();
   });
   subscribe('activePortal', () => {
+    renderDrawer();
+  });
+  // Re-render daftar saat halaman berpindah agar section mengikuti halaman aktif
+  subscribe('currentPage', () => {
     renderDrawer();
   });
 
