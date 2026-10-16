@@ -84,7 +84,7 @@
     {
       "key": "ihsg_radar",
       "icon": "Icons.radar",
-      "label": "IHSG Radar",
+      "label": "Radar Pasar",
       "section": "market",
       "portal": "saham",
       "minTier": 2

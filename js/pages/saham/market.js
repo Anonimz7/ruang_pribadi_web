@@ -87,18 +87,18 @@ function buildForeignMarketChartApex(container, data) {
   return renderChart(container, opts);
 }
 
-function buildEwiMciChartApex(container, ewiData, mciData) {
+function buildAspMwiChartApex(container, aspData, mwiData) {
   const opts = buildBaseOptions({ height: 270, type: 'line' });
   opts.colors = ['#00A86B', '#F2B705'];
   opts.stroke.width = [2.5, 2.5];
   opts.series = [
     {
-      name: 'EWI',
-      data: ewiData.filter(d => d.date && d.close != null).map(d => ({ x: toTs(d.date), y: d.close })),
+      name: 'ASP',
+      data: aspData.filter(d => d.date && d.close != null).map(d => ({ x: toTs(d.date), y: d.close })),
     },
     {
-      name: 'MCI',
-      data: mciData.filter(d => d.date && d.close != null).map(d => ({ x: toTs(d.date), y: d.close })),
+      name: 'MWI',
+      data: mwiData.filter(d => d.date && d.close != null).map(d => ({ x: toTs(d.date), y: d.close })),
     },
   ];
   return renderChart(container, opts);
@@ -223,9 +223,9 @@ function renderMarket() {
   // Backend returns { period_days, radar: { data: [], summary: {} }, top_accumulation, top_distribution, top_domination }
   const radar = d.radar || {};
   const radarData = radar.data || [];
-  // Extract EWI & MCI series from radar data (each data point has ewi & mci fields when include_market_indexes=true)
-  const ewi = radarData.map(point => ({ date: point.date, close: point.ewi, change: point.change || 0 }));
-  const mci = radarData.map(point => ({ date: point.date, close: point.mci, change: point.change || 0 }));
+  // Extract ASP & MWI series from radar data (each data point has asp & mwi fields when include_market_indexes=true)
+  const asp = radarData.map(point => ({ date: point.date, close: point.asp }));
+  const mwi = radarData.map(point => ({ date: point.date, close: point.mwi }));
   const marketData = radarData;
   const topAcc = d.top_accumulation || [];
   const topDist = d.top_distribution || [];
@@ -236,14 +236,14 @@ function renderMarket() {
 
   // ── KPI Tiles ──
   const kpiWrap = createEl('div', { style: { display: 'flex', gap: 'var(--s-2)', flexWrap: 'wrap', marginBottom: 'var(--s-5)' } });
-  const latestEwi = ewi.length ? ewi[ewi.length - 1] : null;
-  const latestMci = mci.length ? mci[mci.length - 1] : null;
-  const ewiChange = radarSummary.ewi_change_pct || 0;
-  const mciChange = radarSummary.mci_change_pct || 0;
+  const latestAsp = asp.length ? asp[asp.length - 1] : null;
+  const latestMwi = mwi.length ? mwi[mwi.length - 1] : null;
+  const aspChange = radarSummary.asp_change_pct || 0;
+  const mwiChange = radarSummary.mwi_change_pct || 0;
 
   kpiWrap.innerHTML = `
-    ${kpiTile('EWI (IDX Energy Weighted)', latestEwi ? fmtPrice(latestEwi.close) : '-', ewiChange, '#00A86B')}
-    ${kpiTile('MCI (IDX Mining Composite)', latestMci ? fmtPrice(latestMci.close) : '-', mciChange, '#F2B705')}
+    ${kpiTile('ASP (Average Stock Price) · base 100', latestAsp ? fmtPrice(latestAsp.close) : '-', aspChange, '#00A86B')}
+    ${kpiTile('MWI (Market-cap Weighted Index) · base 100', latestMwi ? fmtPrice(latestMwi.close) : '-', mwiChange, '#F2B705')}
     ${kpiTile('Total Value', radarSummary.total_reg_value ? fmtS(radarSummary.total_reg_value) : '-', 0, '#F6903D')}
     ${kpiTile('Total Volume', marketData.length ? fmtS(marketData.reduce((sum, p) => sum + (p.volume || 0), 0)) : '-', 0, '#6DC8EC')}
     ${kpiTile('Foreign Net', radarSummary.total_net_foreign ? fmtS(radarSummary.total_net_foreign) : '-', 0, radarSummary.total_net_foreign >= 0 ? '#00A86B' : '#D94B4B')}
@@ -251,10 +251,10 @@ function renderMarket() {
   `;
   el.appendChild(kpiWrap);
 
-  // ── EWI vs MCI Chart ──
-  if (ewi.length && mci.length) {
-    const panel = chartPanel('EWI vs MCI', 'Indeks energi terhadap indeks pertambangan', [
-      { label: 'EWI', color: '#00A86B' }, { label: 'MCI', color: '#F2B705' }
+  // ── ASP vs MWI Chart ──
+  if (asp.length && mwi.length) {
+    const panel = chartPanel('ASP vs MWI', 'Rata-rata harga pasar terhadap kapitalisasi pasar tertimbang (base 100)', [
+      { label: 'ASP', color: '#00A86B' }, { label: 'MWI', color: '#F2B705' }
     ], 270);
     el.appendChild(panel);
   }
@@ -288,13 +288,13 @@ function renderMarket() {
   if (radarSummary.total_reg_value != null) summaryKpi.push({ metric: 'Total Regular Value', value: fmtS(radarSummary.total_reg_value) });
   if (radarSummary.total_nego_value != null) summaryKpi.push({ metric: 'Total Nego Value', value: fmtS(radarSummary.total_nego_value) });
   if (radarSummary.total_net_foreign != null) summaryKpi.push({ metric: 'Total Net Foreign', value: fmtS(radarSummary.total_net_foreign) });
-  if (radarSummary.ewi_latest != null) summaryKpi.push({ metric: 'EWI Latest', value: fmtPrice(radarSummary.ewi_latest) });
-  if (radarSummary.mci_latest != null) summaryKpi.push({ metric: 'MCI Latest', value: fmtPrice(radarSummary.mci_latest) });
+  if (radarSummary.asp_latest != null) summaryKpi.push({ metric: 'ASP Latest (base 100)', value: fmtPrice(radarSummary.asp_latest) });
+  if (radarSummary.mwi_latest != null) summaryKpi.push({ metric: 'MWI Latest (base 100)', value: fmtPrice(radarSummary.mwi_latest) });
 
   if (summaryKpi.length) el.appendChild(buildTable('MARKET SUMMARY KPIs', ['Metric', 'Value'], summaryKpi));
 
   // Mount charts
-  requestAnimationFrame(() => mountMarketCharts(ewi, mci, marketData));
+  requestAnimationFrame(() => mountMarketCharts(asp, mwi, marketData));
 }
 
 function kpiTile(label, value, change, color) {
@@ -325,7 +325,7 @@ function chartPanel(title, subtitle, legend, height) {
   return panel;
 }
 
-async function mountMarketCharts(ewi, mci, marketData) {
+async function mountMarketCharts(asp, mwi, marketData) {
   clearCharts();
   if (!marketData.length) return;
   try {
@@ -345,7 +345,7 @@ async function mountMarketCharts(ewi, mci, marketData) {
     const type = container.dataset.chartType;
     let chart;
     try {
-      if (type === 'EWI vs MCI') chart = buildEwiMciChartApex(container, ewi, mci);
+      if (type === 'ASP vs MWI') chart = buildAspMwiChartApex(container, asp, mwi);
       else if (type === 'Total Nilai Transaksi Pasar') chart = buildBarChartApex(container, marketData.map(d => ({ date: d.date, value: d.value })), '#F6903D');
       else if (type === 'Frekuensi Transaksi Pasar') chart = buildBarChartApex(container, marketData.map(d => ({ date: d.date, value: d.frequency })), '#5B8FF9');
       else if (type === 'ATV Pasar') chart = buildBarChartApex(container, marketData.map(d => ({ date: d.date, value: d.atv })), '#9270CA');

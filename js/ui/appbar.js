@@ -110,7 +110,7 @@ export function createAppBar() {
       '/saham/news': 'News Intelligence',
       '/saham/stocks': 'IDX Stocks',
       '/saham/stock-list': 'Stock List',
-      '/saham/market': 'IHSG Radar',
+      '/saham/market': 'Radar Pasar',
       '/saham/reports': 'Reports',
       '/saham/admin/dashboard': 'Server Dashboard',
       '/saham/admin/users': 'User Permissions',

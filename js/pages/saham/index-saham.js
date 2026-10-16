@@ -54,7 +54,7 @@ export function render() {
   const state = {
     indices: [],
     selected: null,      // selected detail payload { index, members, series, contributions }
-    compareId: '',       // comparison index id ('' = none, 'ihsg'/'mci' = IHSG EWI/MCI)
+    compareId: '',       // comparison index id ('' = none, 'asp'/'mwi' = proxy pasar ASP/MWI)
     chart: null,
     loading: true,
     searchDebounce: null,
@@ -272,8 +272,8 @@ export function render() {
 
     const compareSel = createEl('select', { class: 'field__select', style: { width: 'auto' } });
     compareSel.appendChild(createEl('option', { value: '' }, ['Tanpa pembanding']));
-    compareSel.appendChild(createEl('option', { value: 'ihsg' }, ['IHSG (EWI)']));
-    compareSel.appendChild(createEl('option', { value: 'mci' }, ['IHSG (MCI)']));
+    compareSel.appendChild(createEl('option', { value: 'asp' }, ['Pasar (ASP)']));
+    compareSel.appendChild(createEl('option', { value: 'mwi' }, ['Pasar (MWI)']));
     state.indices
       .filter((i) => String(i.id) !== String(idx.id))
       .forEach((i) => compareSel.appendChild(createEl('option', { value: String(i.id) }, [i.name])));
@@ -319,16 +319,16 @@ export function render() {
     }];
     const colors = ['#2563eb'];
 
-    if (state.compareId === 'ihsg' || state.compareId === 'mci') {
-      const key = state.compareId === 'ihsg' ? 'ewi' : 'mci';
-      const label = state.compareId === 'ihsg' ? 'IHSG (EWI)' : 'IHSG (MCI)';
+    if (state.compareId === 'asp' || state.compareId === 'mwi') {
+      const key = state.compareId; // 'asp' (rata-rata harga) | 'mwi' (kap. tertimbang, proxy IHSG)
+      const label = state.compareId === 'asp' ? 'Pasar (ASP)' : 'Pasar (MWI)';
       try {
         const radar = await Api.get('/idx/market/radar', { days: daysW });
         const pts = (radar?.data || []).filter(inWindow).map((p) => ({ date: p.date, close: p[key] }));
         seriesArr.push({ name: label, type: 'line', data: norm(pts, 'close') });
         colors.push('#059669');
       } catch (e) {
-        toast('Gagal memuat IHSG: ' + (e.message || e), { type: 'warn' });
+        toast('Gagal memuat data pasar: ' + (e.message || e), { type: 'warn' });
       }
     } else if (state.compareId) {
       try {
