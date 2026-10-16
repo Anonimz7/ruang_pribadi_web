@@ -1056,6 +1056,16 @@ async function mountCharts(rawData) {
 
 function buildSummaryTable(rawData) {
   const rows = rawData.length > 15 ? rawData.slice(rawData.length - 15) : rawData;
+  // Chg% per baris: prevPrice (kolom "sebelumnya" dari API) → fallback change
+  // (selisih vs hari sebelumnya) → fallback close baris sebelumnya di data lengkap.
+  const chgByRow = new Map();
+  rawData.forEach((r, i) => {
+    const c = r.close || 0;
+    const prev = r.prevPrice > 0 ? r.prevPrice
+      : (r.change ? c - r.change
+      : (i > 0 ? (rawData[i - 1].close || 0) : 0));
+    chgByRow.set(r, prev > 0 ? ((c - prev) / prev) * 100 : null);
+  });
   const wrap = createEl('div', { style: { marginTop: 'var(--s-6)' } });
   wrap.innerHTML = `
     <div style="font-size:var(--text-md);font-weight:700;margin-bottom:2px;">Ringkasan Data</div>
@@ -1066,8 +1076,7 @@ function buildSummaryTable(rawData) {
         <tbody>
           ${rows.slice().reverse().map(r => {
             const close = r.close || 0;
-            const prev = r.prevPrice || close;
-            const chg = prev > 0 ? ((close - prev) / prev * 100) : 0;
+            const chg = chgByRow.get(r);
             const netF = r.netForeign || 0;
             const atv = r.atv || 0;
             const bii = r.biiScore || 0;
@@ -1075,12 +1084,13 @@ function buildSummaryTable(rawData) {
             const fs = r.foreignSell || 0;
             const vol = r.volume || 0;
             const frRatio = vol > 0 ? ((fb + fs) / (vol * 2) * 100) : 0;
-            const chgColor = chg >= 0 ? 'var(--c-accent)' : 'var(--c-danger)';
+            const chgText = chg === null ? '—' : `${chg >= 0 ? '+' : ''}${chg.toFixed(1)}%`;
+            const chgColor = chg === null ? 'var(--c-text-3)' : (chg >= 0 ? 'var(--c-accent)' : 'var(--c-danger)');
             const netColor = netF >= 0 ? 'var(--c-accent)' : 'var(--c-danger)';
             return `<tr>
               <td style="font-size:var(--text-xs);">${dateLabel(r.date)}</td>
               <td style="font-weight:600;font-size:var(--text-xs);">Rp ${fmtPrice(close)}</td>
-              <td style="color:${chgColor};font-size:var(--text-xs);">${chg >= 0 ? '+' : ''}${chg.toFixed(1)}%</td>
+              <td style="color:${chgColor};font-size:var(--text-xs);">${chgText}</td>
               <td style="color:${netColor};font-size:var(--text-xs);">${fmtS(netF)}</td>
               <td style="font-size:var(--text-xs);">${compact(atv)}</td>
               <td style="color:#7B61FF;font-weight:600;font-size:var(--text-xs);">${bii.toFixed(1)}</td>
