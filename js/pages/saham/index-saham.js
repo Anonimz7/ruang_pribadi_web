@@ -382,7 +382,10 @@ export function render() {
 
     const tops = contribs.top_contributors || [];
     const bottoms = contribs.top_detractors || [];
-    if (tops.length === 0) {
+    // Cek KEDUA daftar: top_contributors hanya berisi kontribusi positif/datar.
+    // Bila semua anggota index turun, tops kosong tapi bottoms berisi data —
+    // tidak boleh dianggap "belum ada data".
+    if (tops.length === 0 && bottoms.length === 0) {
       card.appendChild(createEl('p', { style: { color: 'var(--c-text-3)', fontSize: 'var(--text-sm)' } },
         ['Belum ada data kontribusi.']));
       return card;
