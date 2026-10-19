@@ -1,0 +1,271 @@
+<!DOCTYPE html>
+<html lang="id">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>DEMO — Integrasi Fundamental × Flow</title>
+<style>
+  :root{
+    --c-surface:#ffffff; --c-surface-2:#f5f5f5; --c-border:#d0d0d0;
+    --c-text:#1a1a1a; --c-text-2:#4d4d4d; --c-text-3:#6b6b6b;
+    --c-primary:#2563eb; --c-accent:#047857; --c-danger:#b91c1c;
+    --buy:#00A86B; --sell:#D94B4B;
+    --radius:6px; --text-xs:.64rem; --text-sm:.8rem; --text-md:1.25rem; --text-lg:1.563rem;
+    --s-1:.25rem; --s-2:.5rem; --s-3:.75rem; --s-4:1rem; --s-5:1.5rem; --s-6:2rem;
+  }
+  *{box-sizing:border-box}
+  body{margin:0;font-family:system-ui,-apple-system,"Segoe UI",Roboto,sans-serif;background:var(--c-surface-2);color:var(--c-text);font-size:var(--text-sm);line-height:1.5}
+  header{background:#111827;color:#fff;padding:var(--s-5) var(--s-4);}
+  header .wrap{max-width:960px;margin:0 auto}
+  .badge{display:inline-block;background:#f59e0b;color:#111827;font-weight:800;font-size:var(--text-xs);padding:2px 10px;border-radius:20px;letter-spacing:.08em;margin-bottom:var(--s-2)}
+  header h1{margin:0 0 var(--s-1);font-size:var(--text-lg)}
+  header p{margin:0;color:#9ca3af;max-width:640px}
+  nav{position:sticky;top:0;background:#fff;border-bottom:1px solid var(--c-border);z-index:10}
+  nav .wrap{max-width:960px;margin:0 auto;display:flex;gap:var(--s-1);padding:var(--s-2) var(--s-4);overflow-x:auto}
+  nav a{white-space:nowrap;text-decoration:none;color:var(--c-text-2);font-size:var(--text-xs);font-weight:600;padding:6px 12px;border-radius:16px;border:1px solid var(--c-border)}
+  nav a:hover{border-color:var(--c-primary);color:var(--c-primary)}
+  main{max-width:960px;margin:0 auto;padding:var(--s-4)}
+  section{background:#fff;border:1px solid var(--c-border);border-radius:var(--radius);padding:var(--s-4);margin-bottom:var(--s-5)}
+  section h2{margin:0 0 var(--s-1);font-size:var(--text-md)}
+  section .desc{color:var(--c-text-3);font-size:var(--text-xs);margin:0 0 var(--s-3)}
+  .tag{display:inline-block;font-size:var(--text-xs);font-weight:700;padding:2px 10px;border-radius:12px;margin-bottom:var(--s-3)}
+  .tag.win{background:#ecfdf5;color:var(--c-accent)}
+  .tag.warn{background:#fef2f2;color:var(--c-danger)}
+  .tag.info{background:#eff6ff;color:var(--c-primary)}
+  .tblwrap{overflow-x:auto}
+  table{width:100%;border-collapse:collapse;font-size:var(--text-sm)}
+  th{text-align:left;color:var(--c-text-3);font-weight:600;font-size:var(--text-xs);padding:8px;border-bottom:2px solid var(--c-border);white-space:nowrap}
+  td{padding:8px;border-bottom:1px solid var(--c-border);white-space:nowrap}
+  tr:last-child td{border-bottom:none}
+  td.num,th.num{text-align:right}
+  td.ticker{font-weight:700}
+  td.ticker a{color:var(--c-primary);text-decoration:none}
+  .pos{color:var(--buy);font-weight:700}
+  .neg{color:var(--sell);font-weight:700}
+  tr.flagged{background:#fffbeb}
+  .flag{display:inline-block;background:var(--c-danger);color:#fff;font-size:var(--text-xs);font-weight:700;border-radius:4px;padding:1px 6px;margin-left:6px;vertical-align:middle}
+  .scorebar{background:var(--c-surface-2);border-radius:4px;height:10px;min-width:120px;overflow:hidden}
+  .scorebar i{display:block;height:100%;border-radius:4px}
+  .grid2{display:grid;grid-template-columns:1fr 1fr;gap:var(--s-4)}
+  @media(max-width:640px){.grid2{grid-template-columns:1fr}}
+  .kpi{display:flex;gap:var(--s-2);flex-wrap:wrap;margin-bottom:var(--s-4)}
+  .kpi .card{flex:1 1 140px;min-width:140px;padding:var(--s-3);background:var(--c-surface);border:1px solid var(--c-border);border-radius:var(--radius)}
+  .kpi .lbl{font-size:var(--text-xs);color:var(--c-text-3);margin-bottom:var(--s-1)}
+  .kpi .val{font-size:var(--text-lg);font-weight:700}
+  .chips{display:flex;gap:var(--s-2);flex-wrap:wrap;margin-bottom:var(--s-3)}
+  .chip{border:1px solid var(--c-border);background:#fff;border-radius:16px;padding:6px 14px;font-size:var(--text-xs);font-weight:600;cursor:pointer}
+  .chip.on{background:var(--c-primary);border-color:var(--c-primary);color:#fff}
+  .band{position:relative;height:14px;background:linear-gradient(90deg,#fecaca,#fef3c7,#bbf7d0);border-radius:7px;margin:var(--s-4) 0 var(--s-2)}
+  .band .mark{position:absolute;top:-6px;width:4px;height:26px;background:#111827;border-radius:2px;transform:translateX(-2px)}
+  .bandlbl{display:flex;justify-content:space-between;font-size:var(--text-xs);color:var(--c-text-3)}
+  footer{max-width:960px;margin:0 auto;padding:0 var(--s-4) var(--s-6);color:var(--c-text-3);font-size:var(--text-xs)}
+  svg.chart{width:100%;height:auto;display:block}
+</style>
+</head>
+<body>
+
+<header>
+  <div class="wrap">
+    <span class="badge">DEMO · SELURUH DATA DUMMY</span>
+    <h1>Visi: Fundamental × Flow</h1>
+    <p>Mockup integrasi data laporan keuangan dengan fitur analisis yang sudah ada (arus dana asing, BII score, akumulasi). Bukan halaman laporan keuangan terpisah — fundamentalnya <em>bekerja</em> di dalam sinyal yang sudah ada.</p>
+  </div>
+</header>
+
+<nav><div class="wrap">
+  <a href="#akumulasi">1 · Akumulasi + Fundamental</a>
+  <a href="#divergensi">2 · Detektor Divergensi</a>
+  <a href="#smart">3 · Smart Accumulation</a>
+  <a href="#saham">4 · Halaman Saham</a>
+  <a href="#screener">5 · Screener</a>
+</div></nav>
+
+<main>
+
+<!-- ═══════════ 1 ═══════════ -->
+<section id="akumulasi">
+  <span class="tag win">INTEGRASI 1 · QUICK WIN</span>
+  <h2>Top Accumulation + Kolom Fundamental</h2>
+  <p class="desc">Tabel yang sudah ada (Ticker · Company · Net Foreign) ditambah PER, PBV, ROE, dan pertumbuhan laba. Sekilas kelihatan mana akumulasi yang didukung fundamental dan mana yang tidak.</p>
+  <div class="tblwrap"><table>
+    <thead><tr><th>Ticker</th><th>Company</th><th class="num">Net Foreign</th><th class="num">PER</th><th class="num">PBV</th><th class="num">ROE</th><th class="num">Laba Growth</th></tr></thead>
+    <tbody id="tbl-acc"></tbody>
+  </table></div>
+</section>
+
+<!-- ═══════════ 2 ═══════════ -->
+<section id="divergensi">
+  <span class="tag warn">INTEGRASI 2 · SINYAL BARU</span>
+  <h2>Detektor Divergensi — Harga Naik, Fundamental Busuk</h2>
+  <p class="desc">Saham yang harga dan/atau arus dananya lari kencang tapi labanya stagnan, turun, atau rugi bertahun-tahun. Kasus yang kemarin ditemukan manual (return 14.100% tapi rugi terus) akan tertangkap otomatis di sini.</p>
+  <div class="tblwrap"><table>
+    <thead><tr><th>Ticker</th><th class="num">Harga 1 Thn</th><th class="num">Net Foreign 30d</th><th>Laba Bersih (tren)</th><th>Status</th></tr></thead>
+    <tbody id="tbl-div"></tbody>
+  </table></div>
+</section>
+
+<!-- ═══════════ 3 ═══════════ -->
+<section id="smart">
+  <span class="tag info">INTEGRASI 3 · SKOR GABUNGAN</span>
+  <h2>Smart Accumulation Score</h2>
+  <p class="desc">BII Score yang ada sekarang murni dari flow. Versi smart: BII tinggi <b>dan</b> fundamental sehat (ROE &gt; 15%, laba tumbuh, PER wajar). Menyaring gorengan dari akumulasi beneran.</p>
+  <div class="tblwrap"><table>
+    <thead><tr><th>#</th><th>Ticker</th><th class="num">BII</th><th class="num">ROE</th><th class="num">PER</th><th>Smart Score</th></tr></thead>
+    <tbody id="tbl-smart"></tbody>
+  </table></div>
+</section>
+
+<!-- ═══════════ 4 ═══════════ -->
+<section id="saham">
+  <span class="tag info">INTEGRASI 4 · HALAMAN SAHAM</span>
+  <h2>BBCA — Harga vs Laba + Pita Valuasi</h2>
+  <p class="desc">Di bawah chart harga: bar laba bersih kuartalan (apakah harga didukung laba?). Di bawahnya: pita valuasi PER sekarang vs histori 5 tahun (murah/mahal relatif terhadap dirinya sendiri).</p>
+  <div class="kpi">
+    <div class="card"><div class="lbl">PER saat ini</div><div class="val">22,5×</div></div>
+    <div class="card"><div class="lbl">Rata-rata 5 thn</div><div class="val">19,8×</div></div>
+    <div class="card"><div class="lbl">ROE TTM</div><div class="val" style="color:var(--buy)">18,2%</div></div>
+    <div class="card"><div class="lbl">Div. Yield</div><div class="val">2,8%</div></div>
+  </div>
+  <h3 style="font-size:var(--text-sm);margin:0 0 var(--s-2)">Harga vs Laba Bersih Kuartalan</h3>
+  <svg class="chart" id="chart-price" viewBox="0 0 600 220"></svg>
+  <h3 style="font-size:var(--text-sm);margin:var(--s-4) 0 var(--s-2)">Pita Valuasi PER (5 tahun)</h3>
+  <div class="band"><div class="mark" id="per-mark"></div></div>
+  <div class="bandlbl"><span>Min 14,2×</span><span>Avg 19,8×</span><span>Maks 26,1×</span></div>
+  <p class="desc" id="per-note" style="margin-top:var(--s-2)"></p>
+</section>
+
+<!-- ═══════════ 5 ═══════════ -->
+<section id="screener">
+  <span class="tag info">INTEGRASI 5 · PUNCAK</span>
+  <h2>Screener — Flow × Fundamental</h2>
+  <p class="desc">Filter gabungan. Klik chip untuk mengaktifkan/menonaktifkan kriteria (dummy, hasil ikut berubah).</p>
+  <div class="chips" id="chips"></div>
+  <div class="tblwrap"><table>
+    <thead><tr><th>Ticker</th><th class="num">BII</th><th class="num">ROE</th><th class="num">PER</th><th class="num">Laba Growth</th><th class="num">Smart</th></tr></thead>
+    <tbody id="tbl-screen"></tbody>
+  </table></div>
+</section>
+
+</main>
+
+<footer>
+  <p><b>Catatan:</b> seluruh angka di halaman ini adalah data dummy untuk keperluan demo visi integrasi. Tidak ada satupun angka yang berasal dari data riil. File: <code>demo.html</code>.</p>
+</footer>
+
+<script>
+/* ═══ DATA DUMMY ═══ */
+const ACC = [
+  {t:'BBCA', c:'Bank Central Asia',    nf: 850e9,  per:22.5, pbv:4.1, roe:18.2, g: 12},
+  {t:'BMRI', c:'Bank Mandiri',         nf: 620e9,  per:11.8, pbv:2.2, roe:19.5, g: 18},
+  {t:'BBRI', c:'Bank Rakyat Indonesia',nf: 480e9,  per:13.2, pbv:2.4, roe:17.8, g:  9},
+  {t:'PKPX', c:'Contoh Gorengan Tbk',  nf: 390e9,  per:94.7, pbv:8.2, roe:-4.1, g:-120, flag:true},
+  {t:'ASII', c:'Astra International',   nf: 210e9,  per: 9.5, pbv:1.3, roe:14.2, g:  6},
+  {t:'TLKM', c:'Telkom Indonesia',     nf: 150e9,  per:14.1, pbv:2.0, roe:15.1, g:  4},
+];
+const DIV = [
+  {t:'PKPX', c:'Contoh Gorengan Tbk', hp: 212, nf: 390e9, trend:'Rugi 3 thn berturut-turut', lvl:'EKSTREM'},
+  {t:'EMTK', c:'Elang Mahkota Teknologi', hp: 145, nf: 180e9, trend:'Laba -68% YoY, 2 kuartal', lvl:'TINGGI'},
+  {t:'BUKA', c:'Bukalapak.com', hp: 98, nf: 95e9, trend:'Belum pernah laba sejak IPO', lvl:'TINGGI'},
+  {t:'GOTO', c:'GoTo Gojek Tokopedia', hp: 64, nf: 210e9, trend:'Rugi menyusut tapi masih rugi', lvl:'SEDANG'},
+];
+const SMART = [
+  {t:'BMRI', bii:88, roe:19.5, per:11.8, s:94},
+  {t:'BBRI', bii:82, roe:17.8, per:13.2, s:89},
+  {t:'BBCA', bii:79, roe:18.2, per:22.5, s:81},
+  {t:'ASII', bii:74, roe:14.2, per: 9.5, s:78},
+  {t:'PKPX', bii:91, roe:-4.1, per:94.7, s:23},
+];
+const UNIVERSE = [
+  {t:'BMRI', bii:88, roe:19.5, per:11.8, g:18, s:94},
+  {t:'BBRI', bii:82, roe:17.8, per:13.2, g: 9, s:89},
+  {t:'BBCA', bii:79, roe:18.2, per:22.5, g:12, s:81},
+  {t:'ASII', bii:74, roe:14.2, per: 9.5, g: 6, s:78},
+  {t:'TLKM', bii:68, roe:15.1, per:14.1, g: 4, s:71},
+  {t:'INDF', bii:71, roe:12.8, per: 8.2, g: 7, s:69},
+  {t:'SMGR', bii:64, roe: 9.4, per:16.3, g: 3, s:58},
+  {t:'PKPX', bii:91, roe:-4.1, per:94.7, g:-120, s:23},
+];
+const FILTERS = [
+  {id:'bii',  label:'BII > 70',        on:true,  fn:r=>r.bii>70},
+  {id:'roe',  label:'ROE > 15%',       on:true,  fn:r=>r.roe>15},
+  {id:'per',  label:'PER < 15',        on:false, fn:r=>r.per<15},
+  {id:'grow', label:'Laba tumbuh 3 thn', on:false, fn:r=>r.g>0},
+];
+
+/* ═══ HELPERS ═══ */
+const $ = id => document.getElementById(id);
+function fmtS(v){
+  const n=Number(v), s=n<0?'-':'', a=Math.abs(n);
+  if(a>=1e12) return s+(a/1e12).toFixed(1)+'T';
+  if(a>=1e9)  return s+(a/1e9).toFixed(1)+'B';
+  if(a>=1e6)  return s+(a/1e6).toFixed(1)+'M';
+  return s+a.toFixed(0);
+}
+const cls = v => v>0?'pos':(v<0?'neg':'');
+const f1 = v => (v>0?'+':'')+v.toFixed(1);
+
+/* ═══ 1 · AKUMULASI ═══ */
+$('tbl-acc').innerHTML = ACC.map(r=>`<tr${r.flag?' class="flagged"':''}>
+  <td class="ticker"><a href="#">${r.t}</a>${r.flag?'<span class="flag">WASPADA</span>':''}</td>
+  <td>${r.c}</td><td class="num pos">${fmtS(r.nf)}</td>
+  <td class="num ${r.per>40?'neg':''}">${f1(r.per)}×</td>
+  <td class="num">${f1(r.pbv)}×</td>
+  <td class="num ${cls(r.roe)}">${f1(r.roe)}%</td>
+  <td class="num ${cls(r.g)}">${f1(r.g)}%</td></tr>`).join('');
+
+/* ═══ 2 · DIVERGENSI ═══ */
+$('tbl-div').innerHTML = DIV.map(r=>`<tr>
+  <td class="ticker"><a href="#">${r.t}</a></td>
+  <td class="num pos">+${r.hp}%</td><td class="num pos">${fmtS(r.nf)}</td>
+  <td style="white-space:normal;min-width:180px">${r.trend}</td>
+  <td><span class="flag">${r.lvl}</span></td></tr>`).join('');
+
+/* ═══ 3 · SMART ═══ */
+$('tbl-smart').innerHTML = SMART.map((r,i)=>{
+  const col = r.s>=75?'var(--buy)':(r.s>=50?'#d97706':'var(--sell)');
+  return `<tr><td>${i+1}</td><td class="ticker"><a href="#">${r.t}</a></td>
+  <td class="num">${r.bii}</td><td class="num ${cls(r.roe)}">${f1(r.roe)}%</td>
+  <td class="num ${r.per>40?'neg':''}">${f1(r.per)}×</td>
+  <td><div style="display:flex;align-items:center;gap:8px"><div class="scorebar"><i style="width:${r.s}%;background:${col}"></i></div><b>${r.s}</b></div></td></tr>`;
+}).join('');
+
+/* ═══ 4 · CHART HARGA vs LABA (SVG) ═══ */
+(function(){
+  const W=600,H=220,P=36;
+  const price=[100,104,102,108,115,112,120,118,127,124,133,140];      // dummy
+  const earn =[ 8.1, 8.4, 8.0, 9.2, 9.8,10.1, 9.9,11.2,11.8,12.0,12.5,13.1]; // Rp T dummy
+  const x=i=>P+i*(W-2*P)/(price.length-1);
+  const yp=v=>{const mn=90,mx=150;return H-40-(v-mn)/(mx-mn)*(H-80);};
+  const pts=price.map((v,i)=>x(i).toFixed(1)+','+yp(v).toFixed(1)).join(' ');
+  // bar laba: area bawah
+  const ye=v=>H-8-(v/14)*52;
+  const bars=earn.map((v,i)=>`<rect x="${(x(i)-9).toFixed(1)}" y="${ye(v).toFixed(1)}" width="18" height="${(H-8-ye(v)).toFixed(1)}" rx="2" fill="#93c5fd" opacity="0.85"><title>Laba Q: Rp ${v}T (dummy)</title></rect>`).join('');
+  const grid=[100,120,140].map(v=>`<line x1="${P}" y1="${yp(v)}" x2="${W-10}" y2="${yp(v)}" stroke="#e5e7eb"/><text x="4" y="${yp(v)+4}" font-size="10" fill="#6b6b6b">${v}</text>`).join('');
+  $('chart-price').innerHTML = grid+`<polyline points="${pts}" fill="none" stroke="#00A86B" stroke-width="2.5"/>`+bars+
+    `<text x="${P}" y="${H-44}" font-size="10" fill="#6b6b6b">― Harga (kiri, dummy)</text><text x="${P+170}" y="${H-44}" font-size="10" fill="#6b6b6b">▭ Laba bersih kuartalan Rp T (dummy)</text>`;
+  // pita valuasi: PER 22.5 pada rentang 14.2–26.1
+  const pos=(22.5-14.2)/(26.1-14.2)*100;
+  $('per-mark').style.left=pos+'%';
+  $('per-note').textContent='PER 22,5× berada di '+pos.toFixed(0)+'% rentang 5 tahun — di atas rata-rata 19,8× (relatif mahal vs historisnya sendiri). Angka dummy.';
+})();
+
+/* ═══ 5 · SCREENER ═══ */
+function renderChips(){
+  $('chips').innerHTML = FILTERS.map(f=>`<button class="chip${f.on?' on':''}" data-id="${f.id}">${f.label}</button>`).join('');
+  document.querySelectorAll('#chips .chip').forEach(b=>b.onclick=()=>{
+    const f=FILTERS.find(x=>x.id===b.dataset.id); f.on=!f.on; renderChips(); renderScreen();
+  });
+}
+function renderScreen(){
+  const on=FILTERS.filter(f=>f.on);
+  const rows=UNIVERSE.filter(r=>on.every(f=>f.fn(r)));
+  $('tbl-screen').innerHTML = rows.length ? rows.map(r=>`<tr>
+    <td class="ticker"><a href="#">${r.t}</a></td><td class="num">${r.bii}</td>
+    <td class="num ${cls(r.roe)}">${f1(r.roe)}%</td><td class="num">${f1(r.per)}×</td>
+    <td class="num ${cls(r.g)}">${f1(r.g)}%</td><td class="num"><b>${r.s}</b></td></tr>`).join('')
+    : `<tr><td colspan="6" style="text-align:center;color:var(--c-text-3)">Tidak ada yang lolos filter</td></tr>`;
+}
+renderChips(); renderScreen();
+</script>
+</body>
+</html>
