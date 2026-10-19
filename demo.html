@@ -69,20 +69,40 @@
   <div class="wrap">
     <span class="badge">DEMO · SELURUH DATA DUMMY</span>
     <h1>Fundamental × Sinyal Proprietary</h1>
-    <p>Broker memberi <b>data mentah</b> (laporan keuangan, PER, PBV). Aplikasi ini punya <b>sinyal proprietary</b> — BII Score, ASP vs MWI, rumus net foreign per-emiten, Top Akumulasi, Nego intelligence. Demo ini menunjukkan <b>fundamental yang bekerja di dalam sinyal-sinyal itu</b> — hal yang tidak dimiliki software broker.</p>
+    <p>Broker memberi <b>data mentah</b> (laporan keuangan, PER, PBV). Aplikasi ini punya <b>sinyal proprietary</b> — BII Score, ASP vs MWI, rumus net foreign per-emiten, Top Akumulasi, Nego intelligence. Demo ini menunjukkan <b>fundamental yang bekerja di dalam sinyal-sinyal itu</b> — hal yang tidak dimiliki software broker. Sorotan utama: <b>simulator skenario komoditas</b> — siapa pemenang & pecundang setiap harga komoditas bergerak.</p>
   </div>
 </header>
 
 <nav><div class="wrap">
-  <a href="#kuadran">1 · Kuadran BII × Kualitas</a>
-  <a href="#akumulasi">2 · Validasi Akumulasi</a>
-  <a href="#rumus">3 · Koreksi Rumus Net Foreign</a>
-  <a href="#nego">4 · Nego Intelligence</a>
-  <a href="#divergensi">5 · Divergensi BII</a>
-  <a href="#breadth">6 · Breadth Check</a>
+  <a href="#skenario">1 · Simulator Skenario</a>
+  <a href="#kuadran">2 · Kuadran BII × Kualitas</a>
+  <a href="#akumulasi">3 · Validasi Akumulasi</a>
+  <a href="#rumus">4 · Koreksi Rumus Net Foreign</a>
+  <a href="#nego">5 · Nego Intelligence</a>
+  <a href="#divergensi">6 · Divergensi BII</a>
+  <a href="#breadth">7 · Breadth Check</a>
 </div></nav>
 
 <main>
+
+<!-- ═══════════ 1 · SIMULATOR SKENARIO ═══════════ -->
+<section id="skenario">
+  <span class="tag prop">MESIN PEMENANG & PECUNDANG · KOMODITAS</span>
+  <h2>Simulator Skenario Komoditas</h2>
+  <p class="desc">Geser harga komoditas & kurs — mesin menghitung <b>siapa diuntungkan dan siapa dirugikan</b> berdasar tiga sisi eksposur tiap emiten: <b>OUTPUT</b> (komoditas yang dijual), <b>INPUT</b> (komoditas yang dibeli sebagai biaya), <b>VALAS</b> (struktur hutang/kas). Prinsip: <i>suka tidak suka, industri selalu pakai komoditas — kecuali jasa murni, dan jasa yang terkait komoditas pun ikut terpengaruh.</i> Coba geser slider di bawah (data dummy).</p>
+  <div id="sliders" style="display:grid;grid-template-columns:repeat(auto-fit,minmax(220px,1fr));gap:var(--s-3);margin-bottom:var(--s-4)"></div>
+  <div style="margin-bottom:var(--s-3)"><button id="btn-reset" class="chip" style="cursor:pointer">Reset skenario</button>
+  <span style="font-size:var(--text-xs);color:var(--c-text-3);margin-left:var(--s-2)">Skor = Σ (bobot × arah × % perubahan harga)</span></div>
+  <div class="tblwrap"><table>
+    <thead><tr><th>#</th><th>Ticker</th><th>Company</th><th class="num">Skor</th><th>Kontribusi</th><th>Verdict</th></tr></thead>
+    <tbody id="tbl-scen"></tbody>
+  </table></div>
+  <div class="legend" style="margin-top:var(--s-3)">
+    <span><span class="dot" style="background:#00A86B"></span>Output: diuntungkan saat harga naik</span>
+    <span><span class="dot" style="background:#D94B4B"></span>Input/valas: dirugikan saat harga naik</span>
+    <span><span class="dot" style="background:#9ca3af"></span>Jasa murni ≈ netral</span>
+  </div>
+</section>
 
 <!-- ═══════════ 1 · KUADRAN ═══════════ -->
 <section id="kuadran">
@@ -171,6 +191,72 @@
 </footer>
 
 <script>
+/* ═════════ DATA DUMMY — SIMULATOR SKENARIO ═════════ */
+const COMMS = [
+  {id:'nikel',    label:'Nikel (LME)',        chg:20},
+  {id:'batubara', label:'Batubara (Newcastle)', chg:15},
+  {id:'cpo',      label:'CPO (BMD)',          chg:-5},
+  {id:'minyak',   label:'Minyak (WTI)',       chg:10},
+  {id:'emas',     label:'Emas (LBMA)',        chg:0},
+  {id:'timah',    label:'Timah (LME)',        chg:0},
+  {id:'usdidr',   label:'USD/IDR',            chg:3},
+];
+// side: output|input|fx · s:+1 diuntungkan saat harga naik, -1 dirugikan · w:bobot 0-1
+const EXPOSURE = [
+  {t:'INCO', c:'Vale Indonesia',     ex:[{k:'nikel',side:'output',w:0.85,s: 1},{k:'minyak',side:'input',w:0.12,s:-1},{k:'usdidr',side:'fx',w:0.50,s: 1}]},
+  {t:'ANTM', c:'Aneka Tambang',      ex:[{k:'nikel',side:'output',w:0.50,s: 1},{k:'emas',side:'output',w:0.30,s: 1},{k:'minyak',side:'input',w:0.10,s:-1}]},
+  {t:'ADRO', c:'Adaro Energy',       ex:[{k:'batubara',side:'output',w:0.90,s: 1},{k:'minyak',side:'input',w:0.15,s:-1}]},
+  {t:'ITMG', c:'Indo Tambangraya',   ex:[{k:'batubara',side:'output',w:0.88,s: 1},{k:'minyak',side:'input',w:0.12,s:-1}]},
+  {t:'UNTR', c:'United Tractors',    ex:[{k:'batubara',side:'output',w:0.40,s: 1},{k:'nikel',side:'output',w:0.15,s: 1},{k:'minyak',side:'input',w:0.20,s:-1}]},
+  {t:'AALI', c:'Astra Agro Lestari', ex:[{k:'cpo',side:'output',w:0.80,s: 1},{k:'minyak',side:'input',w:0.10,s:-1}]},
+  {t:'GIAA', c:'Garuda Indonesia',   ex:[{k:'minyak',side:'input',w:0.40,s:-1},{k:'usdidr',side:'fx',w:0.35,s:-1}]},
+  {t:'SMGR', c:'Semen Indonesia',    ex:[{k:'batubara',side:'input',w:0.30,s:-1},{k:'minyak',side:'input',w:0.10,s:-1}]},
+  {t:'INDF', c:'Indofood',           ex:[{k:'cpo',side:'input',w:0.25,s:-1},{k:'usdidr',side:'fx',w:0.20,s:-1}]},
+  {t:'KLBF', c:'Kalbe Farma',        ex:[{k:'usdidr',side:'fx',w:0.15,s:-1}]},
+  {t:'TLKM', c:'Telkom Indonesia',   ex:[{k:'usdidr',side:'fx',w:0.10,s:-1}]},
+  {t:'BBCA', c:'Bank Central Asia',  ex:[]},
+];
+const chgOf = id => COMMS.find(c=>c.id===id).chg;
+const commLbl = id => COMMS.find(c=>c.id===id).label.split(' (')[0];
+
+function renderSliders(){
+  $('sliders').innerHTML = COMMS.map(c=>`
+    <div style="border:1px solid var(--c-border);border-radius:var(--radius);padding:var(--s-3)">
+      <div style="display:flex;justify-content:space-between;font-size:var(--text-xs);font-weight:700;margin-bottom:4px">
+        <span>${c.label}</span><span id="val-${c.id}" style="color:${c.chg>0?'var(--buy)':c.chg<0?'var(--sell)':'var(--c-text-3)'}">${c.chg>0?'+':''}${c.chg}%</span>
+      </div>
+      <input type="range" min="-30" max="30" value="${c.chg}" data-id="${c.id}" style="width:100%" aria-label="${c.label}">
+    </div>`).join('');
+  document.querySelectorAll('#sliders input').forEach(inp=>inp.oninput=()=>{
+    const c=COMMS.find(x=>x.id===inp.dataset.id); c.chg=Number(inp.value);
+    const v=$('val-'+c.id); v.textContent=(c.chg>0?'+':'')+c.chg+'%';
+    v.style.color=c.chg>0?'var(--buy)':c.chg<0?'var(--sell)':'var(--c-text-3)';
+    renderScenario();
+  });
+  $('btn-reset').onclick=()=>{COMMS.forEach(c=>c.chg=0);renderSliders();renderScenario();};
+}
+function renderScenario(){
+  const rows=EXPOSURE.map(e=>{
+    let score=0; const parts=[];
+    e.ex.forEach(x=>{
+      const contrib=x.w*x.s*chgOf(x.k); score+=contrib;
+      if(Math.abs(contrib)>=0.05) parts.push({lbl:commLbl(x.k),v:contrib,neg:x.s<0});
+    });
+    parts.sort((a,b)=>Math.abs(b.v)-Math.abs(a.v));
+    return {...e,score,parts};
+  }).sort((a,b)=>b.score-a.score);
+  $('tbl-scen').innerHTML=rows.map((r,i)=>{
+    const verdict=r.score>=3?['PEMENANG','var(--buy)']:r.score<=-3?['PECUNDANG','var(--sell)']:['NETRAL','var(--c-text-3)'];
+    return `<tr>
+      <td>${i+1}</td><td class="ticker"><a href="#">${r.t}</a></td><td>${r.c}</td>
+      <td class="num" style="color:${verdict[1]};font-weight:800">${r.score>0?'+':''}${r.score.toFixed(1)}</td>
+      <td style="white-space:normal;min-width:200px;font-size:var(--text-xs)">${r.parts.length?r.parts.map(p=>
+        `<span style="display:inline-block;margin:1px 4px 1px 0;padding:1px 8px;border-radius:10px;background:${p.neg?'#fef2f2':'#ecfdf5'};color:${p.neg?'var(--sell)':'var(--buy)'};font-weight:600">${p.lbl} ${p.v>0?'+':''}${p.v.toFixed(1)}</span>`).join(''):'<span style="color:var(--c-text-3)">jasa murni — netral komoditas</span>'}</td>
+      <td><b style="color:${verdict[1]}">${verdict[0]}</b></td></tr>`;
+  }).join('');
+}
+renderSliders(); renderScenario();
+
 /* ═════════ DATA DUMMY ═════════ */
 const QUAD = [
   {t:'BMRI', bii:88, q:85, nf: 620e9},
