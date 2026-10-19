@@ -117,8 +117,16 @@ async function loadMarket() {
   state.loading = true;
   renderLoading();
   try {
-    const res = await Api.get('/idx/market/summary', { days: state.days });
+    const [res, daily] = await Promise.all([
+      Api.get('/idx/market/summary', { days: state.days }),
+      Api.get('/idx/market/top-foreign-flow', { days: 1 }).catch(() => null),
+    ]);
     state.data = res?.data || res;
+    const dd = daily?.data || daily;
+    if (dd) {
+      state.data.top_daily_acc = dd.accumulation || [];
+      state.data.top_daily_dist = dd.distribution || [];
+    }
     state.loading = false;
     renderMarket();
   } catch (e) {
@@ -230,6 +238,9 @@ function renderMarket() {
   const topAcc = d.top_accumulation || [];
   const topDist = d.top_distribution || [];
   const topDom = d.top_domination || [];
+  const topDailyAcc = d.top_daily_acc || [];
+  const topDailyDist = d.top_daily_dist || [];
+  const latestDate = marketData.length ? marketData[marketData.length - 1].date : null;
   const radarSummary = radar.summary || {};
 
   el.innerHTML = '';
@@ -265,6 +276,8 @@ function renderMarket() {
     el.appendChild(chartPanel('Frekuensi Transaksi Pasar', 'Jumlah transaksi harian', [{ label: 'Frekuensi', color: '#5B8FF9' }], 200));
     el.appendChild(chartPanel('ATV Pasar', 'Ukuran transaksi rata-rata pasar', [{ label: 'ATV', color: '#9270CA' }], 200));
     el.appendChild(chartPanel('Arus Dana Asing Pasar', 'Net foreign buy/sell keseluruhan pasar', [{ label: 'Beli', color: '#00A86B' }, { label: 'Jual', color: '#D94B4B' }], 210));
+    // ── Top 10 Net Foreign harian terakhir (breakdown bar terakhir chart di atas) ──
+    if (topDailyAcc.length || topDailyDist.length) el.appendChild(buildDailyFlowSection(topDailyAcc, topDailyDist, latestDate));
     el.appendChild(chartPanel('BII Score Pasar', 'Skor akumulasi pasar', [{ label: 'BII', color: '#7B61FF' }], 210));
     el.appendChild(chartPanel('Nilai Nego Pasar', 'Transaksi non-regular pasar', [{ label: 'Nego Value', color: '#F6C022' }], 200));
     el.appendChild(chartPanel('Frekuensi Nego Pasar', 'Transaksi negosiasi pasar', [{ label: 'Nego Freq', color: '#90A4AE' }], 180));
@@ -361,6 +374,35 @@ async function mountMarketCharts(asp, mwi, marketData) {
       </div>`;
     }
   });
+}
+
+function buildDailyFlowSection(acc, dist, dateStr) {
+  const dl = dateStr ? dateLabel(dateStr) : '-';
+  const tbl = (title, rows, color) => `
+    <div style="flex:1 1 0;min-width:280px;">
+      <div style="font-size:var(--text-sm);font-weight:700;margin-bottom:var(--s-2);color:${color};">${title}</div>
+      <div style="overflow-x:auto;">
+        <table class="table">
+          <thead><tr><th>Ticker</th><th>Company</th><th style="text-align:right;">Net Foreign</th></tr></thead>
+          <tbody>
+            ${rows.map(r => `<tr>
+              <td style="font-weight:600;font-size:var(--text-sm);"><a href="#/saham/stocks" style="color:var(--c-primary);" onclick="localStorage.setItem('stocks_initial_ticker','${r.ticker}')">${r.ticker}</a></td>
+              <td style="font-size:var(--text-sm);">${r.company_name || '-'}</td>
+              <td style="font-size:var(--text-sm);text-align:right;color:${color};font-weight:600;">${fmtS(r.net_flow_val)}</td>
+            </tr>`).join('')}
+          </tbody>
+        </table>
+      </div>
+    </div>`;
+  const wrap = createEl('div', { style: { marginBottom: 'var(--s-6)' } });
+  wrap.innerHTML = `
+    <div style="font-size:var(--text-md);font-weight:700;">TOP NET FOREIGN HARIAN</div>
+    <div style="font-size:var(--text-xs);color:var(--c-text-3);margin:2px 0 var(--s-3);">10 saham dengan net foreign terbesar &middot; ${dl} &middot; 1 hari terakhir</div>
+    <div style="display:flex;gap:var(--s-4);flex-wrap:wrap;">
+      ${tbl('TOP NET BUY', acc, '#00A86B')}
+      ${tbl('TOP NET SELL', dist, '#D94B4B')}
+    </div>`;
+  return wrap;
 }
 
 function buildTable(title, headers, rows) {
