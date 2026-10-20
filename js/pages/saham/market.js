@@ -142,17 +142,19 @@ const PERIODS = [30, 60, 90, 180, 365];
 const state = {
   days: 30, loading: false, data: null, charts: [],
 };
+const decState = { mode: 'peak', data: null, loading: false };
 
 /* ─── API ─── */
 async function loadMarket() {
   state.loading = true;
   renderLoading();
   try {
-    const [res, daily, fpos, fown] = await Promise.all([
+    const [res, daily, fpos, fown, fdec] = await Promise.all([
       Api.get('/idx/market/summary', { days: state.days }),
       Api.get('/idx/market/top-foreign-flow', { days: 1 }).catch(() => null),
       Api.get('/idx/market/foreign-position', { bucket: state.days }).catch(() => null),
       Api.get('/idx/market/foreign-ownership').catch(() => null),
+      Api.get('/idx/market/foreign-decomposition', { mode: 'peak' }).catch(() => null),
     ]);
     state.data = res?.data || res;
     const dd = daily?.data || daily;
@@ -164,6 +166,8 @@ async function loadMarket() {
     if (fp) state.data.foreign_pos = fp;
     const fo = fown?.data || fown;
     if (fo) state.data.foreign_own = fo;
+    const fd = fdec?.data || fdec;
+    if (fd) { decState.data = fd; decState.mode = 'peak'; }
     state.loading = false;
     renderMarket();
   } catch (e) {
@@ -327,6 +331,8 @@ function renderMarket() {
       el.appendChild(chartPanel('Kepemilikan Asing Pasar (KSEI)', `Nilai kepemilikan asing resmi KSEI sejak ${dateLabelYear(fo.data_start)} · snapshot bulanan`, [{ label: 'Nilai asing', color: '#E8A33D' }], 230));
       el.appendChild(buildMarketOwnershipSection(fo));
     }
+    // ── Bedah Perubahan Nilai Asing + Arus Kotor (mengikuti jendela snapshot KSEI) ──
+    if (decState.data) el.appendChild(buildDecompositionSection());
     el.appendChild(chartPanel('BII Score Pasar', 'Skor akumulasi pasar', [{ label: 'BII', color: '#7B61FF' }], 210));
     el.appendChild(chartPanel('Nilai Nego Pasar', 'Transaksi non-regular pasar', [{ label: 'Nego Value', color: '#F6C022' }], 200));
     el.appendChild(chartPanel('Frekuensi Nego Pasar', 'Transaksi negosiasi pasar', [{ label: 'Nego Freq', color: '#90A4AE' }], 180));
@@ -480,6 +486,107 @@ function buildForeignPositionSection(fp) {
       ${cell('Net Asing 30 / 90 hari', netHtml, 'arus terbaru')}
     </div>`;
   return wrap;
+}
+
+const DEC_MODES = [['peak', 'Dari Puncak'], ['ytd', 'Tahun Ini'], ['12m', '12 Bulan'], ['all', 'Semua Arsip']];
+const DEC_PATTERN_INFO = {
+  'AKUMULASI': 'Beli asing lebih besar daripada jual — asing menambah posisi bersih pada periode ini.',
+  'ROTASI': 'Beli dan jual hampir seimbang dengan netto kecil — asing memutar posisi antar emiten, bukan keluar dari pasar.',
+  'KELUAR': 'Jual dominan, beli menyusut di bawah separuh jual, dan penjualan tersebar di banyak emiten — pola keluar pasar.',
+  'PENGURANGAN BERTAHAP': 'Jual lebih besar daripada beli, tetapi beli masih berjalan substansial atau jual bersih terkonsentrasi di sedikit emiten — pengurangan posisi bertahap, bukan eksodus.',
+};
+
+async function loadDecomposition(mode) {
+  const r = await Api.get('/idx/market/foreign-decomposition', { mode }).catch(() => null);
+  const d = r?.data || r;
+  if (d) decState.data = d;
+  decState.loading = false;
+}
+
+function buildDecompositionSection() {
+  const wrap = createEl('div', { style: { marginBottom: 'var(--s-6)' } });
+  fillDecomposition(wrap);
+  return wrap;
+}
+
+function fillDecomposition(wrap) {
+  const d = decState.data;
+  if (decState.loading) {
+    wrap.innerHTML = '<div style="padding:var(--s-4);color:var(--c-text-3);font-size:var(--text-sm);">Memuat bedah nilai asing…</div>';
+    return;
+  }
+  if (!d) { wrap.innerHTML = ''; return; }
+
+  const sgnTxt = (v) => v == null ? '-' : (v > 0 ? '+' : '') + fmtS(v);
+  const sgnCol = (v) => v < 0 ? '#D94B4B' : v > 0 ? '#00A86B' : 'inherit';
+  const bar = (label, sub, value, maxAbs, color, valColor, disp) => {
+    const w = !value ? 0 : Math.max(2, Math.abs(value) / maxAbs * 100);
+    return `<div style="display:grid;grid-template-columns:180px 1fr 100px;align-items:center;gap:var(--s-3);margin:var(--s-2) 0;">
+      <div><div style="font-size:var(--text-sm);font-weight:600;">${label}</div>
+      <div style="font-size:var(--text-xs);color:var(--c-text-3);">${sub}</div></div>
+      <div style="height:20px;background:var(--c-surface-2);border-radius:4px;overflow:hidden;"><div style="height:100%;width:${w}%;background:${color};border-radius:4px;"></div></div>
+      <div style="font-size:var(--text-sm);font-weight:700;text-align:right;color:${valColor || sgnCol(value)};">${disp || sgnTxt(value)}</div>
+    </div>`;
+  };
+  const chips = DEC_MODES.map(([m, lbl]) => {
+    const on = decState.mode === m;
+    return `<button data-decmode="${m}" style="padding:4px 12px;border:1px solid ${on ? '#E8A33D' : 'var(--c-border)'};border-radius:999px;font-size:var(--text-xs);cursor:pointer;background:${on ? '#E8A33D' : 'var(--c-surface-2)'};color:${on ? '#fff' : 'var(--c-text-2)'};font-weight:${on ? '700' : '400'};">${lbl}</button>`;
+  }).join('');
+  const maxEff = Math.max(Math.abs(d.effect_price), Math.abs(d.effect_shares), Math.abs(d.effect_events), 1);
+  const evTags = (d.events || []).map(e =>
+    `<span style="display:inline-block;background:var(--c-surface-2);border:1px solid var(--c-border);border-radius:6px;padding:2px 8px;margin:2px 3px 0 0;font-size:var(--text-xs);"><b>${e.ticker}</b> ${sgnTxt(e.delta_value)} · saham ${e.total_change_pct >= 0 ? '+' : ''}${e.total_change_pct.toFixed(0)}%</span>`
+  ).join('');
+  const recon = d.effect_price + d.effect_shares + d.effect_events;
+
+  const g = d.gross || {};
+  const maxGross = Math.max(g.buy || 0, g.sell || 0, 1);
+  const ratioPct = g.buy_sell_ratio != null ? Math.round(g.buy_sell_ratio * 100) + '%' : '-';
+  const concPct = g.top5_concentration != null ? Math.round(g.top5_concentration * 100) + '%' : '-';
+  const topSell = (g.top_net_sellers || []).map(x => x.ticker).join(', ') || '-';
+
+  wrap.innerHTML = `
+  <div style="background:var(--c-surface);border:1px solid var(--c-border);border-radius:var(--radius);padding:var(--s-4);margin-bottom:var(--s-4);">
+    <div style="font-size:var(--text-md);font-weight:700;">● Bedah Perubahan Nilai Asing</div>
+    <div style="display:flex;gap:var(--s-2);flex-wrap:wrap;margin:var(--s-3) 0 var(--s-2);">${chips}</div>
+    <div style="font-size:var(--text-xs);color:var(--c-text-3);margin-bottom:var(--s-3);">${dateLabelYear(d.from_date)} → ${dateLabelYear(d.to_date)} · ${d.emiten_analyzed} emiten dibedah · ${d.emiten_events} emiten aksi korporasi dipisah</div>
+    <div style="display:flex;align-items:baseline;gap:var(--s-3);flex-wrap:wrap;background:var(--c-warn-bg);border:1px solid var(--c-border);border-radius:var(--radius);padding:var(--s-3);margin-bottom:var(--s-3);">
+      <span style="font-size:var(--text-sm);">Nilai awal <b>Rp ${fmtS(d.value_start)}</b></span><span>→</span>
+      <span style="font-size:var(--text-sm);">Nilai akhir <b>Rp ${fmtS(d.value_end)}</b></span>
+      <span style="margin-left:auto;text-align:right;"><span style="font-size:var(--text-lg);font-weight:700;color:${sgnCol(d.delta)};">${sgnTxt(d.delta)}</span>
+      <span style="display:block;font-size:var(--text-xs);color:var(--c-text-3);">perubahan total (Rp)</span></span>
+    </div>
+    ${bar('Efek Harga', 'harga saham berubah', d.effect_price, maxEff, d.effect_price < 0 ? '#D94B4B' : '#00A86B')}
+    ${bar('Efek Lembar Asing', 'lembar asing berubah', d.effect_shares, maxEff, d.effect_shares < 0 ? '#E88A8A' : '#00A86B')}
+    ${bar('Aksi Korporasi', 'split / rights / placement', d.effect_events, maxEff, '#A3A3A3', 'var(--c-text-2)')}
+    <div style="display:flex;justify-content:space-between;border-top:1px dashed var(--c-border);margin-top:var(--s-3);padding-top:var(--s-2);font-size:var(--text-sm);color:var(--c-text-2);">
+      <span>Rekonsiliasi: <b>${sgnTxt(d.effect_price)} + ${sgnTxt(d.effect_shares)} + ${sgnTxt(d.effect_events)} = ${sgnTxt(recon)}</b></span>
+      <span style="color:#00A86B;font-weight:700;">✓ cocok dengan perubahan total</span>
+    </div>
+    ${evTags ? `<div style="margin-top:var(--s-3);font-size:var(--text-xs);color:var(--c-text-2);">Emiten aksi korporasi terbesar: ${evTags}</div>` : ''}
+    <div style="margin-top:var(--s-2);font-size:var(--text-xs);color:var(--c-text-3);line-height:1.5;">Efek lembar mencakup jual/beli di pasar reguler dan perpindahan luar pasar (mis. distribusi saham). Emiten dengan perubahan jumlah saham &gt;2% dipisah ke Aksi Korporasi agar tidak mengacaukan efek harga; perubahan nilai emiten tersebut tampil utuh di bucket itu.</div>
+  </div>
+  <div style="background:var(--c-surface);border:1px solid var(--c-border);border-radius:var(--radius);padding:var(--s-4);">
+    <div style="font-size:var(--text-md);font-weight:700;">● Arus Kotor Asing — Rotasi atau Keluar?</div>
+    <div style="font-size:var(--text-xs);color:var(--c-text-3);margin:var(--s-2) 0 var(--s-3);">Total transaksi asing di pasar reguler pada periode yang sama (${dateLabelYear(d.from_date)} – ${dateLabelYear(d.to_date)})</div>
+    ${bar('Total Beli Asing', 'akumulasi di pasar reguler', g.buy, maxGross, '#00A86B', '#00A86B')}
+    ${bar('Total Jual Asing', 'distribusi di pasar reguler', g.sell, maxGross, '#D94B4B', '#D94B4B', fmtS(g.sell))}
+    ${bar('Netto', 'selisih beli − jual', g.net, maxGross, g.net < 0 ? '#E88A8A' : '#00A86B')}
+    <div style="background:var(--c-info-bg);border:1px solid var(--c-border);border-radius:var(--radius);padding:var(--s-3);margin-top:var(--s-3);">
+      <div style="font-size:var(--text-sm);font-weight:700;color:var(--c-primary);">🧭 Bacaan pola: ${g.pattern || '-'}</div>
+      <div style="font-size:var(--text-sm);color:var(--c-text-2);line-height:1.55;margin-top:2px;">${DEC_PATTERN_INFO[g.pattern] || ''} Beli berjalan ${ratioPct} dari nilai jual; 5 emiten terbesar menyumbang ${concPct} jual bersih (${topSell}).</div>
+    </div>
+    <div style="margin-top:var(--s-2);font-size:var(--text-xs);color:var(--c-text-3);">Angka Rp pada kartu ini dan kartu bedah memakai jendela yang sama tetapi sumber berbeda (arus harian vs snapshot KSEI), jadi netto arus tidak harus sama persis dengan efek lembar.</div>
+  </div>`;
+
+  wrap.querySelectorAll('[data-decmode]').forEach(btn => btn.addEventListener('click', async () => {
+    const m = btn.getAttribute('data-decmode');
+    if (m === decState.mode || decState.loading) return;
+    decState.mode = m;
+    decState.loading = true;
+    fillDecomposition(wrap);
+    await loadDecomposition(m);
+    fillDecomposition(wrap);
+  }));
 }
 
 function buildMarketOwnershipSection(fo) {
