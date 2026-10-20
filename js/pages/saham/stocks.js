@@ -467,6 +467,18 @@ function buildLineChartApex(container, data, color) {
   return renderChart(container, opts);
 }
 
+function buildPositionChartApex(container, series) {
+  const opts = buildBaseOptions({ height: 230, type: 'line' });
+  opts.colors = ['#0EA5A4'];
+  opts.stroke.width = 2.5;
+  opts.series = [{
+    name: 'Posisi kumulatif',
+    data: series.filter(d => d.date && d.value != null).map(d => ({ x: toTs(d.date), y: d.value })),
+  }];
+  opts.tooltip.y = { formatter: (v) => (v >= 0 ? '+' : '') + fmtS(v) };
+  return renderChart(container, opts);
+}
+
 function buildCompareChartApex(container, primaryData, compareData, compareTickers, primaryTicker) {
   const opts = buildBaseOptions({ height: 300, type: 'line' });
   opts.colors = COMPARE_COLORS;
@@ -579,6 +591,7 @@ function buildCompareBiiChartApex(container, primaryData, compareData, compareTi
 const state = {
   searchTerm: '', searchResults: [], searching: false,
   selectedTicker: '', days: 30, analysis: null, loading: false,
+  foreignPos: null,
   compareMode: false, compareTickers: [], compareData: {}, compareLoading: false,
   charts: [],
   remarksHistory: {}, // cache riwayat remarks per ticker (diambil sekali)
@@ -606,11 +619,14 @@ async function loadAnalysis(ticker, { keepCompare = false } = {}) {
   const t = ticker.toUpperCase();
   state.loading = true; state.searchResults = []; state.selectedTicker = t;
   state.analysis = null;
+  state.foreignPos = null;
   if (!keepCompare) clearCompare();
   updateUI();
   try {
     const res = await Api.get(`/idx/stocks/${t}/analysis`, { days: state.days });
     state.analysis = new StockAnalysis(res);
+    const fp = await Api.get(`/idx/stocks/${t}/foreign-position`, { bucket: state.days }).catch(() => null);
+    state.foreignPos = (fp && (fp.data || fp)) || null;
     for (const ct of state.compareTickers) { await refreshCompare(ct); }
   } catch (e) {
     toast('Gagal memuat analisis: ' + (e.message || e), 'danger');
@@ -971,6 +987,11 @@ function renderAnalysis() {
     chartsWrap.appendChild(chartPanel('Total Nilai Transaksi', 'Regular value per hari', [{ label: 'Nilai transaksi', color: '#F6903D' }], 200));
     chartsWrap.appendChild(chartPanel('Volume Perdagangan', 'Jumlah lot yang diperdagangkan', [{ label: 'Volume', color: '#6DC8EC' }], 200));
     chartsWrap.appendChild(chartPanel('Arus Dana Asing', 'Net foreign buy / sell', [{ label: 'Beli bersih', color: '#00A86B' }, { label: 'Jual bersih', color: '#D94B4B' }], 210));
+    const fp = state.foreignPos;
+    if (fp && fp.series && fp.series.length) {
+      chartsWrap.appendChild(chartPanel('Posisi Asing Kumulatif', `Net foreign kumulatif sejak ${fp.data_start} · per titik = akumulasi ${fp.bucket_days} hari`, [{ label: 'Posisi', color: '#0EA5A4' }], 230));
+      chartsWrap.appendChild(buildPositionStats(fp));
+    }
     chartsWrap.appendChild(chartPanel('BII Score (Buying Intensity Index)', 'Skor akumulasi', [{ label: 'BII Score', color: '#7B61FF' }], 210));
     chartsWrap.appendChild(chartPanel('ATV (Avg Transaction Value)', 'Ukuran transaksi rata-rata', [{ label: 'ATV', color: '#9270CA' }], 200));
     chartsWrap.appendChild(chartPanel('Nilai Nego (Non-Regular)', 'Transaksi negosiasi', [{ label: 'Nego Value', color: '#F6C022' }], 200));
@@ -1035,6 +1056,8 @@ async function mountCharts(rawData) {
         chart = buildBarChartApex(container, normData.map(d => ({ time: d.date, value: d.volume })), '#6DC8EC');
       } else if (type === 'Arus Dana Asing') {
         chart = buildForeignChartApex(container, normData);
+      } else if (type === 'Posisi Asing Kumulatif') {
+        chart = state.foreignPos && state.foreignPos.series ? buildPositionChartApex(container, state.foreignPos.series) : null;
       } else if (type === 'BII Score (Buying Intensity Index)') {
         chart = buildLineChartApex(container, normData.map(d => ({ time: d.date, close: d.biiScore })), '#7B61FF');
       } else if (type === 'ATV (Avg Transaction Value)') {
@@ -1052,6 +1075,25 @@ async function mountCharts(rawData) {
       </div>`;
     }
   });
+}
+
+function buildPositionStats(fp) {
+  const wrap = createEl('div', { style: { marginBottom: 'var(--s-6)' } });
+  const rangePct = fp.range_position_pct != null ? fp.range_position_pct.toFixed(1) + '%' : '-';
+  const stat = (label, value, color) => `<div style="flex:1 1 110px;min-width:110px;padding:var(--s-3);background:var(--c-surface);border:1px solid var(--c-border);border-radius:var(--radius);text-align:center;">
+    <div style="color:${color};font-size:var(--text-md);font-weight:700;">${value}</div>
+    <div style="font-size:var(--text-xs);color:var(--c-text-3);margin-top:2px;">${label}</div></div>`;
+  wrap.innerHTML = `
+    <div style="font-size:var(--text-md);font-weight:700;margin-bottom:var(--s-3);">POSISI ASING KUMULATIF</div>
+    <div style="display:flex;gap:var(--s-2);flex-wrap:wrap;">
+      ${stat('Tertinggi · ' + dateLabel(fp.peak_date), fmtS(fp.peak), '#00A86B')}
+      ${stat('Terendah · ' + dateLabel(fp.trough_date), fmtS(fp.trough), '#D94B4B')}
+      ${stat('Sekarang', fmtS(fp.current), fp.current >= 0 ? '#00A86B' : '#D94B4B')}
+      ${stat('Posisi dalam rentang', rangePct, '#F2B705')}
+      ${stat('Jarak dari puncak', fmtS(fp.distance_from_peak), '#90A4AE')}
+      ${stat('Net 30 / 90 hari', fmtS(fp.net_30d) + ' / ' + fmtS(fp.net_90d), '#5B8FF9')}
+    </div>`;
+  return wrap;
 }
 
 function buildSummaryTable(rawData) {

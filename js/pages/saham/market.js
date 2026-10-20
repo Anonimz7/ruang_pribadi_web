@@ -87,6 +87,18 @@ function buildForeignMarketChartApex(container, data) {
   return renderChart(container, opts);
 }
 
+function buildPositionChartApex(container, series) {
+  const opts = buildBaseOptions({ height: 230, type: 'line' });
+  opts.colors = ['#0EA5A4'];
+  opts.stroke.width = 2.5;
+  opts.series = [{
+    name: 'Posisi kumulatif',
+    data: series.filter(d => d.date && d.value != null).map(d => ({ x: toTs(d.date), y: d.value })),
+  }];
+  opts.tooltip.y = { formatter: (v) => (v >= 0 ? '+' : '') + fmtS(v) };
+  return renderChart(container, opts);
+}
+
 function buildAspMwiChartApex(container, aspData, mwiData) {
   const opts = buildBaseOptions({ height: 270, type: 'line' });
   opts.colors = ['#00A86B', '#F2B705'];
@@ -117,9 +129,10 @@ async function loadMarket() {
   state.loading = true;
   renderLoading();
   try {
-    const [res, daily] = await Promise.all([
+    const [res, daily, fpos] = await Promise.all([
       Api.get('/idx/market/summary', { days: state.days }),
       Api.get('/idx/market/top-foreign-flow', { days: 1 }).catch(() => null),
+      Api.get('/idx/market/foreign-position', { bucket: state.days }).catch(() => null),
     ]);
     state.data = res?.data || res;
     const dd = daily?.data || daily;
@@ -127,6 +140,8 @@ async function loadMarket() {
       state.data.top_daily_acc = dd.accumulation || [];
       state.data.top_daily_dist = dd.distribution || [];
     }
+    const fp = fpos?.data || fpos;
+    if (fp) state.data.foreign_pos = fp;
     state.loading = false;
     renderMarket();
   } catch (e) {
@@ -278,6 +293,12 @@ function renderMarket() {
     el.appendChild(chartPanel('Arus Dana Asing Pasar', 'Net foreign buy/sell keseluruhan pasar', [{ label: 'Beli', color: '#00A86B' }, { label: 'Jual', color: '#D94B4B' }], 210));
     // ── Top 10 Net Foreign harian terakhir (breakdown bar terakhir chart di atas) ──
     if (topDailyAcc.length || topDailyDist.length) el.appendChild(buildDailyFlowSection(topDailyAcc, topDailyDist, latestDate));
+    // ── Posisi Asing Kumulatif Pasar (insight jangka panjang, jendela tetap server-side) ──
+    const fp = d.foreign_pos;
+    if (fp && fp.series && fp.series.length) {
+      el.appendChild(chartPanel('Posisi Asing Kumulatif Pasar', `Net foreign kumulatif sejak ${dateLabel(fp.data_start)} · per titik = akumulasi ${fp.bucket_days} hari`, [{ label: 'Posisi', color: '#0EA5A4' }], 230));
+      el.appendChild(buildForeignPositionSection(fp));
+    }
     el.appendChild(chartPanel('BII Score Pasar', 'Skor akumulasi pasar', [{ label: 'BII', color: '#7B61FF' }], 210));
     el.appendChild(chartPanel('Nilai Nego Pasar', 'Transaksi non-regular pasar', [{ label: 'Nego Value', color: '#F6C022' }], 200));
     el.appendChild(chartPanel('Frekuensi Nego Pasar', 'Transaksi negosiasi pasar', [{ label: 'Nego Freq', color: '#90A4AE' }], 180));
@@ -363,6 +384,7 @@ async function mountMarketCharts(asp, mwi, marketData) {
       else if (type === 'Frekuensi Transaksi Pasar') chart = buildBarChartApex(container, marketData.map(d => ({ date: d.date, value: d.frequency })), '#5B8FF9');
       else if (type === 'ATV Pasar') chart = buildBarChartApex(container, marketData.map(d => ({ date: d.date, value: d.atv })), '#9270CA');
       else if (type === 'Arus Dana Asing Pasar') chart = buildForeignMarketChartApex(container, marketData);
+      else if (type === 'Posisi Asing Kumulatif Pasar') { const fp = state.data && state.data.foreign_pos; chart = fp && fp.series ? buildPositionChartApex(container, fp.series) : null; }
       else if (type === 'BII Score Pasar') chart = buildLineChartApex(container, marketData.map(d => ({ date: d.date, close: d.bii_score })), '#7B61FF');
       else if (type === 'Nilai Nego Pasar') chart = buildBarChartApex(container, marketData.map(d => ({ date: d.date, value: d.non_reg_value })), '#F6C022');
       else if (type === 'Frekuensi Nego Pasar') chart = buildBarChartApex(container, marketData.map(d => ({ date: d.date, value: d.non_reg_freq })), '#90A4AE');
@@ -401,6 +423,30 @@ function buildDailyFlowSection(acc, dist, dateStr) {
     <div style="display:flex;gap:var(--s-4);flex-wrap:wrap;">
       ${tbl('TOP NET BUY', acc, '#00A86B')}
       ${tbl('TOP NET SELL', dist, '#D94B4B')}
+    </div>`;
+  return wrap;
+}
+
+function buildForeignPositionSection(fp) {
+  const rangePct = fp.range_position_pct != null ? fp.range_position_pct.toFixed(1) + '%' : '-';
+  const rangeColor = fp.range_position_pct != null
+    ? (fp.range_position_pct <= 15 ? '#D94B4B' : fp.range_position_pct >= 85 ? '#00A86B' : '#F2B705')
+    : 'inherit';
+  const cell = (label, value, sub, color) => `
+    <div style="flex:1 1 140px;min-width:140px;padding:var(--s-3);background:var(--c-surface);border:1px solid var(--c-border);border-radius:var(--radius);">
+      <div style="font-size:var(--text-xs);color:var(--c-text-3);margin-bottom:var(--s-1);">${label}</div>
+      <div style="font-size:var(--text-lg);font-weight:700;color:${color || 'inherit'};">${value}</div>
+      ${sub ? `<div style="font-size:var(--text-xs);color:var(--c-text-3);margin-top:2px;">${sub}</div>` : ''}
+    </div>`;
+  const wrap = createEl('div', { style: { marginBottom: 'var(--s-6)' } });
+  wrap.innerHTML = `
+    <div style="display:flex;gap:var(--s-2);flex-wrap:wrap;">
+      ${cell('Posisi Tertinggi', fmtS(fp.peak), dateLabel(fp.peak_date), '#00A86B')}
+      ${cell('Posisi Terendah', fmtS(fp.trough), dateLabel(fp.trough_date), '#D94B4B')}
+      ${cell('Posisi Sekarang', fmtS(fp.current), 'kumulatif terakhir', fp.current >= 0 ? '#00A86B' : '#D94B4B')}
+      ${cell('Posisi dalam Rentang', rangePct, '0% = terendah · 100% = tertinggi', rangeColor)}
+      ${cell('Jarak dari Puncak', fmtS(fp.distance_from_peak), 'telah keluar sejak puncak')}
+      ${cell('Net Asing 30 / 90 hari', fmtS(fp.net_30d) + ' / ' + fmtS(fp.net_90d), 'arus terbaru', '#5B8FF9')}
     </div>`;
   return wrap;
 }
