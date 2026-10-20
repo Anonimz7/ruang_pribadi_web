@@ -593,10 +593,9 @@ function fillDecomposition(wrap) {
       const judul2 = hargaTurun ? 'Harga Saham Jatuh' : 'Harga Saham Naik';
       const sebab2 = `angka kartu bawah dihitung pada harga saat transaksi terjadi, sedangkan kartu atas (KSEI) dihitung pada harga akhir periode. Karena harga di akhir periode ${hargaTurun ? 'jatuh' : 'naik'}, nilai rupiah dari lembar yang ${gapVal > 0 ? 'hilang' : 'berubah'} ikut ${hargaTurun ? 'mengecil' : 'membesar'}.`;
       gapBlock = `
-    <div style="font-size:var(--text-sm);color:var(--c-text-2);line-height:1.6;margin-top:var(--s-2);">Selisih <b>${sgnTxt(gapVal)}</b> itu terutama dijelaskan dua hal:</div>
-    <div style="font-size:var(--text-sm);color:var(--c-text-2);line-height:1.6;margin-top:var(--s-2);"><b>1. ${judul1}:</b> ${sebab1}</div>
-    <div style="font-size:var(--text-sm);color:var(--c-text-2);line-height:1.6;margin-top:var(--s-2);"><b>2. ${judul2}:</b> ${sebab2}</div>
-    ${d.emiten_events ? `<div style="font-size:var(--text-xs);color:var(--c-text-3);line-height:1.5;margin-top:var(--s-2);">Catatan cakupan: ${d.emiten_events} emiten aksi korporasi tidak masuk efek lembar, tetapi arus regulernya terhitung di kartu bawah — ikut menyumbang selisih.</div>` : ''}`;
+    <div style="font-size:var(--text-sm);color:var(--c-text-2);line-height:1.6;margin-top:var(--s-2);">Selisih <b>${sgnTxt(gapVal)}</b> itu terutama dijelaskan satu hal:</div>
+    <div style="font-size:var(--text-sm);color:var(--c-text-2);line-height:1.6;margin-top:var(--s-2);"><b>${judul1}:</b> ${sebab1}</div>
+    <div style="font-size:var(--text-xs);color:var(--c-text-3);line-height:1.5;margin-top:var(--s-2);">Faktor teknis lain — <b>${judul2}:</b> ${sebab2}${d.emiten_events ? ` Cakupan: ${d.emiten_events} emiten aksi korporasi tidak masuk efek lembar, tetapi arus regulernya terhitung di kartu bawah — ikut menyumbang selisih.` : ''}</div>`;
     }
     return `<div style="background:var(--c-surface);border:1px solid var(--c-border);border-left:4px solid #E8A33D;border-radius:var(--radius);padding:var(--s-4);margin-top:var(--s-4);">
     <div style="font-size:var(--text-md);font-weight:700;">● Kesimpulan Gabungan — Aktivitas vs Hasil Akhir</div>
