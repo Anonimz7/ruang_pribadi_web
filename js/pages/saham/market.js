@@ -581,19 +581,29 @@ function fillDecomposition(wrap) {
     const flowNet = g.net || 0;
     const shareEff = d.effect_shares || 0;
     const gapVal = shareEff - flowNet;
-    let gapTxt;
+    let gapBlock;
     if (Math.abs(gapVal) < 0.10 * Math.max(Math.abs(flowNet), 1)) {
-      gapTxt = 'Keduanya hampir sama — perubahan lembar periode ini hampir seluruhnya dijelaskan oleh transaksi di pasar reguler.';
-    } else if (gapVal > 0) {
-      gapTxt = `Selisih <b>${sgnTxt(gapVal)}</b> berasal dari gabungan tiga hal: basis harga (arus dihargai saat transaksi terjadi, efek lembar dihargai pada harga akhir periode), penambahan lembar di luar pasar reguler secara netto, dan cakupan (emiten aksi korporasi tidak masuk efek lembar tetapi arusnya terhitung di arus kotor).`;
+      gapBlock = `<div style="font-size:var(--text-sm);color:var(--c-text-2);line-height:1.6;margin-top:var(--s-2);">Keduanya hampir sama — perubahan lembar periode ini hampir seluruhnya dijelaskan oleh transaksi di pasar reguler.</div>`;
     } else {
-      gapTxt = `Selisih <b>${sgnTxt(gapVal)}</b> berasal dari gabungan tiga hal: basis harga (arus dihargai saat transaksi terjadi, efek lembar dihargai pada harga akhir periode), pelepasan lembar di luar pasar reguler secara netto (distribusi/transfer di luar bursa), dan cakupan (emiten aksi korporasi tidak masuk efek lembar tetapi arusnya terhitung di arus kotor).`;
+      const judul1 = gapVal > 0 ? 'Ada Beli di Luar Bursa (Luar Pasar Reguler)' : 'Ada Pelepasan di Luar Bursa (Luar Pasar Reguler)';
+      const sebab1 = gapVal > 0
+        ? 'uang hasil penjualan di bursa tidak semuanya ditarik pulang — sebagian dipakai membeli saham lewat jalur luar bursa (mis. private placement, rights issue, atau kesepakatan langsung). Transaksi itu <b>tidak</b> tercatat di Arus Kotor (kartu bawah), tetapi tercatat di data KSEI (kartu atas) — makanya pengurangan lembarnya lebih kecil daripada jual bersihnya.'
+        : 'sebagian lembar keluar lewat jalur luar bursa (mis. distribusi saham atau transfer langsung). Perpindahan itu <b>tidak</b> tercatat di Arus Kotor (kartu bawah), tetapi tercatat di data KSEI (kartu atas) — makanya pengurangan lembarnya lebih besar daripada jual bersihnya.';
+      const hargaTurun = (d.effect_price || 0) < 0;
+      const judul2 = hargaTurun ? 'Harga Saham Jatuh' : 'Harga Saham Naik';
+      const sebab2 = `angka kartu bawah dihitung pada harga saat transaksi terjadi, sedangkan kartu atas (KSEI) dihitung pada harga akhir periode. Karena harga di akhir periode ${hargaTurun ? 'jatuh' : 'naik'}, nilai rupiah dari lembar yang ${gapVal > 0 ? 'hilang' : 'berubah'} ikut ${hargaTurun ? 'mengecil' : 'membesar'}.`;
+      gapBlock = `
+    <div style="font-size:var(--text-sm);color:var(--c-text-2);line-height:1.6;margin-top:var(--s-2);">Selisih <b>${sgnTxt(gapVal)}</b> itu terutama dijelaskan dua hal:</div>
+    <div style="font-size:var(--text-sm);color:var(--c-text-2);line-height:1.6;margin-top:var(--s-2);"><b>1. ${judul1}:</b> ${sebab1}</div>
+    <div style="font-size:var(--text-sm);color:var(--c-text-2);line-height:1.6;margin-top:var(--s-2);"><b>2. ${judul2}:</b> ${sebab2}</div>
+    ${d.emiten_events ? `<div style="font-size:var(--text-xs);color:var(--c-text-3);line-height:1.5;margin-top:var(--s-2);">Catatan cakupan: ${d.emiten_events} emiten aksi korporasi tidak masuk efek lembar, tetapi arus regulernya terhitung di kartu bawah — ikut menyumbang selisih.</div>` : ''}`;
     }
     return `<div style="background:var(--c-surface);border:1px solid var(--c-border);border-left:4px solid #E8A33D;border-radius:var(--radius);padding:var(--s-4);margin-top:var(--s-4);">
     <div style="font-size:var(--text-md);font-weight:700;">● Kesimpulan Gabungan — Aktivitas vs Hasil Akhir</div>
     <div style="font-size:var(--text-sm);color:var(--c-text-2);line-height:1.6;margin-top:var(--s-2);">
-      Di pasar reguler asing ${flowNet < 0 ? 'menjual' : 'membeli'} bersih <b>${fmtS(Math.abs(flowNet))}</b> (aktivitas), sementara lembar kepemilikan resmi mereka di KSEI berubah setara <b>${sgnTxt(shareEff)}</b> (hasil akhir). ${gapTxt}
+      Di pasar reguler asing ${flowNet < 0 ? 'menjual' : 'membeli'} bersih <b>${fmtS(Math.abs(flowNet))}</b> (aktivitas), sementara lembar kepemilikan resmi mereka di KSEI berubah setara <b>${sgnTxt(shareEff)}</b> (hasil akhir).
     </div>
+    ${gapBlock}
     <div style="font-size:var(--text-sm);color:var(--c-text-2);line-height:1.6;margin-top:var(--s-2);">
       Kesimpulan periode ini: nilai asing berubah <b>${sgnTxt(d.delta)}</b> — terutama oleh efek harga (<b>${sgnTxt(d.effect_price)}</b>) — dengan pola arus <b>${g.pattern || '-'}</b>.
     </div>
