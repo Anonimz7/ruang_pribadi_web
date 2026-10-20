@@ -576,7 +576,29 @@ function fillDecomposition(wrap) {
       <div style="font-size:var(--text-sm);color:var(--c-text-2);line-height:1.55;margin-top:2px;">${DEC_PATTERN_INFO[g.pattern] || ''} Beli berjalan ${ratioPct} dari nilai jual; 5 emiten terbesar menyumbang ${concPct} jual bersih (${topSell}).</div>
     </div>
     <div style="margin-top:var(--s-2);font-size:var(--text-xs);color:var(--c-text-3);">Angka Rp pada kartu ini dan kartu bedah memakai jendela yang sama tetapi sumber berbeda (arus harian vs snapshot KSEI), jadi netto arus tidak harus sama persis dengan efek lembar.</div>
+  </div>
+  ${(() => {
+    const flowNet = g.net || 0;
+    const shareEff = d.effect_shares || 0;
+    const gapVal = shareEff - flowNet;
+    let gapTxt;
+    if (Math.abs(gapVal) < 0.10 * Math.max(Math.abs(flowNet), 1)) {
+      gapTxt = 'Keduanya hampir sama — perubahan lembar periode ini hampir seluruhnya dijelaskan oleh transaksi di pasar reguler.';
+    } else if (gapVal > 0) {
+      gapTxt = `Selisih <b>${sgnTxt(gapVal)}</b> berasal dari gabungan tiga hal: basis harga (arus dihargai saat transaksi terjadi, efek lembar dihargai pada harga akhir periode), penambahan lembar di luar pasar reguler secara netto, dan cakupan (emiten aksi korporasi tidak masuk efek lembar tetapi arusnya terhitung di arus kotor).`;
+    } else {
+      gapTxt = `Selisih <b>${sgnTxt(gapVal)}</b> berasal dari gabungan tiga hal: basis harga (arus dihargai saat transaksi terjadi, efek lembar dihargai pada harga akhir periode), pelepasan lembar di luar pasar reguler secara netto (distribusi/transfer di luar bursa), dan cakupan (emiten aksi korporasi tidak masuk efek lembar tetapi arusnya terhitung di arus kotor).`;
+    }
+    return `<div style="background:var(--c-surface);border:1px solid var(--c-border);border-left:4px solid #E8A33D;border-radius:var(--radius);padding:var(--s-4);margin-top:var(--s-4);">
+    <div style="font-size:var(--text-md);font-weight:700;">● Kesimpulan Gabungan — Aktivitas vs Hasil Akhir</div>
+    <div style="font-size:var(--text-sm);color:var(--c-text-2);line-height:1.6;margin-top:var(--s-2);">
+      Di pasar reguler asing ${flowNet < 0 ? 'menjual' : 'membeli'} bersih <b>${fmtS(Math.abs(flowNet))}</b> (aktivitas), sementara lembar kepemilikan resmi mereka di KSEI berubah setara <b>${sgnTxt(shareEff)}</b> (hasil akhir). ${gapTxt}
+    </div>
+    <div style="font-size:var(--text-sm);color:var(--c-text-2);line-height:1.6;margin-top:var(--s-2);">
+      Kesimpulan periode ini: nilai asing berubah <b>${sgnTxt(d.delta)}</b> — terutama oleh efek harga (<b>${sgnTxt(d.effect_price)}</b>) — dengan pola arus <b>${g.pattern || '-'}</b>.
+    </div>
   </div>`;
+  })()}`;
 
   wrap.querySelectorAll('[data-decmode]').forEach(btn => btn.addEventListener('click', async () => {
     const m = btn.getAttribute('data-decmode');
