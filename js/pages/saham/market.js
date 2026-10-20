@@ -585,17 +585,51 @@ function fillDecomposition(wrap) {
     if (Math.abs(gapVal) < 0.10 * Math.max(Math.abs(flowNet), 1)) {
       gapBlock = `<div style="font-size:var(--text-sm);color:var(--c-text-2);line-height:1.6;margin-top:var(--s-2);">Keduanya hampir sama — perubahan lembar periode ini hampir seluruhnya dijelaskan oleh transaksi di pasar reguler.</div>`;
     } else {
-      const judul1 = gapVal > 0 ? 'Ada Beli di Luar Bursa (Luar Pasar Reguler)' : 'Ada Pelepasan di Luar Bursa (Luar Pasar Reguler)';
-      const sebab1 = gapVal > 0
-        ? 'uang hasil penjualan di bursa tidak semuanya ditarik pulang — sebagian dipakai membeli saham lewat jalur luar bursa (mis. private placement, rights issue, atau kesepakatan langsung). Transaksi itu <b>tidak</b> tercatat di Arus Kotor (kartu bawah), tetapi tercatat di data KSEI (kartu atas) — makanya pengurangan lembarnya lebih kecil daripada jual bersihnya.'
-        : 'sebagian lembar keluar lewat jalur luar bursa (mis. distribusi saham atau transfer langsung). Perpindahan itu <b>tidak</b> tercatat di Arus Kotor (kartu bawah), tetapi tercatat di data KSEI (kartu atas) — makanya pengurangan lembarnya lebih besar daripada jual bersihnya.';
       const hargaTurun = (d.effect_price || 0) < 0;
       const judul2 = hargaTurun ? 'Harga Saham Jatuh' : 'Harga Saham Naik';
       const sebab2 = `angka kartu bawah dihitung pada harga saat transaksi terjadi, sedangkan kartu atas (KSEI) dihitung pada harga akhir periode. Karena harga di akhir periode ${hargaTurun ? 'jatuh' : 'naik'}, nilai rupiah dari lembar yang ${gapVal > 0 ? 'hilang' : 'berubah'} ikut ${hargaTurun ? 'mengecil' : 'membesar'}.`;
-      gapBlock = `
+      const offBody = (v) => v > 0
+        ? 'uang hasil penjualan di bursa tidak semuanya ditarik pulang — sebagian dipakai membeli saham lewat jalur luar bursa (mis. private placement, rights issue, atau kesepakatan langsung). Transaksi itu <b>tidak</b> tercatat di Arus Kotor (kartu bawah), tetapi tercatat di data KSEI (kartu atas) — makanya pengurangan lembarnya lebih kecil daripada jual bersihnya.'
+        : 'sebagian lembar keluar lewat jalur luar bursa (mis. distribusi saham atau transfer langsung). Perpindahan itu <b>tidak</b> tercatat di Arus Kotor (kartu bawah), tetapi tercatat di data KSEI (kartu atas) — makanya pengurangan lembarnya lebih besar daripada jual bersihnya.';
+      const gp = d.gap;
+      if (gp && (gp.off_market != null)) {
+        const causes = [
+          { key: 'off', val: gp.off_market || 0, color: '#E8A33D', label: 'Luar pasar',
+            title: (gp.off_market || 0) > 0 ? 'Ada Beli di Luar Bursa (Luar Pasar Reguler)' : 'Ada Pelepasan di Luar Bursa (Luar Pasar Reguler)',
+            body: offBody(gp.off_market || 0), note: `luar pasar netto ${sgnTxt(gp.off_market || 0)}` },
+          { key: 'basis', val: gp.price_basis || 0, color: '#5B8FF9', label: 'Basis harga',
+            title: judul2,
+            body: `angka Arus Kotor (kartu bawah) dihargai pada harga saat transaksi terjadi, sedangkan efek lembar (kartu atas) dihargai pada harga akhir periode. Karena harga bergerak besar selama periode ini — efek harga totalnya ${sgnTxt(d.effect_price)} — nilai rupiah dari perubahan lembar yang sama tampil berbeda di kedua kartu, dan perbedaan cara menghargai inilah penyumbang terbesar selisihnya.`,
+            note: `basis harga ${sgnTxt(gp.price_basis || 0)}` },
+          { key: 'cov', val: gp.coverage || 0, color: '#8A94A6', label: 'Cakupan emiten event',
+            title: 'Cakupan Emiten Aksi Korporasi',
+            body: `${d.emiten_events || 0} emiten yang jumlah sahamnya berubah lebih dari 2% tidak dibedah per lembar — seluruh perubahan nilainya masuk bucket Aksi Korporasi — tetapi jual-beli reguler mereka tetap terhitung di Arus Kotor (kartu bawah). Arus netto emiten-emiten itulah penyumbang terbesar selisih kedua kartu.`,
+            note: `cakupan emiten event ${sgnTxt(gp.coverage || 0)}` },
+        ];
+        const sorted = [...causes].sort((a, b) => Math.abs(b.val) - Math.abs(a.val));
+        const main = sorted[0];
+        const totAbs = causes.reduce((s, c) => s + Math.abs(c.val), 0) || 1;
+        const segs = causes.map(c => `<div style="background:${c.color};width:${(Math.abs(c.val) / totAbs * 100).toFixed(1)}%;"></div>`).join('');
+        const legend = causes.map(c => `<span><span style="display:inline-block;width:10px;height:10px;border-radius:3px;background:${c.color};margin-right:6px;"></span>${c.label} <b>${sgnTxt(c.val)}</b></span>`).join('');
+        const inTxt = (gp.top_off_market_in || []).map(r => `${r.ticker} ${sgnTxt(r.value)}`).join(' · ');
+        const outTxt = (gp.top_off_market_out || []).map(r => `${r.ticker} ${sgnTxt(r.value)}`).join(' · ');
+        const namesLine = (inTxt || outTxt) ? `<div style="font-size:var(--text-sm);color:var(--c-text-2);margin-top:var(--s-2);">Luar pasar terbesar — ${inTxt ? `masuk: <span style="color:#2FBF71;font-weight:600;">${inTxt}</span>` : ''}${inTxt && outTxt ? ' &nbsp;|&nbsp; ' : ''}${outTxt ? `keluar: <span style="color:#E5484D;font-weight:600;">${outTxt}</span>` : ''}</div>` : '';
+        const otherNotes = sorted.slice(1).map(c => c.note).join(' · ');
+        gapBlock = `
     <div style="font-size:var(--text-sm);color:var(--c-text-2);line-height:1.6;margin-top:var(--s-2);">Selisih <b>${sgnTxt(gapVal)}</b> itu terutama dijelaskan satu hal:</div>
-    <div style="font-size:var(--text-sm);color:var(--c-text-2);line-height:1.6;margin-top:var(--s-2);"><b>${judul1}:</b> ${sebab1}</div>
+    <div style="background:rgba(232,163,61,.07);border:1px solid var(--c-border);border-radius:var(--radius-sm,8px);padding:10px 14px;margin-top:var(--s-2);font-size:var(--text-sm);color:var(--c-text-2);line-height:1.6;"><b>${main.title}:</b> ${main.body}</div>
+    <div style="font-size:var(--text-xs);letter-spacing:.04em;color:var(--c-text-3);margin-top:var(--s-3);">PEMECAHAN SELISIH ${sgnTxt(gapVal)}</div>
+    <div style="display:flex;height:22px;border-radius:6px;overflow:hidden;margin-top:6px;">${segs}</div>
+    <div style="display:flex;gap:18px;flex-wrap:wrap;font-size:var(--text-sm);color:var(--c-text-2);margin-top:7px;">${legend}</div>
+    ${namesLine}
+    <div style="font-size:var(--text-xs);color:var(--c-text-3);line-height:1.5;margin-top:var(--s-2);">Komponen lain — ${otherNotes}. Komponen bertanda berlawanan dengan selisih berarti menahan, bukan menambah.</div>`;
+      } else {
+        const judul1 = gapVal > 0 ? 'Ada Beli di Luar Bursa (Luar Pasar Reguler)' : 'Ada Pelepasan di Luar Bursa (Luar Pasar Reguler)';
+        gapBlock = `
+    <div style="font-size:var(--text-sm);color:var(--c-text-2);line-height:1.6;margin-top:var(--s-2);">Selisih <b>${sgnTxt(gapVal)}</b> itu terutama dijelaskan satu hal:</div>
+    <div style="font-size:var(--text-sm);color:var(--c-text-2);line-height:1.6;margin-top:var(--s-2);"><b>${judul1}:</b> ${offBody(gapVal)}</div>
     <div style="font-size:var(--text-xs);color:var(--c-text-3);line-height:1.5;margin-top:var(--s-2);">Faktor teknis lain — <b>${judul2}:</b> ${sebab2}${d.emiten_events ? ` Cakupan: ${d.emiten_events} emiten aksi korporasi tidak masuk efek lembar, tetapi arus regulernya terhitung di kartu bawah — ikut menyumbang selisih.` : ''}</div>`;
+      }
     }
     return `<div style="background:var(--c-surface);border:1px solid var(--c-border);border-left:4px solid #E8A33D;border-radius:var(--radius);padding:var(--s-4);margin-top:var(--s-4);">
     <div style="font-size:var(--text-md);font-weight:700;">● Kesimpulan Gabungan — Aktivitas vs Hasil Akhir</div>
