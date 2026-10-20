@@ -37,6 +37,13 @@ function dateLabel(dateStr) {
   return `${d.getDate()} ${months[d.getMonth()]}`;
 }
 
+function dateLabelYear(dateStr) {
+  const d = new Date(dateStr);
+  if (isNaN(d)) return dateStr;
+  const months = ['Jan', 'Feb', 'Mar', 'Apr', 'Mei', 'Jun', 'Jul', 'Agu', 'Sep', 'Okt', 'Nov', 'Des'];
+  return `${d.getDate()} ${months[d.getMonth()]} ${d.getFullYear()}`;
+}
+
 /* ─── ApexCharts helpers ─── */
 function toTs(dateStr) {
   const d = new Date(normalizeDate(dateStr));
@@ -296,7 +303,7 @@ function renderMarket() {
     // ── Posisi Asing Kumulatif Pasar (insight jangka panjang, jendela tetap server-side) ──
     const fp = d.foreign_pos;
     if (fp && fp.series && fp.series.length) {
-      el.appendChild(chartPanel('Posisi Asing Kumulatif Pasar', `Net foreign kumulatif sejak ${dateLabel(fp.data_start)} · per titik = akumulasi ${fp.bucket_days} hari`, [{ label: 'Posisi', color: '#0EA5A4' }], 230));
+      el.appendChild(chartPanel('Posisi Asing Kumulatif Pasar', `Net foreign kumulatif sejak ${dateLabelYear(fp.data_start)} · per titik = akumulasi ${fp.bucket_days} hari`, [{ label: 'Posisi', color: '#0EA5A4' }], 230));
       el.appendChild(buildForeignPositionSection(fp));
     }
     el.appendChild(chartPanel('BII Score Pasar', 'Skor akumulasi pasar', [{ label: 'BII', color: '#7B61FF' }], 210));
@@ -438,15 +445,17 @@ function buildForeignPositionSection(fp) {
       <div style="font-size:var(--text-lg);font-weight:700;color:${color || 'inherit'};">${value}</div>
       ${sub ? `<div style="font-size:var(--text-xs);color:var(--c-text-3);margin-top:2px;">${sub}</div>` : ''}
     </div>`;
+  const sgn = (v) => v >= 0 ? '#00A86B' : '#D94B4B';
+  const netHtml = `<span style="color:${sgn(fp.net_30d)};">${fmtS(fp.net_30d)}</span> / <span style="color:${sgn(fp.net_90d)};">${fmtS(fp.net_90d)}</span>`;
   const wrap = createEl('div', { style: { marginBottom: 'var(--s-6)' } });
   wrap.innerHTML = `
     <div style="display:flex;gap:var(--s-2);flex-wrap:wrap;">
-      ${cell('Posisi Tertinggi', fmtS(fp.peak), dateLabel(fp.peak_date), '#00A86B')}
-      ${cell('Posisi Terendah', fmtS(fp.trough), dateLabel(fp.trough_date), '#D94B4B')}
+      ${cell('Posisi Tertinggi', fmtS(fp.peak), dateLabelYear(fp.peak_date), '#00A86B')}
+      ${cell('Posisi Terendah', fmtS(fp.trough), dateLabelYear(fp.trough_date), '#D94B4B')}
       ${cell('Posisi Sekarang', fmtS(fp.current), 'kumulatif terakhir', fp.current >= 0 ? '#00A86B' : '#D94B4B')}
       ${cell('Posisi dalam Rentang', rangePct, '0% = terendah · 100% = tertinggi', rangeColor)}
-      ${cell('Jarak dari Puncak', fmtS(fp.distance_from_peak), 'telah keluar sejak puncak')}
-      ${cell('Net Asing 30 / 90 hari', fmtS(fp.net_30d) + ' / ' + fmtS(fp.net_90d), 'arus terbaru', '#5B8FF9')}
+      ${cell('Keluar Sejak Puncak', fmtS(fp.distance_from_peak), 'total net sell asing dari puncak ke sekarang')}
+      ${cell('Net Asing 30 / 90 hari', netHtml, 'arus terbaru')}
     </div>`;
   return wrap;
 }

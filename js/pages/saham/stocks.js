@@ -399,6 +399,13 @@ function dateLabel(dateStr) {
   return `${d.getDate()} ${months[d.getMonth()]}`;
 }
 
+function dateLabelYear(dateStr) {
+  const d = new Date(dateStr);
+  if (isNaN(d)) return dateStr;
+  const months = ['Jan', 'Feb', 'Mar', 'Apr', 'Mei', 'Jun', 'Jul', 'Agu', 'Sep', 'Okt', 'Nov', 'Des'];
+  return `${d.getDate()} ${months[d.getMonth()]} ${d.getFullYear()}`;
+}
+
 function fullDate(dateStr) {
   const d = new Date(dateStr);
   if (isNaN(d)) return dateStr;
@@ -1083,15 +1090,17 @@ function buildPositionStats(fp) {
   const stat = (label, value, color) => `<div style="flex:1 1 110px;min-width:110px;padding:var(--s-3);background:var(--c-surface);border:1px solid var(--c-border);border-radius:var(--radius);text-align:center;">
     <div style="color:${color};font-size:var(--text-md);font-weight:700;">${value}</div>
     <div style="font-size:var(--text-xs);color:var(--c-text-3);margin-top:2px;">${label}</div></div>`;
+  const sgn = (v) => v >= 0 ? '#00A86B' : '#D94B4B';
+  const netHtml = `<span style="color:${sgn(fp.net_30d)};">${fmtS(fp.net_30d)}</span> / <span style="color:${sgn(fp.net_90d)};">${fmtS(fp.net_90d)}</span>`;
   wrap.innerHTML = `
     <div style="font-size:var(--text-md);font-weight:700;margin-bottom:var(--s-3);">POSISI ASING KUMULATIF</div>
     <div style="display:flex;gap:var(--s-2);flex-wrap:wrap;">
-      ${stat('Tertinggi · ' + dateLabel(fp.peak_date), fmtS(fp.peak), '#00A86B')}
-      ${stat('Terendah · ' + dateLabel(fp.trough_date), fmtS(fp.trough), '#D94B4B')}
+      ${stat('Tertinggi · ' + dateLabelYear(fp.peak_date), fmtS(fp.peak), '#00A86B')}
+      ${stat('Terendah · ' + dateLabelYear(fp.trough_date), fmtS(fp.trough), '#D94B4B')}
       ${stat('Sekarang', fmtS(fp.current), fp.current >= 0 ? '#00A86B' : '#D94B4B')}
       ${stat('Posisi dalam rentang', rangePct, '#F2B705')}
-      ${stat('Jarak dari puncak', fmtS(fp.distance_from_peak), '#90A4AE')}
-      ${stat('Net 30 / 90 hari', fmtS(fp.net_30d) + ' / ' + fmtS(fp.net_90d), '#5B8FF9')}
+      ${stat('Net sell sejak puncak', fmtS(fp.distance_from_peak), '#90A4AE')}
+      ${stat('Net 30 / 90 hari', netHtml, 'inherit')}
     </div>`;
   return wrap;
 }
