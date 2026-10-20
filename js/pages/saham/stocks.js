@@ -612,6 +612,7 @@ const state = {
   selectedTicker: '', days: 30, analysis: null, loading: false,
   foreignPos: null,
   foreignOwn: null,
+  foreignAnchor: null,
   compareMode: false, compareTickers: [], compareData: {}, compareLoading: false,
   charts: [],
   remarksHistory: {}, // cache riwayat remarks per ticker (diambil sekali)
@@ -641,6 +642,7 @@ async function loadAnalysis(ticker, { keepCompare = false } = {}) {
   state.analysis = null;
   state.foreignPos = null;
   state.foreignOwn = null;
+  state.foreignAnchor = null;
   if (!keepCompare) clearCompare();
   updateUI();
   try {
@@ -650,6 +652,8 @@ async function loadAnalysis(ticker, { keepCompare = false } = {}) {
     state.foreignPos = (fp && (fp.data || fp)) || null;
     const fo = await Api.get(`/idx/stocks/${t}/foreign-ownership`).catch(() => null);
     state.foreignOwn = (fo && (fo.data || fo)) || null;
+    const fa = await Api.get(`/idx/stocks/${t}/foreign-ownership-anchored`).catch(() => null);
+    state.foreignAnchor = (fa && (fa.data || fa)) || null;
     for (const ct of state.compareTickers) { await refreshCompare(ct); }
   } catch (e) {
     toast('Gagal memuat analisis: ' + (e.message || e), 'danger');
@@ -1017,8 +1021,12 @@ function renderAnalysis() {
     }
     const fo = state.foreignOwn;
     if (fo && fo.series && fo.series.length) {
-      chartsWrap.appendChild(chartPanel('Kepemilikan Asing (KSEI)', `Snapshot bulanan resmi KSEI sejak ${fo.data_start} · absolut dalam lembar saham`, [{ label: 'Lembar asing', color: '#E8A33D' }], 230));
-      chartsWrap.appendChild(buildOwnershipStats(fo));
+      const fa = state.foreignAnchor;
+      const sub = fa && fa.series && fa.series.length
+        ? `Estimasi harian (lembar) tertambat ke snapshot resmi KSEI · jangkar terakhir ${fa.last_anchor ? fa.last_anchor.date : '-'}`
+        : `Snapshot bulanan resmi KSEI sejak ${fo.data_start} · absolut dalam lembar saham`;
+      chartsWrap.appendChild(chartPanel('Kepemilikan Asing (KSEI)', sub, [{ label: 'Lembar asing', color: '#E8A33D' }], 230));
+      chartsWrap.appendChild(buildOwnershipStats(fo, fa));
     }
     chartsWrap.appendChild(chartPanel('BII Score (Buying Intensity Index)', 'Skor akumulasi', [{ label: 'BII Score', color: '#7B61FF' }], 210));
     chartsWrap.appendChild(chartPanel('ATV (Avg Transaction Value)', 'Ukuran transaksi rata-rata', [{ label: 'ATV', color: '#9270CA' }], 200));
@@ -1087,7 +1095,10 @@ async function mountCharts(rawData) {
       } else if (type === 'Posisi Asing Kumulatif') {
         chart = state.foreignPos && state.foreignPos.series ? buildPositionChartApex(container, state.foreignPos.series) : null;
       } else if (type === 'Kepemilikan Asing (KSEI)') {
-        chart = state.foreignOwn && state.foreignOwn.series ? buildOwnershipChartApex(container, state.foreignOwn.series) : null;
+        const fa = state.foreignAnchor;
+        chart = fa && fa.series && fa.series.length
+          ? buildOwnershipChartApex(container, fa.series.map(p => ({ date: p.date, foreign_shares: p.shares })))
+          : (state.foreignOwn && state.foreignOwn.series ? buildOwnershipChartApex(container, state.foreignOwn.series) : null);
       } else if (type === 'BII Score (Buying Intensity Index)') {
         chart = buildLineChartApex(container, normData.map(d => ({ time: d.date, close: d.biiScore })), '#7B61FF');
       } else if (type === 'ATV (Avg Transaction Value)') {
@@ -1128,19 +1139,25 @@ function buildPositionStats(fp) {
   return wrap;
 }
 
-function buildOwnershipStats(fo) {
+function buildOwnershipStats(fo, fa) {
   const wrap = createEl('div', { style: { marginBottom: 'var(--s-6)' } });
   const cur = fo.current || {};
   const sgn = (v) => v == null ? 'inherit' : (v >= 0 ? '#00A86B' : '#D94B4B');
   const sgnTxt = (v) => v == null ? '-' : (v >= 0 ? '+' : '') + fmtS(v);
   const deltaHtml = `<span style="color:${sgn(fo.change_3m_shares)};">${sgnTxt(fo.change_3m_shares)}</span> / <span style="color:${sgn(fo.change_12m_shares)};">${sgnTxt(fo.change_12m_shares)}</span>`;
+  const cal = fa && fa.calibration;
+  const badgeMap = { 'BERSIH': ['Arus terverifikasi KSEI', '#00A86B'], 'BOCOR': ['Ada pergerakan luar pasar', '#D94B4B'], 'DATA-TIPIS': ['Data kalibrasi tipis', '#8A8F98'] };
+  const bm = cal ? (badgeMap[cal.kelas] || ['Kalibrasi: ' + cal.kelas, '#8A8F98']) : null;
+  const badge = bm ? `<span style="display:inline-block;margin-left:var(--s-2);padding:2px 8px;border:1px solid ${bm[1]};color:${bm[1]};border-radius:999px;font-size:var(--text-xs);font-weight:600;vertical-align:middle;">${bm[0]}</span>` +
+    (cal.flow_vs_delta_pct != null ? `<span style="font-size:var(--text-xs);color:var(--c-text-3);margin-left:var(--s-1);">arus menangkap ${cal.flow_vs_delta_pct}% perubahan resmi</span>` : '') : '';
   const stat = (label, value, color) => `<div style="flex:1 1 110px;min-width:110px;padding:var(--s-3);background:var(--c-surface);border:1px solid var(--c-border);border-radius:var(--radius);text-align:center;">
     <div style="color:${color};font-size:var(--text-md);font-weight:700;">${value}</div>
     <div style="font-size:var(--text-xs);color:var(--c-text-3);margin-top:2px;">${label}</div></div>`;
   wrap.innerHTML = `
-    <div style="font-size:var(--text-md);font-weight:700;margin-bottom:var(--s-3);">KEPEMILIKAN ASING RESMI (KSEI)</div>
+    <div style="font-size:var(--text-md);font-weight:700;margin-bottom:var(--s-3);">KEPEMILIKAN ASING RESMI (KSEI)${badge}</div>
     <div style="display:flex;gap:var(--s-2);flex-wrap:wrap;">
       ${stat('Sekarang · ' + dateLabelYear(cur.date), fmtS(cur.foreign_shares) + ' lbr', '#E8A33D')}
+      ${fa && fa.estimate ? stat('Estimasi ' + dateLabelYear(fa.estimate.date) + ' · jangkar ' + dateLabelYear(fa.last_anchor && fa.last_anchor.date), fmtS(fa.estimate.shares) + ' lbr', '#E8A33D') : ''}
       ${stat('% total saham · klas ' + (cur.foreign_pct_classified != null ? cur.foreign_pct_classified.toFixed(1) + '%' : '-'), cur.foreign_pct_total != null ? cur.foreign_pct_total.toFixed(1) + '%' : '-', '#5B8FF9')}
       ${stat('Nilai asing', fmtS(cur.foreign_value), '#00A86B')}
       ${stat('Tertinggi · ' + dateLabelYear(fo.peak && fo.peak.date), fmtS(fo.peak && fo.peak.foreign_shares) + ' lbr', '#00A86B')}
