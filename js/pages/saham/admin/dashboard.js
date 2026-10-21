@@ -174,9 +174,9 @@ export function render() {
     dashboardPane.appendChild(sectionLabel('SISTEM'));
     const sysGrid = createEl('div', { class: 'grid grid--3', style: { marginBottom: 'var(--s-3)' } });
     sysGrid.append(
-      tile('Status', maintenance ? 'MAINTENANCE' : 'ACTIVE', maintenance ? 'danger' : 'success'),
-      tile('Registrasi', regEnabled ? 'ON' : 'OFF', regEnabled ? 'success' : 'warn'),
-      tile('DB Size', st.db_size_mb > 0 ? `${st.db_size_mb} MB` : '—', 'info'),
+      kpiTileHtml('Status', maintenance ? 'MAINTENANCE' : 'ACTIVE', maintenance ? 'danger' : 'success'),
+      kpiTileHtml('Registrasi', regEnabled ? 'ON' : 'OFF', regEnabled ? 'success' : 'warn'),
+      kpiTileHtml('DB Size', st.db_size_mb > 0 ? `${st.db_size_mb} MB` : '—', 'info'),
     );
     dashboardPane.appendChild(sysGrid);
 
@@ -199,9 +199,9 @@ export function render() {
     dashboardPane.appendChild(sectionLabel('SERVER'));
     const serverGrid = createEl('div', { class: 'grid grid--3', style: { marginBottom: 'var(--s-6)' } });
     serverGrid.append(
-      tile('CPU', `${server.cpu_percent ?? 0}%`, 'info'),
-      tile('RAM', `${server.ram_used_gb ?? 0} / ${server.ram_total_gb ?? 0} GB`, 'primary'),
-      tile('Disk', `${server.disk_used_gb ?? 0} / ${server.disk_total_gb ?? 0} GB`, 'warn'),
+      kpiTileHtml('CPU', `${server.cpu_percent ?? 0}%`, 'info'),
+      kpiTileHtml('RAM', `${server.ram_used_gb ?? 0} / ${server.ram_total_gb ?? 0} GB`, 'primary'),
+      kpiTileHtml('Disk', `${server.disk_used_gb ?? 0} / ${server.disk_total_gb ?? 0} GB`, 'warn'),
     );
     dashboardPane.appendChild(serverGrid);
 
@@ -209,9 +209,9 @@ export function render() {
     dashboardPane.appendChild(sectionLabel('DATABASE'));
     const dbGrid = createEl('div', { class: 'grid grid--3', style: { marginBottom: 'var(--s-6)' } });
     dbGrid.append(
-      tile('Berita', dbNews.article_count ?? 0, 'primary'),
-      tile('Saham', dbIdx.stock_count ?? 0, 'success'),
-      tile('Trade Days', dbIdx.trade_days ?? 0, 'warn'),
+      kpiTileHtml('Berita', dbNews.article_count ?? 0, 'primary'),
+      kpiTileHtml('Saham', dbIdx.stock_count ?? 0, 'success'),
+      kpiTileHtml('Trade Days', dbIdx.trade_days ?? 0, 'warn'),
     );
     dashboardPane.appendChild(dbGrid);
 
@@ -258,7 +258,7 @@ export function render() {
     return createEl('div', { class: 'admin-dashboard__section' }, [text]);
   }
 
-  function tile(label, value, tone) {
+  function kpiTileHtml(label, value, tone) {
     const el = createEl('div', { class: `admin-dashboard__tile admin-dashboard__tile--${tone}` });
     el.appendChild(createEl('div', { class: 'admin-dashboard__tile-label' }, [label]));
     el.appendChild(createEl('div', { class: 'admin-dashboard__tile-value' }, [String(value)]));

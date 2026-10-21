@@ -13,7 +13,7 @@ import Api from '../../core/api.js';
 import { DelistedBadge, StockSectorBadge } from '../../ui/stock-widgets.js';
 
 /** Escape teks dari data server sebelum masuk innerHTML. */
-const esc = (v) => String(v ?? '').replace(/[&<>"']/g, (c) => (
+const escapeHtml = (v) => String(v ?? '').replace(/[&<>"']/g, (c) => (
   { '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;' }[c]
 ));
 
@@ -135,15 +135,15 @@ export function render() {
       const active = card.key === state.severity;
       const tag = clickable ? 'button' : 'div';
       const attrs = clickable
-        ? `type="button" aria-pressed="${active}" title="Filter: ${esc(card.label)}"`
+        ? `type="button" aria-pressed="${active}" title="Filter: ${escapeHtml(card.label)}"`
         : `aria-hidden="false"`;
       return `<${tag} class="pemantauan-page__card${active ? ' pemantauan-page__card--active' : ''}${clickable ? '' : ' pemantauan-page__card--static'}" data-severity="${card.key}" ${attrs}>
         <span class="pemantauan-page__card-label">
           ${card.dot ? `<span class="pemantauan-page__dot pemantauan-page__dot--${card.dot}"></span>` : ''}
-          ${esc(card.label)}
+          ${escapeHtml(card.label)}
         </span>
-        <span class="pemantauan-page__card-value">${esc(card.value ?? '-')}</span>
-        <span class="pemantauan-page__card-hint">${esc(card.hint)}</span>
+        <span class="pemantauan-page__card-value">${escapeHtml(card.value ?? '-')}</span>
+        <span class="pemantauan-page__card-hint">${escapeHtml(card.hint)}</span>
       </${tag}>`;
     }).join('');
   }
@@ -161,7 +161,7 @@ export function render() {
     const rest = flags.length - shown.length;
     const chips = shown.map((f) => (
       `<span class="badge badge--${f.tone === 'danger' ? 'danger' : 'warn'} pemantauan-page__flag"
-             title="${esc(f.text)}">${esc(f.text)}</span>`
+             title="${escapeHtml(f.text)}">${escapeHtml(f.text)}</span>`
     )).join('');
     const more = rest > 0
       ? `<span class="pemantauan-page__more">+${rest} lagi</span>`
@@ -174,15 +174,15 @@ export function render() {
     const list = flags.length
       ? `<ul class="pemantauan-page__flaglist">${flags.map((f) => `
           <li>
-            <span class="badge badge--${f.tone === 'danger' ? 'danger' : 'warn'}">${esc(f.text)}</span>
+            <span class="badge badge--${f.tone === 'danger' ? 'danger' : 'warn'}">${escapeHtml(f.text)}</span>
             <span class="pemantauan-page__tone">${f.tone === 'danger' ? 'Sanksi & kondisi berat' : 'Pelanggaran administratif'}</span>
           </li>`).join('')}</ul>`
       : '<p class="pemantauan-page__tone">Tidak ada flag — saham bersih.</p>';
 
     return `<tr class="pemantauan-page__detail"><td colspan="4">
       <div class="pemantauan-page__detail-head">
-        <span><strong>${esc(s.ticker)}</strong> — ${esc(s.company_name)}
-          · ${esc(s.primary_sector || s.sector || '-')}${s.sub_sector ? ` / ${esc(s.sub_sector)}` : ''}</span>
+        <span><strong>${escapeHtml(s.ticker)}</strong> — ${escapeHtml(s.company_name)}
+          · ${escapeHtml(s.primary_sector || s.sector || '-')}${s.sub_sector ? ` / ${escapeHtml(s.sub_sector)}` : ''}</span>
         <span class="pemantauan-page__tone">
           ${s.danger_count} merah · ${s.warning_count} oranye ·
           melekat sejak ${fmtDate(s.flag_since)} (${relLabel(s.flag_since)})
@@ -191,7 +191,7 @@ export function render() {
       ${list}
       <div class="pemantauan-page__detail-actions">
         <a class="btn btn--sm" href="${analysisUrl}" target="_blank" rel="noopener"
-           onclick="localStorage.setItem('stocks_initial_ticker','${esc(s.ticker)}')">Buka analisis</a>
+           onclick="localStorage.setItem('stocks_initial_ticker','${escapeHtml(s.ticker)}')">Buka analisis</a>
         <span class="pemantauan-page__tone">Riwayat perubahan flag ada di kartu saham
           (IDX Stocks → bagian Remarks).</span>
       </div>
@@ -208,7 +208,7 @@ export function render() {
       });
       box.appendChild(createEl('p', {}, [`Gagal memuat: ${state.error}`]));
       const retry = createEl('button', { class: 'btn btn--ghost btn--sm', type: 'button' }, ['Coba lagi']);
-      retry.addEventListener('click', () => load());
+      retry.addEventListener('click', () => muatPemantauan());
       box.appendChild(retry);
       tableWrap.appendChild(box);
       return;
@@ -256,8 +256,8 @@ export function render() {
       if (group && group !== lastGroup) {
         lastGroup = group;
         rows.push(`<tr class="pemantauan-page__group">
-          <td colspan="4">${esc(fmtDate(group))} · ${groupCount(group)} saham
-            <span class="pemantauan-page__tone">(${esc(relLabel(group))})</span></td>
+          <td colspan="4">${escapeHtml(fmtDate(group))} · ${groupCount(group)} saham
+            <span class="pemantauan-page__tone">(${escapeHtml(relLabel(group))})</span></td>
         </tr>`);
       }
 
@@ -275,30 +275,30 @@ export function render() {
       const open = state.expanded === s.ticker;
 
       rows.push(`
-        <tr class="pemantauan-page__row" data-ticker="${esc(s.ticker)}">
+        <tr class="pemantauan-page__row" data-ticker="${escapeHtml(s.ticker)}">
           <td>
             ${delisted
-              ? `<span class="pemantauan-page__ticker pemantauan-page__ticker--delisted">${esc(s.ticker)}</span>`
+              ? `<span class="pemantauan-page__ticker pemantauan-page__ticker--delisted">${escapeHtml(s.ticker)}</span>`
               : `<a href="${analysisUrl}" target="_blank" rel="noopener" class="pemantauan-page__ticker"
-                   title="Analisis ${esc(s.ticker)} (buka di tab baru)"
-                   onclick="localStorage.setItem('stocks_initial_ticker','${esc(s.ticker)}')">${esc(s.ticker)}</a>`}
-            <div class="pemantauan-page__name">${esc(s.company_name)}
+                   title="Analisis ${escapeHtml(s.ticker)} (buka di tab baru)"
+                   onclick="localStorage.setItem('stocks_initial_ticker','${escapeHtml(s.ticker)}')">${escapeHtml(s.ticker)}</a>`}
+            <div class="pemantauan-page__name">${escapeHtml(s.company_name)}
               ${sectorBadge ? sectorBadge.outerHTML : ''}
               ${statusHtml ? ` ${statusHtml}` : ''}</div>
           </td>
           <td class="pemantauan-page__flags">${flagChips(s, 3)}</td>
-          <td class="pemantauan-page__since">${esc(fmtDate(s.flag_since))}
-            <span>${esc(relLabel(s.flag_since))}</span></td>
+          <td class="pemantauan-page__since">${escapeHtml(fmtDate(s.flag_since))}
+            <span>${escapeHtml(relLabel(s.flag_since))}</span></td>
           <td><div class="table__actions">
             <button type="button" class="btn btn--ghost btn--sm pemantauan-page__expand"
-                    data-expand="${esc(s.ticker)}" aria-expanded="${open}"
-                    aria-label="${open ? 'Tutup' : 'Buka'} detail ${esc(s.ticker)}"
+                    data-expand="${escapeHtml(s.ticker)}" aria-expanded="${open}"
+                    aria-label="${open ? 'Tutup' : 'Buka'} detail ${escapeHtml(s.ticker)}"
                     title="${open ? 'Tutup detail' : 'Lihat semua flag'}">${icons['chevron-down']}</button>
             ${delisted
               ? `<button class="btn btn--ghost btn--sm" disabled title="${eyeTitle}" aria-label="${eyeTitle}">${icons['eye']}</button>`
               : `<a class="btn btn--ghost btn--sm" href="${analysisUrl}" target="_blank" rel="noopener"
                    title="${eyeTitle}" aria-label="${eyeTitle}"
-                   onclick="localStorage.setItem('stocks_initial_ticker','${esc(s.ticker)}')">${icons['eye']}</a>`}
+                   onclick="localStorage.setItem('stocks_initial_ticker','${escapeHtml(s.ticker)}')">${icons['eye']}</a>`}
           </div></td>
         </tr>`);
 
@@ -354,7 +354,7 @@ export function render() {
 
   // ── Data ────────────────────────────────────────────────────────────────
 
-  async function load() {
+  async function muatPemantauan() {
     tableWrap.innerHTML = '<div class="skeleton" style="height:240px;width:100%;border-radius:6px;"></div>';
     pagination.innerHTML = '';
     try {
@@ -389,7 +389,7 @@ export function render() {
     state.severity = state.severity === severity ? 'flagged' : severity;
     state.page = 1;
     state.expanded = null;
-    load();
+    muatPemantauan();
   }
 
   // ── Events ──────────────────────────────────────────────────────────────
@@ -400,7 +400,7 @@ export function render() {
     setFilter(card.dataset.severity);
   });
 
-  header.querySelector('#pm-refresh').addEventListener('click', () => load());
+  header.querySelector('#pm-refresh').addEventListener('click', () => muatPemantauan());
 
   const searchWrap = toolbar.querySelector('#pm-search-wrap');
   const searchInput = toolbar.querySelector('#pm-search');
@@ -413,7 +413,7 @@ export function render() {
     debounce = setTimeout(() => {
       state.page = 1;
       state.expanded = null;
-      load();
+      muatPemantauan();
     }, 400);
   });
 
@@ -423,7 +423,7 @@ export function render() {
     searchWrap.classList.remove('has-clear');
     state.page = 1;
     state.expanded = null;
-    load();
+    muatPemantauan();
     searchInput.focus();
   });
 
@@ -431,15 +431,15 @@ export function render() {
     state.sort = e.target.value;
     state.page = 1;
     state.expanded = null;
-    load();
+    muatPemantauan();
   });
 
   window.pemantauanPrev = () => {
-    if (state.page > 1) { state.page--; state.expanded = null; load(); }
+    if (state.page > 1) { state.page--; state.expanded = null; muatPemantauan(); }
   };
   window.pemantauanNext = () => {
     const totalPages = Math.ceil(state.total / state.perPage);
-    if (state.page < totalPages) { state.page++; state.expanded = null; load(); }
+    if (state.page < totalPages) { state.page++; state.expanded = null; muatPemantauan(); }
   };
 
   container._cleanup = () => {
@@ -450,7 +450,7 @@ export function render() {
 
   // Init
   renderSummary();
-  load();
+  muatPemantauan();
 
   return container;
 }

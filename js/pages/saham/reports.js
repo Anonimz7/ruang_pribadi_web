@@ -140,7 +140,7 @@ export function render() {
     body.style.display = isCollapsed ? 'none' : '';
     card.appendChild(body);
 
-    function toggle() {
+    function toggleLipatKartu() {
       state.collapsed[cardId] = !state.collapsed[cardId];
       saveCollapsed();
       const hidden = !!state.collapsed[cardId];
@@ -151,11 +151,11 @@ export function render() {
       btn.setAttribute('aria-label', (hidden ? 'Tampilkan' : 'Sembunyikan') + ' ' + title);
     }
     const toggleBtn = head.querySelector('.reports-page__toggle-icon');
-    head.addEventListener('click', toggle);
+    head.addEventListener('click', toggleLipatKartu);
     toggleBtn.addEventListener('keydown', (e) => {
       if (e.key === 'Enter' || e.key === ' ') {
         e.preventDefault();
-        toggle();
+        toggleLipatKartu();
       }
     });
   }
@@ -406,11 +406,11 @@ export function render() {
       const res = await Api.get('/reports/files');
       const groups = res?.files || [];
       // Pisahkan per sumber; file lama tanpa penanda tetap "manual".
-      const split = (source) => groups
+      const kelompokkanRiwayat = (source) => groups
         .map(g => ({ date: g.date, files: (g.files || []).filter(f => (f.source || 'manual') === source) }))
         .filter(g => g.files.length);
-      state.reportGroups = split('manual');
-      state.autoGroups = split('auto');
+      state.reportGroups = kelompokkanRiwayat('manual');
+      state.autoGroups = kelompokkanRiwayat('auto');
       renderHistory();
       renderAutoHistory();
     } catch (e) {

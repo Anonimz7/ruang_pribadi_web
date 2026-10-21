@@ -268,12 +268,12 @@ function remarksSegmentsHtml(segments, fallback) {
 }
 
 async function fetchRemarksHistory(ticker) {
-  if (state.remarksHistory[ticker]) return state.remarksHistory[ticker];
+  if (stockState.remarksHistory[ticker]) return stockState.remarksHistory[ticker];
   const res = await Api.get(`/idx/stocks/${ticker}/remarks-history`, { limit: 500 });
-  state.remarksHistory[ticker] = (res && Array.isArray(res.items))
+  stockState.remarksHistory[ticker] = (res && Array.isArray(res.items))
     ? res
     : { ticker, count: 0, items: [] };
-  return state.remarksHistory[ticker];
+  return stockState.remarksHistory[ticker];
 }
 
 function renderRemarksHistory(res, start = 0) {
@@ -314,10 +314,10 @@ function wireRemarksHistory(card, ticker) {
   const btn = card.querySelector('.stocks-page__remarks-history-btn');
   const list = card.querySelector('.stocks-page__remarks-history-list');
   if (!btn || !list) return;
-  let res = null;   // data (di-cache di state.remarksHistory)
+  let res = null;   // data (di-cache di stockState.remarksHistory)
   let start = 0;    // offset halaman aktif
 
-  const paint = () => { list.innerHTML = res ? renderRemarksHistory(res, start) : ''; };
+  const tampilkanRemarks = () => { list.innerHTML = res ? renderRemarksHistory(res, start) : ''; };
 
   // Pagination dikendalikan lewat delegation agar tetap hidup
   // setiap kali isi list diganti (innerHTML).
@@ -329,8 +329,8 @@ function wireRemarksHistory(card, ticker) {
     start = nav.dataset.nav === 'next'
       ? Math.min(start + REMARKS_HISTORY_PAGE, maxStart)
       : Math.max(start - REMARKS_HISTORY_PAGE, 0);
-    paint();
-    // pertahankan fokus pada tombol navigasi (elemennya diganti paint)
+    tampilkanRemarks();
+    // pertahankan fokus pada tombol navigasi (elemennya diganti tampilkanRemarks)
     const want = nav.dataset.nav;
     const same = list.querySelector(`[data-nav="${want}"]`);
     const alt = list.querySelector('[data-nav]:not([disabled])');
@@ -352,7 +352,7 @@ function wireRemarksHistory(card, ticker) {
     try {
       res = await fetchRemarksHistory(ticker);
       start = 0;
-      paint();
+      tampilkanRemarks();
     } catch (e) {
       console.error('[Stocks] remarks history error:', e);
       res = null;
@@ -374,7 +374,7 @@ function fmtPrice(v) {
   return new Intl.NumberFormat('id-ID', { maximumFractionDigits: 0 }).format(v);
 }
 
-function fmtS(v) {
+function formatNilaiSingkat(v) {
   if (v == null) return '-';
   const n = Number(v), s = n < 0 ? '-' : '', a = Math.abs(n);
   if (a >= 1e12) return s + (a / 1e12).toFixed(1) + 'T';
@@ -459,7 +459,7 @@ function buildForeignChartApex(container, data) {
     name: 'Net Foreign',
     data: data.filter(d => d.date && d.netForeign != null).map(d => ({ x: toTs(d.date), y: d.netForeign })),
   }];
-  opts.tooltip.y = { formatter: (v) => (v >= 0 ? '+' : '') + fmtS(v) };
+  opts.tooltip.y = { formatter: (v) => (v >= 0 ? '+' : '') + formatNilaiSingkat(v) };
   return renderChart(container, opts);
 }
 
@@ -482,7 +482,7 @@ function buildPositionChartApex(container, series) {
     name: 'Posisi kumulatif',
     data: series.filter(d => d.date && d.value != null).map(d => ({ x: toTs(d.date), y: d.value })),
   }];
-  opts.tooltip.y = { formatter: (v) => (v >= 0 ? '+' : '') + fmtS(v) };
+  opts.tooltip.y = { formatter: (v) => (v >= 0 ? '+' : '') + formatNilaiSingkat(v) };
   return renderChart(container, opts);
 }
 
@@ -494,7 +494,7 @@ function buildOwnershipChartApex(container, series) {
     name: 'Kepemilikan asing (lembar)',
     data: series.filter(d => d.date && d.foreign_shares != null).map(d => ({ x: toTs(d.date), y: d.foreign_shares })),
   }];
-  opts.tooltip.y = { formatter: (v) => fmtS(v) + ' lbr' };
+  opts.tooltip.y = { formatter: (v) => formatNilaiSingkat(v) + ' lbr' };
   return renderChart(container, opts);
 }
 
@@ -607,7 +607,7 @@ function buildCompareBiiChartApex(container, primaryData, compareData, compareTi
 }
 
 /* ─── State ─── */
-const state = {
+const stockState = {
   searchTerm: '', searchResults: [], searching: false,
   selectedTicker: '', days: 30, analysis: null, loading: false,
   foreignPos: null,
@@ -619,9 +619,9 @@ const state = {
 };
 
 /* ─── API ─── */
-async function doSearch(q) {
-  if (!q.trim()) { state.searchResults = []; return; }
-  state.searching = true;
+async function jalankanPencarian(q) {
+  if (!q.trim()) { stockState.searchResults = []; return; }
+  stockState.searching = true;
   renderSearchDropdown();
   try {
     const res = await Api.get('/idx/stocks', { q, limit: 8 });
@@ -631,92 +631,92 @@ async function doSearch(q) {
     } else if (res && Array.isArray(res.stocks)) {
       list = res.stocks;
     }
-    state.searchResults = list.map(d => new StockListItem(d));
-  } catch (_) { state.searchResults = []; }
-  finally { state.searching = false; renderSearchDropdown(); }
+    stockState.searchResults = list.map(d => new StockListItem(d));
+  } catch (_) { stockState.searchResults = []; }
+  finally { stockState.searching = false; renderSearchDropdown(); }
 }
 
 async function loadAnalysis(ticker, { keepCompare = false } = {}) {
   const t = ticker.toUpperCase();
-  state.loading = true; state.searchResults = []; state.selectedTicker = t;
-  state.analysis = null;
-  state.foreignPos = null;
-  state.foreignOwn = null;
-  state.foreignAnchor = null;
+  stockState.loading = true; stockState.searchResults = []; stockState.selectedTicker = t;
+  stockState.analysis = null;
+  stockState.foreignPos = null;
+  stockState.foreignOwn = null;
+  stockState.foreignAnchor = null;
   if (!keepCompare) clearCompare();
-  updateUI();
+  renderStatusPencarian();
   try {
-    const res = await Api.get(`/idx/stocks/${t}/analysis`, { days: state.days });
-    state.analysis = new StockAnalysis(res);
-    const fp = await Api.get(`/idx/stocks/${t}/foreign-position`, { bucket: state.days }).catch(() => null);
-    state.foreignPos = (fp && (fp.data || fp)) || null;
+    const res = await Api.get(`/idx/stocks/${t}/analysis`, { days: stockState.days });
+    stockState.analysis = new StockAnalysis(res);
+    const fp = await Api.get(`/idx/stocks/${t}/foreign-position`, { bucket: stockState.days }).catch(() => null);
+    stockState.foreignPos = (fp && (fp.data || fp)) || null;
     const fo = await Api.get(`/idx/stocks/${t}/foreign-ownership`).catch(() => null);
-    state.foreignOwn = (fo && (fo.data || fo)) || null;
+    stockState.foreignOwn = (fo && (fo.data || fo)) || null;
     const fa = await Api.get(`/idx/stocks/${t}/foreign-ownership-anchored`).catch(() => null);
-    state.foreignAnchor = (fa && (fa.data || fa)) || null;
-    for (const ct of state.compareTickers) { await refreshCompare(ct); }
+    stockState.foreignAnchor = (fa && (fa.data || fa)) || null;
+    for (const ct of stockState.compareTickers) { await refreshCompare(ct); }
   } catch (e) {
     toast('Gagal memuat analisis: ' + (e.message || e), 'danger');
     console.error('[Stocks] Analysis error:', e);
   } finally {
-    state.loading = false;
+    stockState.loading = false;
     renderAnalysis();
   }
 }
 
 async function addCompare(ticker) {
   const t = ticker.toUpperCase();
-  if (state.compareTickers.includes(t)) return;
-  state.compareLoading = true;
+  if (stockState.compareTickers.includes(t)) return;
+  stockState.compareLoading = true;
   renderCompareBar();
   try {
-    const res = await Api.get(`/idx/stocks/${t}/analysis`, { days: state.days });
+    const res = await Api.get(`/idx/stocks/${t}/analysis`, { days: stockState.days });
     const analysis = new StockAnalysis(res);
-    if (!analysis.data.length) { toast('Tidak ada data untuk ' + t, 'warn'); state.compareLoading = false; renderCompareBar(); return; }
-    state.compareTickers.push(t);
-    state.compareData[t] = analysis.data.map(d => ({...d}));
-    state.compareMode = true;
+    if (!analysis.data.length) { toast('Tidak ada data untuk ' + t, 'warn'); stockState.compareLoading = false; renderCompareBar(); return; }
+    stockState.compareTickers.push(t);
+    stockState.compareData[t] = analysis.data.map(d => ({...d}));
+    stockState.compareMode = true;
   } catch (e) { toast('Gagal membandingkan: ' + (e.message || e), 'danger'); }
-  finally { state.compareLoading = false; renderCompareBar(); renderAnalysis(); }
+  finally { stockState.compareLoading = false; renderCompareBar(); renderAnalysis(); }
 }
 
 async function refreshCompare(ticker) {
   const t = ticker.toUpperCase();
-  if (!state.compareTickers.includes(t)) return;
+  if (!stockState.compareTickers.includes(t)) return;
   try {
-    const res = await Api.get(`/idx/stocks/${t}/analysis`, { days: state.days });
+    const res = await Api.get(`/idx/stocks/${t}/analysis`, { days: stockState.days });
     const analysis = new StockAnalysis(res);
-    if (analysis.data.length) state.compareData[t] = analysis.data.map(d => ({...d}));
+    if (analysis.data.length) stockState.compareData[t] = analysis.data.map(d => ({...d}));
   } catch (_) {}
 }
 
 function removeCompare(ticker) {
-  state.compareTickers = state.compareTickers.filter(t => t !== ticker);
-  delete state.compareData[ticker];
-  if (!state.compareTickers.length) state.compareMode = false;
+  stockState.compareTickers = stockState.compareTickers.filter(t => t !== ticker);
+  delete stockState.compareData[ticker];
+  if (!stockState.compareTickers.length) stockState.compareMode = false;
   renderCompareBar(); renderAnalysis();
 }
 
 function clearCompare() {
-  state.compareTickers = [];
-  state.compareData = {};
-  state.compareMode = false;
-  if (refs.compareBar) {
-    refs.compareBar.remove();
-    refs.compareBar = null;
+  stockState.compareTickers = [];
+  stockState.compareData = {};
+  stockState.compareMode = false;
+  if (stockRefs.compareBar) {
+    stockRefs.compareBar.remove();
+    stockRefs.compareBar = null;
   }
 }
 
 /* ─── DOM ─── */
-let rootEl = null;
-let refs = {};
+let stockRootEl = null;
+let stockRefs = {};
 
 function clearCharts() {
-  state.charts.forEach(c => destroyChart(c));
-  state.charts = [];
+  stockState.charts.forEach(c => destroyChart(c));
+  stockState.charts = [];
 }
 
-function updateUI() {
+function renderStatusPencarian() {
   renderLoading(); renderSearchDropdown();
 }
 
@@ -728,15 +728,15 @@ function renderToolbarOnce() {
   searchWrap.innerHTML = `<span class="search__icon">${icons['search']}</span>`;
   const input = createEl('input', {
     type: 'text', class: 'search__input stocks-page__search-input',
-    placeholder: 'Cari ticker (BBCA, GOTO...)', value: state.searchTerm,
+    placeholder: 'Cari ticker (BBCA, GOTO...)', value: stockState.searchTerm,
     'aria-label': 'Cari saham', autocomplete: 'off',
   });
   on(input, 'input', (e) => {
-    state.searchTerm = e.target.value;
-    clearTimeout(state._searchDebounce);
-    state._searchDebounce = setTimeout(() => doSearch(state.searchTerm), 300);
+    stockState.searchTerm = e.target.value;
+    clearTimeout(stockState._searchDebounce);
+    stockState._searchDebounce = setTimeout(() => jalankanPencarian(stockState.searchTerm), 300);
   });
-  on(input, 'keydown', (e) => { if (e.key === 'Enter' && state.searchTerm.trim()) loadAnalysis(state.searchTerm.trim()); });
+  on(input, 'keydown', (e) => { if (e.key === 'Enter' && stockState.searchTerm.trim()) loadAnalysis(stockState.searchTerm.trim()); });
   searchWrap.appendChild(input);
   row.appendChild(searchWrap);
 
@@ -750,8 +750,8 @@ function renderToolbarOnce() {
     }
   });
   row.appendChild(dropdown);
-  refs.searchInput = input;
-  refs.searchDropdown = dropdown;
+  stockRefs.searchInput = input;
+  stockRefs.searchDropdown = dropdown;
   toolbar.appendChild(row);
 
   const chips = createEl('div', {
@@ -760,28 +760,28 @@ function renderToolbarOnce() {
   });
   PERIODS.forEach(d => {
     const chip = createEl('button', {
-      class: `btn btn--sm stocks-page__chip ${state.days === d ? 'stocks-page__chip--active' : ''}`,
+      class: `btn btn--sm stocks-page__chip ${stockState.days === d ? 'stocks-page__chip--active' : ''}`,
       style: {
         padding: 'var(--s-1) var(--s-3)', fontSize: 'var(--text-xs)', fontWeight: 600,
         borderRadius: '16px', border: '1px solid var(--c-border)',
-        background: state.days === d ? 'var(--c-accent)' : 'transparent',
-        color: state.days === d ? '#fff' : 'var(--c-text-2)',
+        background: stockState.days === d ? 'var(--c-accent)' : 'transparent',
+        color: stockState.days === d ? '#fff' : 'var(--c-text-2)',
       }
     });
     chip.textContent = d + 'H';
-    on(chip, 'click', () => { state.days = d; updatePeriodChips(); if (state.selectedTicker) loadAnalysis(state.selectedTicker, { keepCompare: true }); });
+    on(chip, 'click', () => { stockState.days = d; updatePeriodChips(); if (stockState.selectedTicker) loadAnalysis(stockState.selectedTicker, { keepCompare: true }); });
     chips.appendChild(chip);
   });
-  refs.periodChips = chips;
+  stockRefs.periodChips = chips;
   toolbar.appendChild(chips);
-  rootEl.appendChild(toolbar);
+  stockRootEl.appendChild(toolbar);
 }
 
 function updatePeriodChips() {
-  if (!refs.periodChips) return;
-  Array.from(refs.periodChips.children).forEach((chip, i) => {
+  if (!stockRefs.periodChips) return;
+  Array.from(stockRefs.periodChips.children).forEach((chip, i) => {
     const d = PERIODS[i];
-    const active = state.days === d;
+    const active = stockState.days === d;
     chip.style.background = active ? 'var(--c-accent)' : 'transparent';
     chip.style.color = active ? '#fff' : 'var(--c-text-2)';
     chip.classList.toggle('stocks-page__chip--active', active);
@@ -790,16 +790,16 @@ function updatePeriodChips() {
 
 /* ─── Render: Search dropdown ─── */
 function renderSearchDropdown() {
-  const dd = refs.searchDropdown;
+  const dd = stockRefs.searchDropdown;
   if (!dd) return;
-  if (state.searching) {
+  if (stockState.searching) {
     dd.style.display = 'block';
     dd.innerHTML = `<div style="padding:var(--s-4);text-align:center;font-size:var(--text-sm);color:var(--c-text-3);">Mencari...</div>`;
     return;
   }
-  if (!state.searchResults.length) { dd.style.display = 'none'; dd.innerHTML = ''; return; }
+  if (!stockState.searchResults.length) { dd.style.display = 'none'; dd.innerHTML = ''; return; }
   dd.style.display = 'block';
-  dd.innerHTML = state.searchResults.map(s => {
+  dd.innerHTML = stockState.searchResults.map(s => {
     const sectorBadge = s.sector ? StockSectorBadge(s.sector, true) : null;
     const delistedBadge = s.isDelisted || s.isBlacklisted
       ? DelistedBadge({ labelDelisted: s.labelDelisted, stockStatus: s.stockStatus, statusReason: s.statusReason, small: true })
@@ -818,18 +818,18 @@ function renderSearchDropdown() {
       </div>`;
   }).join('');
   dd.querySelectorAll('.stocks-page__result-item').forEach(item => {
-    on(item, 'click', () => { state.searchTerm = item.dataset.ticker; refs.searchInput.value = item.dataset.ticker; loadAnalysis(item.dataset.ticker); });
+    on(item, 'click', () => { stockState.searchTerm = item.dataset.ticker; stockRefs.searchInput.value = item.dataset.ticker; loadAnalysis(item.dataset.ticker); });
   });
 }
 
 /* ─── Render: Compare bar ─── */
 function renderCompareBar() {
-  let el = refs.compareBar;
-  if (!state.analysis) { if (el) { el.remove(); refs.compareBar = null; } return; }
+  let el = stockRefs.compareBar;
+  if (!stockState.analysis) { if (el) { el.remove(); stockRefs.compareBar = null; } return; }
   if (!el) {
     el = createEl('div', { class: 'stocks-page__compare-bar', style: { marginTop: 'var(--s-3)' } });
-    refs.compareBar = el;
-    rootEl.insertBefore(el, refs.analysisContainer || null);
+    stockRefs.compareBar = el;
+    stockRootEl.insertBefore(el, stockRefs.analysisContainer || null);
   }
   let html = `<div style="display:flex;align-items:center;gap:var(--s-2);flex-wrap:wrap;">
     <span style="font-size:var(--text-xs);font-weight:600;color:var(--c-text-3);display:flex;align-items:center;gap:var(--s-1);">
@@ -838,16 +838,16 @@ function renderCompareBar() {
     </span>
     <button class="btn btn--secondary btn--sm stocks-page__add-compare" style="padding:var(--s-1) var(--s-2);font-size:var(--text-xs);">${icons['plus']} Tambah</button>
   </div>`;
-  if (state.compareTickers.length) {
+  if (stockState.compareTickers.length) {
     html += `<div style="display:flex;gap:var(--s-1);flex-wrap:wrap;margin-top:var(--s-2);">`;
-    html += `<span style="display:inline-flex;align-items:center;gap:4px;padding:2px 8px;background:${COMPARE_COLORS[0]}1A;border:1px solid ${COMPARE_COLORS[0]}66;border-radius:16px;font-size:var(--text-xs);font-weight:600;color:${COMPARE_COLORS[0]};"><span style="width:8px;height:8px;border-radius:50%;background:${COMPARE_COLORS[0]};display:inline-block;"></span>${state.analysis.ticker}</span>`;
-    state.compareTickers.forEach((t, i) => {
+    html += `<span style="display:inline-flex;align-items:center;gap:4px;padding:2px 8px;background:${COMPARE_COLORS[0]}1A;border:1px solid ${COMPARE_COLORS[0]}66;border-radius:16px;font-size:var(--text-xs);font-weight:600;color:${COMPARE_COLORS[0]};"><span style="width:8px;height:8px;border-radius:50%;background:${COMPARE_COLORS[0]};display:inline-block;"></span>${stockState.analysis.ticker}</span>`;
+    stockState.compareTickers.forEach((t, i) => {
       const c = COMPARE_COLORS[(i + 1) % COMPARE_COLORS.length];
       html += `<span style="display:inline-flex;align-items:center;gap:4px;padding:2px 8px;background:${c}1A;border:1px solid ${c}66;border-radius:16px;font-size:var(--text-xs);font-weight:600;color:${c};"><span style="width:8px;height:8px;border-radius:50%;background:${c};display:inline-block;"></span>${t}<button class="btn btn--ghost btn--sm stocks-page__remove-compare" data-ticker="${t}" style="padding:0;width:16px;height:16px;min-width:16px;min-height:16px;color:var(--c-text-3);margin-left:2px;" aria-label="Hapus ${t}">${icons['x']}</button></span>`;
     });
     html += `</div>`;
   }
-  if (state.compareLoading) html += `<div style="margin-top:var(--s-2);font-size:var(--text-xs);color:var(--c-text-3);">Memuat data perbandingan...</div>`;
+  if (stockState.compareLoading) html += `<div style="margin-top:var(--s-2);font-size:var(--text-xs);color:var(--c-text-3);">Memuat data perbandingan...</div>`;
   el.innerHTML = html;
   const addBtn = el.querySelector('.stocks-page__add-compare');
   if (addBtn) on(addBtn, 'click', showCompareModal);
@@ -875,27 +875,27 @@ function showCompareModal() {
   `;
   overlay.appendChild(sheet);
   document.body.appendChild(overlay);
-  const onKey = (e) => { if (e.key === 'Escape') close(); };
-  const close = () => { document.removeEventListener('keydown', onKey); overlay.remove(); };
-  document.addEventListener('keydown', onKey);
+  const tanganiTombolModalBandingkan = (e) => { if (e.key === 'Escape') tutupModalBandingkan(); };
+  const tutupModalBandingkan = () => { document.removeEventListener('keydown', tanganiTombolModalBandingkan); overlay.remove(); };
+  document.addEventListener('keydown', tanganiTombolModalBandingkan);
   const closeBtn = sheet.querySelector('.stocks-page__compare-close');
-  if (closeBtn) on(closeBtn, 'click', close);
-  overlay.onclick = (e) => { if (e.target === overlay) close(); };
+  if (closeBtn) on(closeBtn, 'click', tutupModalBandingkan);
+  overlay.onclick = (e) => { if (e.target === overlay) tutupModalBandingkan(); };
   const input = sheet.querySelector('.stocks-page__compare-input');
   const resultsEl = sheet.querySelector('.stocks-page__compare-results');
   on(input, 'input', (e) => {
     const q = e.target.value;
     if (!q.trim()) { resultsEl.innerHTML = ''; return; }
     resultsEl.innerHTML = '<div style="padding:var(--s-4);text-align:center;color:var(--c-text-3);font-size:var(--text-sm);">Mencari...</div>';
-    clearTimeout(state._compareDebounce);
-    state._compareDebounce = setTimeout(async () => {
+    clearTimeout(stockState._compareDebounce);
+    stockState._compareDebounce = setTimeout(async () => {
       try {
         const res = await Api.get('/idx/stocks', { q, limit: 8 });
         let list = Array.isArray(res) ? res : (res?.stocks || []);
         const items = list.map(d => new StockListItem(d));
         if (!items.length) { resultsEl.innerHTML = '<div style="padding:var(--s-4);text-align:center;color:var(--c-text-3);font-size:var(--text-sm);">Tidak ada hasil</div>'; return; }
         resultsEl.innerHTML = items.map(s => {
-          const already = state.compareTickers.includes(s.ticker.toUpperCase());
+          const already = stockState.compareTickers.includes(s.ticker.toUpperCase());
           const sectorBadge = s.sector ? StockSectorBadge(s.sector, true) : null;
           return `<div class="stocks-page__compare-item" data-ticker="${s.ticker}" style="padding:var(--s-2) var(--s-3);cursor:pointer;display:flex;align-items:center;gap:var(--s-2);border-bottom:1px solid var(--c-border);opacity:${already ? 0.5 : 1};pointer-events:${already ? 'none' : 'auto'};" onmouseover="this.style.background='var(--c-surface-2)'" onmouseout="this.style.background='transparent'">
             <span style="color:${already ? 'var(--c-accent)' : 'var(--c-text-3)'};flex-shrink:0;">${already ? icons['check'] : icons['plus']}</span>
@@ -906,7 +906,7 @@ function showCompareModal() {
           </div>`;
         }).join('');
         resultsEl.querySelectorAll('.stocks-page__compare-item').forEach(item => {
-          on(item, 'click', () => { addCompare(item.dataset.ticker); close(); });
+          on(item, 'click', () => { addCompare(item.dataset.ticker); tutupModalBandingkan(); });
         });
       } catch (_) { resultsEl.innerHTML = '<div style="padding:var(--s-4);text-align:center;color:var(--c-danger);font-size:var(--text-sm);">Gagal mencari</div>'; }
     }, 300);
@@ -916,11 +916,11 @@ function showCompareModal() {
 
 /* ─── Render: Loading ─── */
 function renderLoading() {
-  let el = refs.analysisContainer;
+  let el = stockRefs.analysisContainer;
   if (!el) {
     el = createEl('div', { class: 'stocks-page__analysis' });
-    refs.analysisContainer = el;
-    rootEl.appendChild(el);
+    stockRefs.analysisContainer = el;
+    stockRootEl.appendChild(el);
   }
   el.innerHTML = `<div class="card" style="padding:var(--s-6);text-align:center;margin-top:var(--s-4);">
     <div class="spinner" style="width:32px;height:32px;border:3px solid var(--c-border);border-top-color:var(--c-primary);border-radius:50%;animation:spin 1s linear infinite;margin:0 auto var(--s-3);"></div>
@@ -931,19 +931,19 @@ function renderLoading() {
 
 /* ─── Render: Analysis ─── */
 function renderAnalysis() {
-  let el = refs.analysisContainer;
+  let el = stockRefs.analysisContainer;
   if (!el) {
     el = createEl('div', { class: 'stocks-page__analysis' });
-    refs.analysisContainer = el;
-    rootEl.appendChild(el);
+    stockRefs.analysisContainer = el;
+    stockRootEl.appendChild(el);
   }
-  if (!state.analysis) {
+  if (!stockState.analysis) {
     el.innerHTML = `<div class="card" style="padding:var(--s-6);text-align:center;margin-top:var(--s-4);"><div style="font-size:var(--text-sm);color:var(--c-text-3);">Cari saham untuk melihat analisis</div></div>`;
     clearCharts();
-    if (refs.compareBar) { refs.compareBar.remove(); refs.compareBar = null; }
+    if (stockRefs.compareBar) { stockRefs.compareBar.remove(); stockRefs.compareBar = null; }
     return;
   }
-  const a = state.analysis;
+  const a = stockState.analysis;
   const s = a.summary;
   const data = a.data;
   const rawData = data.map(d => ({
@@ -990,11 +990,11 @@ function renderAnalysis() {
     <div style="display:flex;gap:var(--s-2);flex-wrap:wrap;margin-bottom:var(--s-2);">
       ${metricCard('BII Score', s.latestBiiScore.toFixed(1), '#9270CA')}
       ${metricCard('Foreign %', s.foreignDominationPct.toFixed(1) + '%', '#5B8FF9')}
-      ${metricCard('Net Foreign', fmtS(s.totalNetForeign), '#00A86B')}
+      ${metricCard('Net Foreign', formatNilaiSingkat(s.totalNetForeign), '#00A86B')}
     </div>
     <div style="display:flex;gap:var(--s-2);flex-wrap:wrap;">
-      ${metricCard('Total Value', fmtS(s.totalValue), '#F6903D')}
-      ${metricCard('Total Vol', fmtS(s.totalVolume), '#6DC8EC')}
+      ${metricCard('Total Value', formatNilaiSingkat(s.totalValue), '#F6903D')}
+      ${metricCard('Total Vol', formatNilaiSingkat(s.totalVolume), '#6DC8EC')}
       ${metricCard('Avg BII', s.avgBiiScore.toFixed(1), '#7B61FF')}
     </div>`;
   el.appendChild(metrics);
@@ -1004,8 +1004,8 @@ function renderAnalysis() {
   // Charts
   if (rawData.length > 0) {
     const chartsWrap = createEl('div', { class: 'stocks-page__charts', style: { marginTop: 'var(--s-5)' } });
-    if (state.compareMode && state.compareTickers.length > 0) {
-      const compareLegend = [{ label: a.ticker, color: COMPARE_COLORS[0] }, ...state.compareTickers.map((t, i) => ({ label: t, color: COMPARE_COLORS[(i + 1) % COMPARE_COLORS.length] }))];
+    if (stockState.compareMode && stockState.compareTickers.length > 0) {
+      const compareLegend = [{ label: a.ticker, color: COMPARE_COLORS[0] }, ...stockState.compareTickers.map((t, i) => ({ label: t, color: COMPARE_COLORS[(i + 1) % COMPARE_COLORS.length] }))];
       chartsWrap.appendChild(chartPanel('Perbandingan Harga (Normalisasi)', 'Persentase perubahan dari hari pertama', compareLegend, 300));
       chartsWrap.appendChild(chartPanel('Perbandingan BII Score', 'Skor akumulasi (0-100) relatif tiap saham', compareLegend, 210));
     } else {
@@ -1014,14 +1014,14 @@ function renderAnalysis() {
     chartsWrap.appendChild(chartPanel('Total Nilai Transaksi', 'Regular value per hari', [{ label: 'Nilai transaksi', color: '#F6903D' }], 200));
     chartsWrap.appendChild(chartPanel('Volume Perdagangan', 'Jumlah lot yang diperdagangkan', [{ label: 'Volume', color: '#6DC8EC' }], 200));
     chartsWrap.appendChild(chartPanel('Arus Dana Asing', 'Net foreign buy / sell', [{ label: 'Beli bersih', color: '#00A86B' }, { label: 'Jual bersih', color: '#D94B4B' }], 210));
-    const fp = state.foreignPos;
+    const fp = stockState.foreignPos;
     if (fp && fp.series && fp.series.length) {
       chartsWrap.appendChild(chartPanel('Posisi Asing Kumulatif', `Net foreign kumulatif sejak ${fp.data_start} · per titik = akumulasi ${fp.bucket_days} hari`, [{ label: 'Posisi', color: '#0EA5A4' }], 230));
       chartsWrap.appendChild(buildPositionStats(fp));
     }
-    const fo = state.foreignOwn;
+    const fo = stockState.foreignOwn;
     if (fo && fo.series && fo.series.length) {
-      const fa = state.foreignAnchor;
+      const fa = stockState.foreignAnchor;
       const sub = fa && fa.series && fa.series.length
         ? `Estimasi harian (lembar) tertambat ke snapshot resmi KSEI · jangkar terakhir ${fa.last_anchor ? fa.last_anchor.date : '-'}`
         : `Snapshot bulanan resmi KSEI sejak ${fo.data_start} · absolut dalam lembar saham`;
@@ -1063,7 +1063,7 @@ async function mountCharts(rawData) {
     await loadApexCharts();
   } catch (e) {
     console.error('[Stocks] Failed to load chart library:', e);
-    rootEl.querySelectorAll('.stocks-page__chart').forEach(c => {
+    stockRootEl.querySelectorAll('.stocks-page__chart').forEach(c => {
       c.innerHTML = `<div style="display:flex;align-items:center;justify-content:center;height:100%;color:var(--c-text-3);font-size:var(--text-sm);">
         <span style="margin-right:var(--s-2);">${icons['alert-circle']}</span> Gagal memuat chart library
       </div>`;
@@ -1071,7 +1071,7 @@ async function mountCharts(rawData) {
     return;
   }
 
-  const containers = rootEl.querySelectorAll('.stocks-page__chart');
+  const containers = stockRootEl.querySelectorAll('.stocks-page__chart');
   if (!containers.length) return;
 
   const normData = rawData.map(d => ({...d, date: normalizeDate(d.date)}));
@@ -1083,9 +1083,9 @@ async function mountCharts(rawData) {
       if (type === 'Pergerakan Harga') {
         chart = buildPriceChartApex(container, normData);
       } else if (type === 'Perbandingan Harga (Normalisasi)') {
-        chart = buildCompareChartApex(container, normData, state.compareData, state.compareTickers, state.analysis.ticker);
+        chart = buildCompareChartApex(container, normData, stockState.compareData, stockState.compareTickers, stockState.analysis.ticker);
       } else if (type === 'Perbandingan BII Score') {
-        chart = buildCompareBiiChartApex(container, normData, state.compareData, state.compareTickers, state.analysis.ticker);
+        chart = buildCompareBiiChartApex(container, normData, stockState.compareData, stockState.compareTickers, stockState.analysis.ticker);
       } else if (type === 'Total Nilai Transaksi') {
         chart = buildBarChartApex(container, normData.map(d => ({ time: d.date, value: d.value })), '#F6903D');
       } else if (type === 'Volume Perdagangan') {
@@ -1093,12 +1093,12 @@ async function mountCharts(rawData) {
       } else if (type === 'Arus Dana Asing') {
         chart = buildForeignChartApex(container, normData);
       } else if (type === 'Posisi Asing Kumulatif') {
-        chart = state.foreignPos && state.foreignPos.series ? buildPositionChartApex(container, state.foreignPos.series) : null;
+        chart = stockState.foreignPos && stockState.foreignPos.series ? buildPositionChartApex(container, stockState.foreignPos.series) : null;
       } else if (type === 'Kepemilikan Asing (KSEI)') {
-        const fa = state.foreignAnchor;
+        const fa = stockState.foreignAnchor;
         chart = fa && fa.series && fa.series.length
           ? buildOwnershipChartApex(container, fa.series.map(p => ({ date: p.date, foreign_shares: p.shares })))
-          : (state.foreignOwn && state.foreignOwn.series ? buildOwnershipChartApex(container, state.foreignOwn.series) : null);
+          : (stockState.foreignOwn && stockState.foreignOwn.series ? buildOwnershipChartApex(container, stockState.foreignOwn.series) : null);
       } else if (type === 'BII Score (Buying Intensity Index)') {
         chart = buildLineChartApex(container, normData.map(d => ({ time: d.date, close: d.biiScore })), '#7B61FF');
       } else if (type === 'ATV (Avg Transaction Value)') {
@@ -1108,7 +1108,7 @@ async function mountCharts(rawData) {
       } else if (type === 'Frekuensi Nego') {
         chart = buildBarChartApex(container, normData.map(d => ({ time: d.date, value: d.nonRegFreq })), '#90A4AE');
       }
-      if (chart) state.charts.push(chart);
+      if (chart) stockState.charts.push(chart);
     } catch (e) {
       console.error(`[Stocks] Chart "${type}" failed:`, e);
       container.innerHTML = `<div style="display:flex;align-items:center;justify-content:center;height:100%;color:var(--c-text-3);font-size:var(--text-sm);">
@@ -1121,20 +1121,20 @@ async function mountCharts(rawData) {
 function buildPositionStats(fp) {
   const wrap = createEl('div', { style: { marginBottom: 'var(--s-6)' } });
   const rangePct = fp.range_position_pct != null ? fp.range_position_pct.toFixed(1) + '%' : '-';
-  const stat = (label, value, color) => `<div style="flex:1 1 110px;min-width:110px;padding:var(--s-3);background:var(--c-surface);border:1px solid var(--c-border);border-radius:var(--radius);text-align:center;">
+  const kotakStatistikHtml = (label, value, color) => `<div style="flex:1 1 110px;min-width:110px;padding:var(--s-3);background:var(--c-surface);border:1px solid var(--c-border);border-radius:var(--radius);text-align:center;">
     <div style="color:${color};font-size:var(--text-md);font-weight:700;">${value}</div>
     <div style="font-size:var(--text-xs);color:var(--c-text-3);margin-top:2px;">${label}</div></div>`;
-  const sgn = (v) => v >= 0 ? '#00A86B' : '#D94B4B';
-  const netHtml = `<span style="color:${sgn(fp.net_30d)};">${fmtS(fp.net_30d)}</span> / <span style="color:${sgn(fp.net_90d)};">${fmtS(fp.net_90d)}</span>`;
+  const warnaArah = (v) => v >= 0 ? '#00A86B' : '#D94B4B';
+  const netHtml = `<span style="color:${warnaArah(fp.net_30d)};">${formatNilaiSingkat(fp.net_30d)}</span> / <span style="color:${warnaArah(fp.net_90d)};">${formatNilaiSingkat(fp.net_90d)}</span>`;
   wrap.innerHTML = `
     <div style="font-size:var(--text-md);font-weight:700;margin-bottom:var(--s-3);">POSISI ASING KUMULATIF</div>
     <div style="display:flex;gap:var(--s-2);flex-wrap:wrap;">
-      ${stat('Tertinggi · ' + dateLabelYear(fp.peak_date), fmtS(fp.peak), '#00A86B')}
-      ${stat('Terendah · ' + dateLabelYear(fp.trough_date), fmtS(fp.trough), '#D94B4B')}
-      ${stat('Sekarang', fmtS(fp.current), fp.current >= 0 ? '#00A86B' : '#D94B4B')}
-      ${stat('Posisi dalam rentang', rangePct, '#F2B705')}
-      ${stat('Net sell sejak puncak', fmtS(fp.distance_from_peak), '#90A4AE')}
-      ${stat('Net 30 / 90 hari', netHtml, 'inherit')}
+      ${kotakStatistikHtml('Tertinggi · ' + dateLabelYear(fp.peak_date), formatNilaiSingkat(fp.peak), '#00A86B')}
+      ${kotakStatistikHtml('Terendah · ' + dateLabelYear(fp.trough_date), formatNilaiSingkat(fp.trough), '#D94B4B')}
+      ${kotakStatistikHtml('Sekarang', formatNilaiSingkat(fp.current), fp.current >= 0 ? '#00A86B' : '#D94B4B')}
+      ${kotakStatistikHtml('Posisi dalam rentang', rangePct, '#F2B705')}
+      ${kotakStatistikHtml('Net sell sejak puncak', formatNilaiSingkat(fp.distance_from_peak), '#90A4AE')}
+      ${kotakStatistikHtml('Net 30 / 90 hari', netHtml, 'inherit')}
     </div>`;
   return wrap;
 }
@@ -1142,27 +1142,27 @@ function buildPositionStats(fp) {
 function buildOwnershipStats(fo, fa) {
   const wrap = createEl('div', { style: { marginBottom: 'var(--s-6)' } });
   const cur = fo.current || {};
-  const sgn = (v) => v == null ? 'inherit' : (v >= 0 ? '#00A86B' : '#D94B4B');
-  const sgnTxt = (v) => v == null ? '-' : (v >= 0 ? '+' : '') + fmtS(v);
-  const deltaHtml = `<span style="color:${sgn(fo.change_3m_shares)};">${sgnTxt(fo.change_3m_shares)}</span> / <span style="color:${sgn(fo.change_12m_shares)};">${sgnTxt(fo.change_12m_shares)}</span>`;
+  const warnaArah = (v) => v == null ? 'inherit' : (v >= 0 ? '#00A86B' : '#D94B4B');
+  const formatBertanda = (v) => v == null ? '-' : (v >= 0 ? '+' : '') + formatNilaiSingkat(v);
+  const deltaHtml = `<span style="color:${warnaArah(fo.change_3m_shares)};">${formatBertanda(fo.change_3m_shares)}</span> / <span style="color:${warnaArah(fo.change_12m_shares)};">${formatBertanda(fo.change_12m_shares)}</span>`;
   const cal = fa && fa.calibration;
   const badgeMap = { 'BERSIH': ['Arus terverifikasi KSEI', '#00A86B'], 'BOCOR': ['Ada pergerakan luar pasar', '#D94B4B'], 'DATA-TIPIS': ['Data kalibrasi tipis', '#8A8F98'] };
   const bm = cal ? (badgeMap[cal.kelas] || ['Kalibrasi: ' + cal.kelas, '#8A8F98']) : null;
   const badge = bm ? `<span style="display:inline-block;margin-left:var(--s-2);padding:2px 8px;border:1px solid ${bm[1]};color:${bm[1]};border-radius:999px;font-size:var(--text-xs);font-weight:600;vertical-align:middle;">${bm[0]}</span>` +
     (cal.flow_vs_delta_pct != null ? `<span style="font-size:var(--text-xs);color:var(--c-text-3);margin-left:var(--s-1);">arus menangkap ${cal.flow_vs_delta_pct}% perubahan resmi</span>` : '') : '';
-  const stat = (label, value, color) => `<div style="flex:1 1 110px;min-width:110px;padding:var(--s-3);background:var(--c-surface);border:1px solid var(--c-border);border-radius:var(--radius);text-align:center;">
+  const kotakStatistikHtml = (label, value, color) => `<div style="flex:1 1 110px;min-width:110px;padding:var(--s-3);background:var(--c-surface);border:1px solid var(--c-border);border-radius:var(--radius);text-align:center;">
     <div style="color:${color};font-size:var(--text-md);font-weight:700;">${value}</div>
     <div style="font-size:var(--text-xs);color:var(--c-text-3);margin-top:2px;">${label}</div></div>`;
   wrap.innerHTML = `
     <div style="font-size:var(--text-md);font-weight:700;margin-bottom:var(--s-3);">KEPEMILIKAN ASING RESMI (KSEI)${badge}</div>
     <div style="display:flex;gap:var(--s-2);flex-wrap:wrap;">
-      ${stat('Sekarang · ' + dateLabelYear(cur.date), fmtS(cur.foreign_shares) + ' lbr', '#E8A33D')}
-      ${fa && fa.estimate ? stat('Estimasi ' + dateLabelYear(fa.estimate.date) + ' · jangkar ' + dateLabelYear(fa.last_anchor && fa.last_anchor.date), fmtS(fa.estimate.shares) + ' lbr', '#E8A33D') : ''}
-      ${stat('% total saham · klas ' + (cur.foreign_pct_classified != null ? cur.foreign_pct_classified.toFixed(1) + '%' : '-'), cur.foreign_pct_total != null ? cur.foreign_pct_total.toFixed(1) + '%' : '-', '#5B8FF9')}
-      ${stat('Nilai asing', fmtS(cur.foreign_value), '#00A86B')}
-      ${stat('Tertinggi · ' + dateLabelYear(fo.peak && fo.peak.date), fmtS(fo.peak && fo.peak.foreign_shares) + ' lbr', '#00A86B')}
-      ${stat('Terendah · ' + dateLabelYear(fo.trough && fo.trough.date), fmtS(fo.trough && fo.trough.foreign_shares) + ' lbr', '#D94B4B')}
-      ${stat('Δ 3 bln / 12 bln (lbr)', deltaHtml, 'inherit')}
+      ${kotakStatistikHtml('Sekarang · ' + dateLabelYear(cur.date), formatNilaiSingkat(cur.foreign_shares) + ' lbr', '#E8A33D')}
+      ${fa && fa.estimate ? kotakStatistikHtml('Estimasi ' + dateLabelYear(fa.estimate.date) + ' · jangkar ' + dateLabelYear(fa.last_anchor && fa.last_anchor.date), formatNilaiSingkat(fa.estimate.shares) + ' lbr', '#E8A33D') : ''}
+      ${kotakStatistikHtml('% total saham · klas ' + (cur.foreign_pct_classified != null ? cur.foreign_pct_classified.toFixed(1) + '%' : '-'), cur.foreign_pct_total != null ? cur.foreign_pct_total.toFixed(1) + '%' : '-', '#5B8FF9')}
+      ${kotakStatistikHtml('Nilai asing', formatNilaiSingkat(cur.foreign_value), '#00A86B')}
+      ${kotakStatistikHtml('Tertinggi · ' + dateLabelYear(fo.peak && fo.peak.date), formatNilaiSingkat(fo.peak && fo.peak.foreign_shares) + ' lbr', '#00A86B')}
+      ${kotakStatistikHtml('Terendah · ' + dateLabelYear(fo.trough && fo.trough.date), formatNilaiSingkat(fo.trough && fo.trough.foreign_shares) + ' lbr', '#D94B4B')}
+      ${kotakStatistikHtml('Δ 3 bln / 12 bln (lbr)', deltaHtml, 'inherit')}
     </div>`;
   return wrap;
 }
@@ -1204,7 +1204,7 @@ function buildSummaryTable(rawData) {
               <td style="font-size:var(--text-xs);">${dateLabel(r.date)}</td>
               <td style="font-weight:600;font-size:var(--text-xs);">Rp ${fmtPrice(close)}</td>
               <td style="color:${chgColor};font-size:var(--text-xs);">${chgText}</td>
-              <td style="color:${netColor};font-size:var(--text-xs);">${fmtS(netF)}</td>
+              <td style="color:${netColor};font-size:var(--text-xs);">${formatNilaiSingkat(netF)}</td>
               <td style="font-size:var(--text-xs);">${compact(atv)}</td>
               <td style="color:#7B61FF;font-weight:600;font-size:var(--text-xs);">${bii.toFixed(1)}</td>
               <td style="font-size:var(--text-xs);">${frRatio.toFixed(1)}%</td>
@@ -1219,21 +1219,21 @@ function buildSummaryTable(rawData) {
 /* ─── Cleanup ─── */
 function cleanup() {
   clearCharts();
-  if (state._searchDebounce) clearTimeout(state._searchDebounce);
-  if (state._compareDebounce) clearTimeout(state._compareDebounce);
-  rootEl = null; refs = {};
+  if (stockState._searchDebounce) clearTimeout(stockState._searchDebounce);
+  if (stockState._compareDebounce) clearTimeout(stockState._compareDebounce);
+  stockRootEl = null; stockRefs = {};
 }
 
 /* ─── Export render ─── */
 export function render() {
-  Object.assign(state, {
+  Object.assign(stockState, {
     searchTerm: '', searchResults: [], searching: false,
     selectedTicker: '', days: 30, analysis: null, loading: false,
     compareMode: false, compareTickers: [], compareData: {}, compareLoading: false,
     charts: [],
   });
-  rootEl = createEl('div', { class: 'stocks-page', style: { maxWidth: '900px', margin: '0 auto', padding: 'var(--s-4)' } });
-  refs = {};
+  stockRootEl = createEl('div', { class: 'stocks-page', style: { maxWidth: '900px', margin: '0 auto', padding: 'var(--s-4)' } });
+  stockRefs = {};
 
   if (!document.getElementById('stocks-page-keyframes')) {
     const style = createEl('style', { id: 'stocks-page-keyframes' });
@@ -1243,7 +1243,7 @@ export function render() {
 
   const header = createEl('div', { style: { marginBottom: 'var(--s-5)' } });
   header.innerHTML = `<h1 style="font-size:var(--text-lg);font-weight:700;margin-bottom:var(--s-1);">Analisis Saham</h1><p style="color:var(--c-text-2);font-size:var(--text-sm);">Analisis teknikal dan fundamental saham IDX.</p>`;
-  rootEl.appendChild(header);
+  stockRootEl.appendChild(header);
 
   renderToolbarOnce();
   renderAnalysis();
@@ -1252,22 +1252,22 @@ export function render() {
   const initialTicker = localStorage.getItem('stocks_initial_ticker');
   if (initialTicker) {
     localStorage.removeItem('stocks_initial_ticker');
-    state.searchTerm = initialTicker;
-    if (refs.searchInput) refs.searchInput.value = initialTicker;
+    stockState.searchTerm = initialTicker;
+    if (stockRefs.searchInput) stockRefs.searchInput.value = initialTicker;
     loadAnalysis(initialTicker);
   }
 
-  const outsideClick = (e) => {
-    if (refs.searchDropdown && !refs.searchDropdown.contains(e.target) && !refs.searchInput.contains(e.target)) {
-      refs.searchDropdown.style.display = 'none';
+  const tanganiKlikLuarDropdown = (e) => {
+    if (stockRefs.searchDropdown && !stockRefs.searchDropdown.contains(e.target) && !stockRefs.searchInput.contains(e.target)) {
+      stockRefs.searchDropdown.style.display = 'none';
     }
   };
-  document.addEventListener('click', outsideClick);
-  rootEl._outsideClick = outsideClick;
+  document.addEventListener('click', tanganiKlikLuarDropdown);
+  stockRootEl._outsideClick = tanganiKlikLuarDropdown;
 
-  rootEl._cleanup = () => {
-    document.removeEventListener('click', outsideClick);
+  stockRootEl._cleanup = () => {
+    document.removeEventListener('click', tanganiKlikLuarDropdown);
     cleanup();
   };
-  return rootEl;
+  return stockRootEl;
 }

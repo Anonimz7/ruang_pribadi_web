@@ -63,15 +63,15 @@ export function createModal({ title, content, onClose, width = '480px' } = {}) {
   });
 
   // Close on Escape
-  const onKey = (e) => { if (e.key === 'Escape') close(); };
-  document.addEventListener('keydown', onKey);
+  const tanganiTombolModal = (e) => { if (e.key === 'Escape') close(); };
+  document.addEventListener('keydown', tanganiTombolModal);
 
   function close() {
     backdrop.style.opacity = '0';
     box.style.transform = 'scale(0.95)';
     setTimeout(() => {
       backdrop.remove();
-      document.removeEventListener('keydown', onKey);
+      document.removeEventListener('keydown', tanganiTombolModal);
       onClose?.();
     }, 200);
   }

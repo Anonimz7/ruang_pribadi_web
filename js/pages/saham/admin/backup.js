@@ -202,12 +202,12 @@ export function render() {
   }
 
   // ═══ RENDER: BACKUP BUTTON + PROGRESS ═══════════════════
-  const running = () => ['dumping', 'zipping', 'uploading'].includes(state.phase);
+  const backupSedangBerjalan = () => ['dumping', 'zipping', 'uploading'].includes(state.phase);
 
   function renderBackupButton() {
     backupBtn.innerHTML = '';
-    backupBtn.disabled = running();
-    if (running()) {
+    backupBtn.disabled = backupSedangBerjalan();
+    if (backupSedangBerjalan()) {
       backupBtn.appendChild(createEl('span', { class: 'admin-backup__spin' }));
       backupBtn.appendChild(createEl('span', {}, ['Sedang Berjalan...']));
     } else {

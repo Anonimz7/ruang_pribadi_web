@@ -68,14 +68,14 @@ export function render() {
     });
   }
 
-  const load = () => {
+  const muatGrupHub = () => {
     fetchMenuConfig()
       .then(renderGroups)
       .catch(() => renderGroups([]));
   };
-  load();
+  muatGrupHub();
 
-  const unsubs = ['token', 'tier', 'rank'].map((k) => subscribe(k, load));
+  const unsubs = ['token', 'tier', 'rank'].map((k) => subscribe(k, muatGrupHub));
   page._cleanup = () => unsubs.forEach((u) => u());
 
   return page;

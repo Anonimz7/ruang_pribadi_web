@@ -302,10 +302,10 @@ export function render() {
     // Pembanding difilter ke jendela yang sama agar grafik dan datanya sinkron.
     const d0 = series.length ? series[0].date : null;
     const d1 = series.length ? series[series.length - 1].date : null;
-    const inWindow = (p) => !d0 || (p.date >= d0 && p.date <= d1);
+    const dalamJendelaTanggal = (p) => !d0 || (p.date >= d0 && p.date <= d1);
     const daysW = Math.max(series.length, 1);
 
-    const norm = (pts, key = 'level') => {
+    const normalisasiKeBasis100 = (pts, key = 'level') => {
       const valid = pts.filter((p) => p[key] != null);
       if (valid.length === 0) return [];
       const base = valid[0][key];
@@ -315,7 +315,7 @@ export function render() {
     const seriesArr = [{
       name: idx.name,
       type: 'line',
-      data: norm(series),
+      data: normalisasiKeBasis100(series),
     }];
     const colors = ['#2563eb'];
 
@@ -324,8 +324,8 @@ export function render() {
       const label = state.compareId === 'asp' ? 'Pasar (ASP)' : 'Pasar (MWI)';
       try {
         const radar = await Api.get('/idx/market/radar', { days: daysW });
-        const pts = (radar?.data || []).filter(inWindow).map((p) => ({ date: p.date, close: p[key] }));
-        seriesArr.push({ name: label, type: 'line', data: norm(pts, 'close') });
+        const pts = (radar?.data || []).filter(dalamJendelaTanggal).map((p) => ({ date: p.date, close: p[key] }));
+        seriesArr.push({ name: label, type: 'line', data: normalisasiKeBasis100(pts, 'close') });
         colors.push('#059669');
       } catch (e) {
         toast('Gagal memuat data pasar: ' + (e.message || e), { type: 'warn' });
@@ -333,8 +333,8 @@ export function render() {
     } else if (state.compareId) {
       try {
         const other = await Api.get(`/index-saham/${state.compareId}`, { days: daysW });
-        const pts = (other?.series || []).filter(inWindow);
-        seriesArr.push({ name: other?.index?.name || 'Lainnya', type: 'line', data: norm(pts, 'level') });
+        const pts = (other?.series || []).filter(dalamJendelaTanggal);
+        seriesArr.push({ name: other?.index?.name || 'Lainnya', type: 'line', data: normalisasiKeBasis100(pts, 'level') });
         colors.push('#d97706');
       } catch (e) {
         toast('Gagal memuat pembanding: ' + (e.message || e), { type: 'warn' });

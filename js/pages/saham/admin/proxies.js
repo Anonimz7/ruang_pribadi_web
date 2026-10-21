@@ -339,7 +339,7 @@ export function render() {
     const logBody = createEl('div', { class: 'admin-proxies__log' });
     wrap.appendChild(logBody);
 
-    function render() {
+    function renderIsiLog() {
       fileEl.textContent = state.logFile ? `${state.logFile} (${state.logLines.length} baris)` : 'Belum ada log';
       countEl.textContent = `${state.logLines.length} baris`;
       spinner.style.display = state.logsLoading ? '' : 'none';
@@ -363,7 +363,7 @@ export function render() {
 
     async function loadLogs() {
       state.logsLoading = true;
-      render();
+      renderIsiLog();
       try {
         const res = await Api.get('/admin/proxies/logs', { lines: 120 });
         state.logLines = Array.isArray(res?.lines) ? res.lines : [];
@@ -373,7 +373,7 @@ export function render() {
         state.logFile = '';
       }
       state.logsLoading = false;
-      render();
+      renderIsiLog();
     }
 
     state.loadLogs = loadLogs;

@@ -23,11 +23,11 @@ function initDrawerToggle() {
  * Mode lain memakai shell normal.
  */
 function initLayoutMode() {
-  const apply = (path) => {
+  const terapkanModeLanding = (path) => {
     document.body.classList.toggle('landing-mode', path === '/');
   };
-  subscribe('currentPage', apply);
-  apply(store.currentPage);
+  subscribe('currentPage', terapkanModeLanding);
+  terapkanModeLanding(store.currentPage);
 }
 
 /**

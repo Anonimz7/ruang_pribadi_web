@@ -5,7 +5,7 @@ import { loadSession, Auth } from './auth.js';
 import { fetchMenuConfig } from './menu-config.js';
 import { showLogin } from '../pages/login-modal.js';
 
-const cache = new Map();
+const moduleCache = new Map();
 let currentPageModule = null;
 
 const PUBLIC_ROUTES = new Set([
@@ -186,8 +186,8 @@ export async function navigate(path, push = true) {
 
   const loader = routes[path] || routes['/'];
   try {
-    const mod = cache.has(path) ? cache.get(path) : await loader();
-    if (!cache.has(path)) cache.set(path, mod);
+    const mod = moduleCache.has(path) ? moduleCache.get(path) : await loader();
+    if (!moduleCache.has(path)) moduleCache.set(path, mod);
     currentPageModule = mod;
     app.innerHTML = '';
     const page = mod.render ? mod.render() : mod.default?.render?.();
@@ -228,10 +228,10 @@ export async function initRouter() {
     await Auth.me().catch(() => {});
   }
 
-  const handler = () => {
+  const tanganiRute = () => {
     const h = location.hash.slice(1) || '/';
     navigate(h, false);
   };
-  window.addEventListener('hashchange', handler);
+  window.addEventListener('hashchange', tanganiRute);
   await navigate(location.hash.slice(1) || '/', false);
 }

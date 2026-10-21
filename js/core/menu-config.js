@@ -54,10 +54,10 @@ export function getPortal(portalId) {
   return PORTALS[portalId] || null;
 }
 
-let cached = null;
+let menuCache = null;
 
 export async function fetchMenuConfig() {
-  if (cached) return cached;
+  if (menuCache) return menuCache;
 
   const [staticRes, serverRes] = await Promise.all([
     fetch('/assets/config/menu_config.json'),
@@ -69,7 +69,7 @@ export async function fetchMenuConfig() {
   const serverApps = serverRes && serverRes.ok ? (await serverRes.json()).apps || [] : [];
   const serverMinTier = Object.fromEntries(serverApps.map((a) => [a.key, a.minTier]));
 
-  cached = staticData.apps.map((app) => ({
+  menuCache = staticData.apps.map((app) => ({
     key: app.key,
     icon: iconMap[app.icon] || 'help-circle',
     label: app.label,
@@ -83,7 +83,7 @@ export async function fetchMenuConfig() {
       ? serverMinTier[app.key]
       : (Number.isFinite(app.minTier) ? app.minTier : 3),
   }));
-  return cached;
+  return menuCache;
 }
 
 // Section -> human-readable label + route mapping
