@@ -5,187 +5,13 @@ import Api from '../../core/api.js';
 import { toast } from '../../ui/toast.js';
 import { loadApexCharts, buildBaseOptions, renderChart, destroyChart, normalizeDate } from '../../ui/chart.js';
 import { fmtPrice, formatNilaiSingkat, dateLabel, dateLabelYear, toTs } from '../../utils/format.js';
+import { StockSectorBadge, DelistedBadge } from '../../ui/stock-widgets.js';
+import { StockListItem, StockDataPoint, StockSummary, StockAnalysis } from '../../models/stocks.js';
 
-/* ─── Inline Models ─── */
-class StockListItem {
-  constructor(data = {}) {
-    this.ticker = data.ticker || '';
-    this.companyName = data.company_name || '';
-    this.sector = data.sector || null;
-    this.primarySector = data.primary_sector || null;
-    this.subSector = data.sub_sector || null;
-    this.labelDelisted = data.label_delisted ?? null;
-    this.stockStatus = data.stock_status || null;
-    this.statusReason = data.status_reason || null;
-  }
-  get isDelisted() { return this.labelDelisted === 1; }
-  get isBlacklisted() { return this.stockStatus === 'blacklist'; }
-}
-
-class StockDataPoint {
-  constructor(data = {}) {
-    this.date = data.date || data.trade_date || '';
-    this.close = (data.close ?? 0) * 1;
-    this.open = (data.open ?? 0) * 1;
-    this.high = (data.high ?? 0) * 1;
-    this.low = (data.low ?? 0) * 1;
-    this.volume = (data.volume ?? 0) * 1;
-    this.value = (data.value ?? 0) * 1;
-    this.frequency = (data.frequency ?? 0) * 1;
-    this.foreignBuy = (data.foreign_buy ?? 0) * 1;
-    this.foreignSell = (data.foreign_sell ?? 0) * 1;
-    this.nonRegValue = (data.non_reg_value ?? 0) * 1;
-    this.nonRegFreq = (data.non_reg_freq ?? 0) * 1;
-    this.netForeign = (data.net_foreign ?? 0) * 1;
-    this.atv = (data.atv ?? 0) * 1;
-    this.biiScore = (data.bii_score ?? 50) * 1;
-    this.prevPrice = (data.prev_price ?? 0) * 1;
-    this.change = (data.change ?? 0) * 1;
-  }
-}
-
-class StockSummary {
-  constructor(data = {}) {
-    this.priceChangePct = (data.price_change_pct ?? 0) * 1;
-    this.latestPrice = (data.latest_price ?? 0) * 1;
-    this.latestBiiScore = (data.latest_bii_score ?? 0) * 1;
-    this.totalNetForeign = (data.total_net_foreign ?? 0) * 1;
-    this.avgBiiScore = (data.avg_bii_score ?? 0) * 1;
-    this.foreignDominationPct = (data.foreign_domination_pct ?? 0) * 1;
-    this.totalValue = (data.total_value ?? 0) * 1;
-    this.totalVolume = (data.total_volume ?? 0) * 1;
-  }
-}
-
-class StockAnalysis {
-  constructor(data = {}) {
-    this.ticker = data.ticker || '';
-    this.companyName = data.company_name || '';
-    this.sector = data.sector || null;
-    this.primarySector = data.primary_sector || null;
-    this.subSector = data.sub_sector || null;
-    this.remarksText = data.remarks_text || null;
-    this.remarksSegments = data.remarks_segments || null;
-    this.labelDelisted = data.label_delisted ?? null;
-    this.stockStatus = data.stock_status || null;
-    this.statusReason = data.status_reason || null;
-    this.coreBusiness = data.core_business || null;
-    this.periodDays = (data.period_days ?? 90) * 1;
-    this.data = (data.data || []).map(d => new StockDataPoint(d));
-    this.summary = new StockSummary(data.summary || {});
-  }
-}
-
-/* ─── Inline Widgets ─── */
-const SECTOR_COLORS = {
-  'Energi': '#E86452', 'Primer': '#6DC8EC', 'Layanan Kesehatan': '#00C87A',
-  'Industri': '#F6903D', 'Keuangan': '#5B8FF9', 'Utilitas': '#9270CA',
-  'Teknologi': '#7B61FF', 'Konsumer Non-Siklis': '#5AD8A6',
-  'Konsumer Siklis': '#F6C022', 'Properti & Real Estat': '#D94B4B',
-  'Infrastruktur': '#90A4AE',
-};
-
-function sectorColorFn(sector) { return SECTOR_COLORS[sector] || '#64748B'; }
-
-function StockSectorBadge(label, small = false) {
-  if (!label) return null;
-  const color = sectorColorFn(label);
-  const el = createEl('span', {
-    style: {
-      display: 'inline-flex', alignItems: 'center',
-      padding: small ? '1px 6px' : '3px 8px',
-      background: color + '26', border: `1px solid ${color}4D`,
-      borderRadius: '10px', fontSize: small ? 'var(--text-xs)' : 'var(--text-sm)',
-      fontWeight: 600, color: color, lineHeight: 1.4,
-    }
-  });
-  el.textContent = label;
-  return el;
-}
-
-function DelistedBadge({ labelDelisted, stockStatus, statusReason, small = false }) {
-  const isBlacklisted = stockStatus === 'blacklist';
-  const isDelisted = labelDelisted === 1;
-  const wrap = createEl('span', {
-    style: { display: 'inline-flex', alignItems: 'center', gap: '4px', flexWrap: 'wrap' }
-  });
-
-  // Badge blacklist (jika ditetapkan admin)
-  if (isBlacklisted) {
-    const bl = createEl('span', {
-      style: {
-        display: 'inline-flex', alignItems: 'center', gap: '2px',
-        padding: small ? '1px 4px' : '2px 6px', borderRadius: '8px',
-        fontSize: small ? 'var(--text-xs)' : 'var(--text-sm)', fontWeight: 600,
-        cursor: statusReason ? 'pointer' : 'default',
-        background: 'rgba(217, 119, 6, 0.12)', color: 'var(--c-warn)',
-      }
-    });
-    bl.innerHTML = `${icons['alert-circle']} <span>Blacklist</span>`;
-    if (statusReason) {
-      on(bl, 'click', () => {
-        const overlay = createEl('div', {
-          style: {
-            position: 'fixed', inset: 0, background: 'rgba(0,0,0,0.5)',
-            display: 'flex', alignItems: 'center', justifyContent: 'center',
-            zIndex: 100, padding: 'var(--s-4)',
-          }
-        });
-        overlay.innerHTML = `
-          <div style="background:var(--c-surface);border:1px solid var(--c-border);border-radius:var(--radius);max-width:420px;width:100%;max-height:80vh;overflow-y:auto;">
-            <div style="display:flex;align-items:center;justify-content:space-between;padding:var(--s-4);border-bottom:1px solid var(--c-border);">
-              <h3 style="font-size:var(--text-md);font-weight:600;">Alasan Blacklist</h3>
-              <button class="btn btn--ghost btn--sm" style="padding:var(--s-1);width:28px;height:28px;min-width:28px;min-height:28px;" onclick="this.closest('.modal-overlay').remove()">${icons['x']}</button>
-            </div>
-            <div style="padding:var(--s-4);">${formatReasonLines(statusReason)}</div>
-          </div>
-        `;
-        overlay.className = 'modal-overlay';
-        overlay.onclick = (e) => { if (e.target === overlay) overlay.remove(); };
-        document.body.appendChild(overlay);
-      });
-    }
-    wrap.appendChild(bl);
-  }
-
-  // Badge status listing: Aktif / Delisted (selalu tampil)
-  const st = createEl('span', {
-    style: {
-      display: 'inline-flex', alignItems: 'center', gap: '2px',
-      padding: small ? '1px 4px' : '2px 6px', borderRadius: '8px',
-      fontSize: small ? 'var(--text-xs)' : 'var(--text-sm)', fontWeight: 600,
-    }
-  });
-  const color = isDelisted ? 'var(--c-danger)' : 'var(--c-accent)';
-  const bg = isDelisted ? 'rgba(220, 38, 38, 0.12)' : 'rgba(5, 150, 105, 0.12)';
-  st.style.background = bg; st.style.color = color;
-  const iconSvg = isDelisted
-    ? '<svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><line x1="18" y1="6" x2="6" y2="18"/><line x1="6" y1="6" x2="18" y2="18"/></svg>'
-    : icons['check'];
-  st.innerHTML = `${iconSvg} <span>${isDelisted ? 'Delisted' : 'Aktif'}</span>`;
-  wrap.appendChild(st);
-
-  return wrap;
-}
-
-/* Format status reason: tiap "- " item jadi baris terpisah agar mudah dibaca */
-function formatReasonLines(text) {
-  if (!text) return '';
-  let lines = text.split(/\r?\n/).map(s => s.trim()).filter(Boolean);
-  if (lines.length === 1 && lines[0].includes('- ')) {
-    lines = lines[0].split(/(?<=\.)\s+(?=- )/).map(s => s.trim()).filter(Boolean);
-  }
-  return lines.map((l, i) => {
-    const isBullet = l.startsWith('- ');
-    const body = isBullet ? l.slice(2) : l;
-    return `<div style="display:flex;align-items:flex-start;gap:var(--s-2);${i < lines.length - 1 ? 'margin-bottom:var(--s-2);' : ''}">
-      ${isBullet ? '<span style="flex-shrink:0;font-size:var(--text-sm);line-height:1.6;color:var(--c-text-3);">•</span>' : ''}
-      <span style="flex:1;font-size:var(--text-sm);line-height:1.6;color:var(--c-text);">${body}</span>
-    </div>`;
-  }).join('');
-}
-
-function StockInfoCard(stock) {
+/* Kartu info saham khusus halaman ini (fork dari StockInfoCard di
+   ui/stock-widgets.js) — memuat seksi Remarks + Riwayat Remarks yang
+   hanya ada di halaman analisis saham. */
+function StockInfoCardRemarks(stock) {
   const hasSector = !!(stock.sector || stock.primarySector);
   const hasCore = !!(stock.coreBusiness && stock.coreBusiness.length > 0);
   const hasRemarks = !!stock.remarksText;
@@ -370,7 +196,6 @@ const PERIODS = [30, 60, 90, 180, 365];
 const COMPARE_COLORS = ['#00A86B', '#5B8FF9', '#F6903D', '#E86452', '#9270CA', '#5AD8A6', '#6DC8EC', '#F6C022'];
 
 /* ─── Formatters ─── */
-
 
 function fullDate(dateStr) {
   const d = new Date(dateStr);
@@ -943,7 +768,7 @@ function renderAnalysis() {
   el.appendChild(header);
 
   // Info Card
-  const infoCard = StockInfoCard(a);
+  const infoCard = StockInfoCardRemarks(a);
   if (infoCard) el.appendChild(infoCard);
 
   // Metrics
