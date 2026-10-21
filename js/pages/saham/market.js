@@ -240,7 +240,7 @@ function renderMarket() {
     ticker: r.ticker, company: r.company_name, netForeign: r.net_flow_val
   }))));
 
-  if (topForeignOwn.length) el.appendChild(buildTable('TOP 10 KEPEMILIKAN ASING TERBANYAK', ['Ticker', 'Company', 'Nilai Asing', '% Saham'], topForeignOwn.map(r => ({
+  if (topForeignOwn.length) el.appendChild(buildTable('TOP 10 FOREIGN OWNERSHIP', ['Ticker', 'Company', 'Nilai Asing', '% Saham'], topForeignOwn.map(r => ({
     ticker: r.ticker, company: r.company_name, nilaiAsing: r.foreign_value,
     pct: r.foreign_pct_total != null ? r.foreign_pct_total.toFixed(1) + '%' : '-'
   }))));
