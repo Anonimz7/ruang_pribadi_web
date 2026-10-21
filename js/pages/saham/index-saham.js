@@ -7,8 +7,7 @@ import Api from '../../core/api.js';
 import { toast } from '../../ui/toast.js';
 import { createModal } from '../../ui/modal.js';
 import { DelistedBadge, StockSectorBadge } from '../../ui/stock-widgets.js';
-import { loadApexCharts, buildBaseOptions, renderChart, destroyChart, normalizeDate } from '../../ui/chart.js';
-import { toTs } from '../../utils/format.js';
+import { loadApexCharts, buildBaseOptions, renderChart, destroyChart, normalizeDate, toTs } from '../../ui/chart.js';
 
 const MODES = {
   mcap: 'Market Cap',

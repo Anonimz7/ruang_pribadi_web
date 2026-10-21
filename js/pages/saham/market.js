@@ -4,35 +4,13 @@ import { icons } from '../../ui/icons.js';
 import Api from '../../core/api.js';
 import { toast } from '../../ui/toast.js';
 import { StockSectorBadge, sectorColor } from '../../ui/stock-widgets.js';
-import { loadApexCharts, buildBaseOptions, renderChart, destroyChart, normalizeDate } from '../../ui/chart.js';
-import { fmtPrice, formatNilaiSingkat, dateLabel, dateLabelYear, toTs } from '../../utils/format.js';
+import { loadApexCharts, buildBaseOptions, renderChart, destroyChart, normalizeDate, toTs, buildLineChartApex, buildBarChartApex, buildPositionChartApex, createChartPanel } from '../../ui/chart.js';
+const chartPanel = createChartPanel('market-page');
+import { fmtPrice, formatNilaiSingkat, dateLabel, dateLabelYear } from '../../utils/format.js';
 
 /* ─── Helpers ─── */
 
-
 /* ─── ApexCharts helpers ─── */
-
-function buildLineChartApex(container, data, color) {
-  const opts = buildBaseOptions({ height: 210, type: 'line' });
-  opts.colors = [color];
-  opts.stroke.width = 2.5;
-  opts.series = [{
-    name: 'Value',
-    data: data.filter(d => d.date && d.close != null).map(d => ({ x: toTs(d.date), y: d.close })),
-  }];
-  return renderChart(container, opts);
-}
-
-function buildBarChartApex(container, data, color) {
-  const opts = buildBaseOptions({ height: 200, type: 'bar' });
-  opts.colors = [color];
-  opts.plotOptions = { bar: { columnWidth: '60%', borderRadius: 2, borderRadiusApplication: 'end' } };
-  opts.series = [{
-    name: 'Value',
-    data: data.filter(d => d.date && d.value != null).map(d => ({ x: toTs(d.date), y: d.value })),
-  }];
-  return renderChart(container, opts);
-}
 
 function buildForeignMarketChartApex(container, data) {
   const opts = buildBaseOptions({ height: 210, type: 'bar' });
@@ -51,18 +29,6 @@ function buildForeignMarketChartApex(container, data) {
   opts.series = [{
     name: 'Net Foreign',
     data: data.filter(d => d.date && d.net_foreign != null).map(d => ({ x: toTs(d.date), y: d.net_foreign })),
-  }];
-  opts.tooltip.y = { formatter: (v) => (v >= 0 ? '+' : '') + formatNilaiSingkat(v) };
-  return renderChart(container, opts);
-}
-
-function buildPositionChartApex(container, series) {
-  const opts = buildBaseOptions({ height: 230, type: 'line' });
-  opts.colors = ['#0EA5A4'];
-  opts.stroke.width = 2.5;
-  opts.series = [{
-    name: 'Posisi kumulatif',
-    data: series.filter(d => d.date && d.value != null).map(d => ({ x: toTs(d.date), y: d.value })),
   }];
   opts.tooltip.y = { formatter: (v) => (v >= 0 ? '+' : '') + formatNilaiSingkat(v) };
   return renderChart(container, opts);
@@ -335,24 +301,6 @@ function kpiTile(label, value, change, color) {
     <div style="font-size:var(--text-lg);font-weight:700;color:${color};">${value}</div>
     ${change !== 0 ? `<div style="font-size:var(--text-xs);color:${chgColor};font-weight:500;">${chgSign}${Number(change).toFixed(1)}%</div>` : ''}
   </div>`;
-}
-
-function chartPanel(title, subtitle, legend, height) {
-  const panel = createEl('div', { class: 'market-page__chart-panel', style: { marginBottom: 'var(--s-6)' } });
-  const legendHtml = legend.map(l => `
-    <span style="display:inline-flex;align-items:center;gap:4px;font-size:var(--text-xs);color:var(--c-text-3);">
-      <span style="width:8px;height:8px;border-radius:50%;background:${l.color};display:inline-block;"></span>${l.label}
-    </span>
-  `).join('');
-  panel.innerHTML = `
-    <div style="display:flex;align-items:flex-start;justify-content:space-between;gap:var(--s-3);flex-wrap:wrap;margin-bottom:var(--s-3);">
-      <div><div style="font-size:var(--text-md);font-weight:700;">${title}</div>
-      <div style="font-size:var(--text-xs);color:var(--c-text-3);margin-top:2px;">${subtitle}</div></div>
-      <div style="display:flex;gap:var(--s-2);flex-wrap:wrap;">${legendHtml}</div>
-    </div>
-    <div class="market-page__chart" style="height:${height}px;width:100%;" data-chart-type="${title}"></div>
-  `;
-  return panel;
 }
 
 async function mountMarketCharts(asp, mwi, marketData) {

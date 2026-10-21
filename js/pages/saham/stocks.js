@@ -3,8 +3,9 @@ import { $, on, createEl } from '../../utils/dom.js';
 import { icons } from '../../ui/icons.js';
 import Api from '../../core/api.js';
 import { toast } from '../../ui/toast.js';
-import { loadApexCharts, buildBaseOptions, renderChart, destroyChart, normalizeDate } from '../../ui/chart.js';
-import { fmtPrice, formatNilaiSingkat, dateLabel, dateLabelYear, toTs } from '../../utils/format.js';
+import { loadApexCharts, buildBaseOptions, renderChart, destroyChart, normalizeDate, toTs, buildLineChartApex, buildBarChartApex, buildPositionChartApex, createChartPanel } from '../../ui/chart.js';
+const chartPanel = createChartPanel('stocks-page');
+import { fmtPrice, formatNilaiSingkat, dateLabel, dateLabelYear } from '../../utils/format.js';
 import { StockSectorBadge, DelistedBadge } from '../../ui/stock-widgets.js';
 import { StockListItem, StockDataPoint, StockSummary, StockAnalysis } from '../../models/stocks.js';
 
@@ -206,28 +207,6 @@ function fullDate(dateStr) {
 
 /* ─── ApexCharts helpers ─── */
 
-function buildPriceChartApex(container, data) {
-  const opts = buildBaseOptions({ height: 270, type: 'line' });
-  opts.colors = ['#00A86B'];
-  opts.stroke.width = 2.5;
-  opts.series = [{
-    name: 'Harga Penutupan',
-    data: data.filter(d => d.date && d.close != null).map(d => ({ x: toTs(d.date), y: d.close })),
-  }];
-  return renderChart(container, opts);
-}
-
-function buildBarChartApex(container, data, color) {
-  const opts = buildBaseOptions({ height: 200, type: 'bar' });
-  opts.colors = [color];
-  opts.plotOptions = { bar: { columnWidth: '60%', borderRadius: 2, borderRadiusApplication: 'end' } };
-  opts.series = [{
-    name: 'Value',
-    data: data.filter(d => d.time && d.value != null).map(d => ({ x: toTs(d.time), y: d.value })),
-  }];
-  return renderChart(container, opts);
-}
-
 function buildForeignChartApex(container, data) {
   const opts = buildBaseOptions({ height: 210, type: 'bar' });
   opts.plotOptions = {
@@ -245,29 +224,6 @@ function buildForeignChartApex(container, data) {
   opts.series = [{
     name: 'Net Foreign',
     data: data.filter(d => d.date && d.netForeign != null).map(d => ({ x: toTs(d.date), y: d.netForeign })),
-  }];
-  opts.tooltip.y = { formatter: (v) => (v >= 0 ? '+' : '') + formatNilaiSingkat(v) };
-  return renderChart(container, opts);
-}
-
-function buildLineChartApex(container, data, color) {
-  const opts = buildBaseOptions({ height: 210, type: 'line' });
-  opts.colors = [color];
-  opts.stroke.width = 2.5;
-  opts.series = [{
-    name: 'Value',
-    data: data.filter(d => d.time && d.close != null).map(d => ({ x: toTs(d.time), y: d.close })),
-  }];
-  return renderChart(container, opts);
-}
-
-function buildPositionChartApex(container, series) {
-  const opts = buildBaseOptions({ height: 230, type: 'line' });
-  opts.colors = ['#0EA5A4'];
-  opts.stroke.width = 2.5;
-  opts.series = [{
-    name: 'Posisi kumulatif',
-    data: series.filter(d => d.date && d.value != null).map(d => ({ x: toTs(d.date), y: d.value })),
   }];
   opts.tooltip.y = { formatter: (v) => (v >= 0 ? '+' : '') + formatNilaiSingkat(v) };
   return renderChart(container, opts);
@@ -832,18 +788,6 @@ function metricCard(label, value, color) {
   </div>`;
 }
 
-function chartPanel(title, subtitle, legend, height) {
-  const panel = createEl('div', { class: 'stocks-page__chart-panel', style: { marginBottom: 'var(--s-6)' } });
-  const legendHtml = legend.map(l => `<span style="display:inline-flex;align-items:center;gap:4px;font-size:var(--text-xs);color:var(--c-text-3);"><span style="width:8px;height:8px;border-radius:50%;background:${l.color};display:inline-block;"></span>${l.label}</span>`).join('');
-  panel.innerHTML = `
-    <div style="display:flex;align-items:flex-start;justify-content:space-between;gap:var(--s-3);flex-wrap:wrap;margin-bottom:var(--s-3);">
-      <div><div style="font-size:var(--text-md);font-weight:700;">${title}</div><div style="font-size:var(--text-xs);color:var(--c-text-3);margin-top:2px;">${subtitle}</div></div>
-      <div style="display:flex;gap:var(--s-2);flex-wrap:wrap;">${legendHtml}</div>
-    </div>
-    <div class="stocks-page__chart" style="height:${height}px;width:100%;" data-chart-type="${title}"></div>`;
-  return panel;
-}
-
 async function mountCharts(rawData) {
   clearCharts();
   try {
@@ -868,15 +812,15 @@ async function mountCharts(rawData) {
     let chart = null;
     try {
       if (type === 'Pergerakan Harga') {
-        chart = buildPriceChartApex(container, normData);
+        chart = buildLineChartApex(container, normData, '#00A86B', { height: 270, name: 'Harga Penutupan' });
       } else if (type === 'Perbandingan Harga (Normalisasi)') {
         chart = buildCompareChartApex(container, normData, stockState.compareData, stockState.compareTickers, stockState.analysis.ticker);
       } else if (type === 'Perbandingan BII Score') {
         chart = buildCompareBiiChartApex(container, normData, stockState.compareData, stockState.compareTickers, stockState.analysis.ticker);
       } else if (type === 'Total Nilai Transaksi') {
-        chart = buildBarChartApex(container, normData.map(d => ({ time: d.date, value: d.value })), '#F6903D');
+        chart = buildBarChartApex(container, normData.map(d => ({ time: d.date, value: d.value })), '#F6903D', { timeKey: 'time' });
       } else if (type === 'Volume Perdagangan') {
-        chart = buildBarChartApex(container, normData.map(d => ({ time: d.date, value: d.volume })), '#6DC8EC');
+        chart = buildBarChartApex(container, normData.map(d => ({ time: d.date, value: d.volume })), '#6DC8EC', { timeKey: 'time' });
       } else if (type === 'Arus Dana Asing') {
         chart = buildForeignChartApex(container, normData);
       } else if (type === 'Posisi Asing Kumulatif') {
@@ -887,13 +831,13 @@ async function mountCharts(rawData) {
           ? buildOwnershipChartApex(container, fa.series.map(p => ({ date: p.date, foreign_shares: p.shares })))
           : (stockState.foreignOwn && stockState.foreignOwn.series ? buildOwnershipChartApex(container, stockState.foreignOwn.series) : null);
       } else if (type === 'BII Score (Buying Intensity Index)') {
-        chart = buildLineChartApex(container, normData.map(d => ({ time: d.date, close: d.biiScore })), '#7B61FF');
+        chart = buildLineChartApex(container, normData.map(d => ({ time: d.date, close: d.biiScore })), '#7B61FF', { timeKey: 'time' });
       } else if (type === 'ATV (Avg Transaction Value)') {
-        chart = buildBarChartApex(container, normData.map(d => ({ time: d.date, value: d.atv })), '#9270CA');
+        chart = buildBarChartApex(container, normData.map(d => ({ time: d.date, value: d.atv })), '#9270CA', { timeKey: 'time' });
       } else if (type === 'Nilai Nego (Non-Regular)') {
-        chart = buildBarChartApex(container, normData.map(d => ({ time: d.date, value: d.nonRegValue })), '#F6C022');
+        chart = buildBarChartApex(container, normData.map(d => ({ time: d.date, value: d.nonRegValue })), '#F6C022', { timeKey: 'time' });
       } else if (type === 'Frekuensi Nego') {
-        chart = buildBarChartApex(container, normData.map(d => ({ time: d.date, value: d.nonRegFreq })), '#90A4AE');
+        chart = buildBarChartApex(container, normData.map(d => ({ time: d.date, value: d.nonRegFreq })), '#90A4AE', { timeKey: 'time' });
       }
       if (chart) stockState.charts.push(chart);
     } catch (e) {

@@ -1,8 +1,7 @@
 /* utils/format.js — Pemformat angka, tanggal, dan ukuran berkas bersama.
+   (toTs tinggal di ui/chart.js, bersama normalizeDate.)
    Satu-satunya rumah bagi fungsi-fungsi ini; halaman tidak lagi
    menggulung salinannya sendiri. */
-import { normalizeDate } from '../ui/chart.js';
-
 export function fmtPrice(v) {
   if (v == null) return '-';
   return new Intl.NumberFormat('id-ID', { maximumFractionDigits: 0 }).format(v);
@@ -37,9 +36,4 @@ export function dateLabelYear(dateStr) {
   if (isNaN(d)) return dateStr;
   const months = ['Jan', 'Feb', 'Mar', 'Apr', 'Mei', 'Jun', 'Jul', 'Agu', 'Sep', 'Okt', 'Nov', 'Des'];
   return `${d.getDate()} ${months[d.getMonth()]} ${d.getFullYear()}`;
-}
-
-export function toTs(dateStr) {
-  const d = new Date(normalizeDate(dateStr));
-  return isNaN(d) ? 0 : d.getTime();
 }
