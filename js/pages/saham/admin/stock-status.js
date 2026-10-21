@@ -5,6 +5,8 @@ import Api from '../../../core/api.js';
 import { toast } from '../../../ui/toast.js';
 import { createModal } from '../../../ui/modal.js';
 import { StockSectorBadge, DelistedBadge } from '../../../ui/stock-widgets.js';
+import { renderSkeletonRows } from '../../../ui/loading.js';
+import { pageInfo, pageInfoText } from '../../../ui/pagination.js';
 
 const FILTERS = [
   { value: '', label: 'Semua' },
@@ -100,7 +102,7 @@ export function render() {
   // ---- Data ----
   async function loadStocks() {
     state.loading = true;
-    renderLoading();
+    renderSkeletonRows(tableWrap);
     pagination.innerHTML = '';
 
     try {
@@ -132,13 +134,7 @@ export function render() {
     renderPagination();
   }
 
-  function renderLoading() {
-    tableWrap.innerHTML = '';
-    for (let i = 0; i < 5; i++) {
-      const row = createEl('div', { class: 'skeleton', style: { height: '48px', borderRadius: '6px', marginBottom: '8px' } });
-      tableWrap.appendChild(row);
-    }
-  }
+  
 
   // ---- Table ----
   function renderTable() {
@@ -365,15 +361,13 @@ export function render() {
 
   function renderPagination() {
     pagination.innerHTML = '';
-    const totalPages = Math.ceil(state.total / state.perPage);
+    const { totalPages } = pageInfo(state.page, state.perPage, state.total);
     if (state.total === 0 || totalPages <= 1) return;
 
-    const first = (state.page - 1) * state.perPage + 1;
-    const last = Math.min(state.page * state.perPage, state.total);
-    const filterActive = state.searchTerm || state.statusFilter;
+        const filterActive = state.searchTerm || state.statusFilter;
 
     const info = createEl('span', { class: 'admin-stock-status__page-info' }, []);
-    info.textContent = `Menampilkan ${first}–${last} dari ${state.total} saham${filterActive ? ' (filter aktif)' : ''}`;
+    info.textContent = pageInfoText(state.page, state.perPage, state.total, 'saham', filterActive ? ' (filter aktif)' : '');
 
     const controls = createEl('div', { class: 'admin-stock-status__page-controls' }, []);
 

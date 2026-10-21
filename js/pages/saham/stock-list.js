@@ -3,6 +3,7 @@ import { createEl } from '../../utils/dom.js';
 import { icons } from '../../ui/icons.js';
 import Api from '../../core/api.js';
 import { DelistedBadge, StockSectorBadge } from '../../ui/stock-widgets.js';
+import { pagerHtml, pageInfoText } from '../../ui/pagination.js';
 
 export function render() {
   const state = {
@@ -271,28 +272,22 @@ export function render() {
     });
   }
 
-  function renderPagination() {
-    const totalPages = Math.ceil(state.total / state.perPage);
+    function renderPagination() {
     if (state.total === 0) return;
 
-    const first = (state.page - 1) * state.perPage + 1;
-    const last = Math.min(state.page * state.perPage, state.total);
     const filterActive = state.searchTerm || state.sector || state.primary || state.subSector;
     const badges = [state.sector, state.primary, state.subSector]
       .filter(Boolean)
       .map(l => { const b = StockSectorBadge(l, true); return b ? b.outerHTML : ''; })
       .join('');
 
-    pagination.innerHTML = `
-      <span style="display:inline-flex;align-items:center;gap:var(--s-2);flex-wrap:wrap;font-size:var(--text-sm);color:var(--c-text-3);">
-        Menampilkan ${first}–${last} dari ${state.total} saham${filterActive ? ' (filter aktif)' : ''}${badges ? ' ' + badges : ''}
-      </span>
-      <div style="display:flex;gap:var(--s-2);align-items:center;">
-        <button class="btn btn--ghost btn--sm" ${state.page <= 1 ? 'disabled' : ''} onclick="window.stockListPrev()">Prev</button>
-        <span class="stock-list-page__page-indicator" aria-label="Halaman ${state.page} dari ${totalPages}">${state.page} / ${totalPages}</span>
-        <button class="btn btn--ghost btn--sm" ${state.page >= totalPages ? 'disabled' : ''} onclick="window.stockListNext()">Next</button>
-      </div>
-    `;
+    pagination.innerHTML = pagerHtml({
+      page: state.page, perPage: state.perPage, total: state.total,
+      prevGlobal: 'stockListPrev', nextGlobal: 'stockListNext',
+      indicatorClass: 'stock-list-page__page-indicator',
+      infoHtml: pageInfoText(state.page, state.perPage, state.total, 'saham', filterActive ? ' (filter aktif)' : '') + (badges ? ' ' + badges : ''),
+      infoStyle: 'display:inline-flex;align-items:center;gap:var(--s-2);flex-wrap:wrap;font-size:var(--text-sm);color:var(--c-text-3);',
+    });
   }
 
   window.stockListPrev = () => {

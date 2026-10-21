@@ -4,6 +4,7 @@ import { icons } from '../../../ui/icons.js';
 import Api from '../../../core/api.js';
 import { toast } from '../../../ui/toast.js';
 import { createModal } from '../../../ui/modal.js';
+import { renderSkeletonRows } from '../../../ui/loading.js';
 
 const LANGS = [
   { code: 'id', label: '🇮🇩 Indonesia' },
@@ -45,7 +46,7 @@ export function render() {
 
   async function loadSitemaps() {
     state.loading = true;
-    renderLoading();
+    renderSkeletonRows(tableWrap);
 
     try {
       const data = await Api.get('/sitemaps');
@@ -62,13 +63,7 @@ export function render() {
     renderTable();
   }
 
-  function renderLoading() {
-    tableWrap.innerHTML = '';
-    for (let i = 0; i < 5; i++) {
-      const row = createEl('div', { class: 'skeleton', style: { height: '48px', borderRadius: '6px', marginBottom: '8px' } });
-      tableWrap.appendChild(row);
-    }
-  }
+  
 
   function renderTable() {
     tableWrap.innerHTML = '';

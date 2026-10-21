@@ -2,12 +2,10 @@
 import { createEl } from '../../../utils/dom.js';
 import { icons } from '../../../ui/icons.js';
 import Api from '../../../core/api.js';
+import { connectWebSocket } from '../../../core/ws.js';
 import { toast } from '../../../ui/toast.js';
 import { createModal } from '../../../ui/modal.js';
-import { store } from '../../../core/state.js';
-import { ApiConfig } from '../../../core/api-config.js';
 import { formatBytes } from '../../../utils/format.js';
-
 
 function formatDate(iso) {
   if (!iso) return '-';
@@ -414,20 +412,18 @@ export function render() {
   }
 
   // ═══ WEBSOCKET ══════════════════════════════════════════
-  function initWebSocket() {
-    let wsUrl = ApiConfig.baseUrl.replace(/^http/, 'ws') + '/ws/backup-progress';
-    const token = store.token;
-    if (token) wsUrl += '?token=' + encodeURIComponent(token);
-    try {
-      state.ws = new WebSocket(wsUrl);
-    } catch (e) {
-      console.error('[AdminBackup] WS init failed:', e);
-      return;
-    }
+  
 
-    state.ws.onmessage = (event) => {
-      let data;
-      try { data = JSON.parse(event.data); } catch { return; }
+  // Cleanup
+  container._cleanup = () => {
+    if (state.ws) state.ws.close();
+  };
+
+  // Init
+  loadAll();
+  state.ws = connectWebSocket('/ws/backup-progress', {
+    tag: 'AdminBackup',
+    onMessage: (data) => {
       if (data.type !== 'backup-status') return;
       state.phase = data.phase || 'idle';
       state.percent = data.percent || 0;
@@ -442,19 +438,8 @@ export function render() {
           type: state.phase === 'done' ? 'success' : 'error',
         });
       }
-    };
-    state.ws.onerror = (err) => console.error('[AdminBackup] WebSocket error:', err);
-    state.ws.onclose = () => console.log('[AdminBackup] WebSocket disconnected');
-  }
-
-  // Cleanup
-  container._cleanup = () => {
-    if (state.ws) state.ws.close();
-  };
-
-  // Init
-  loadAll();
-  initWebSocket();
+    },
+  });
 
   return container;
 }

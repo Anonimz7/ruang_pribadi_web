@@ -11,6 +11,7 @@ import { createEl } from '../../utils/dom.js';
 import { icons } from '../../ui/icons.js';
 import Api from '../../core/api.js';
 import { DelistedBadge, StockSectorBadge } from '../../ui/stock-widgets.js';
+import { pagerHtml, pageInfoText } from '../../ui/pagination.js';
 
 /** Escape teks dari data server sebelum masuk innerHTML. */
 const escapeHtml = (v) => String(v ?? '').replace(/[&<>"']/g, (c) => (
@@ -332,24 +333,16 @@ export function render() {
     if (btn) btn.focus();
   }
 
-  function renderPagination() {
-    const totalPages = Math.ceil(state.total / state.perPage);
+    function renderPagination() {
     if (state.total === 0) { pagination.innerHTML = ''; return; }
 
-    const first = (state.page - 1) * state.perPage + 1;
-    const last = Math.min(state.page * state.perPage, state.total);
-    pagination.innerHTML = `
-      <span style="font-size:var(--text-sm);color:var(--c-text-3);">
-        Menampilkan ${first}–${last} dari ${state.total} saham
-      </span>
-      <div style="display:flex;gap:var(--s-2);align-items:center;">
-        <button type="button" class="btn btn--ghost btn--sm" ${state.page <= 1 ? 'disabled' : ''}
-                onclick="window.pemantauanPrev()">Prev</button>
-        <span class="pemantauan-page__page-indicator"
-              aria-label="Halaman ${state.page} dari ${totalPages}">${state.page} / ${totalPages}</span>
-        <button type="button" class="btn btn--ghost btn--sm" ${state.page >= totalPages ? 'disabled' : ''}
-                onclick="window.pemantauanNext()">Next</button>
-      </div>`;
+    pagination.innerHTML = pagerHtml({
+      page: state.page, perPage: state.perPage, total: state.total,
+      prevGlobal: 'pemantauanPrev', nextGlobal: 'pemantauanNext',
+      indicatorClass: 'pemantauan-page__page-indicator',
+      infoHtml: pageInfoText(state.page, state.perPage, state.total),
+      buttonType: true,
+    });
   }
 
   // ── Data ────────────────────────────────────────────────────────────────

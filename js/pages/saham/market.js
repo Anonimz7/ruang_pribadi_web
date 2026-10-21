@@ -7,6 +7,7 @@ import { StockSectorBadge, sectorColor } from '../../ui/stock-widgets.js';
 import { loadApexCharts, buildBaseOptions, renderChart, destroyChart, normalizeDate, toTs, buildLineChartApex, buildBarChartApex, buildPositionChartApex, createChartPanel } from '../../ui/chart.js';
 const chartPanel = createChartPanel('market-page');
 import { fmtPrice, formatNilaiSingkat, dateLabel, dateLabelYear } from '../../utils/format.js';
+import { spinnerCardHtml } from '../../ui/loading.js';
 
 /* ─── Helpers ─── */
 
@@ -173,10 +174,7 @@ function renderLoading() {
     marketRefs.content = el;
     marketRootEl.appendChild(el);
   }
-  el.innerHTML = `<div class="card" style="padding:var(--s-6);text-align:center;">
-    <div class="spinner" style="width:32px;height:32px;border:3px solid var(--c-border);border-top-color:var(--c-primary);border-radius:50%;animation:spin 1s linear infinite;margin:0 auto var(--s-3);"></div>
-    <div style="font-size:var(--text-sm);color:var(--c-text-2);">Memuat data pasar...</div>
-  </div>`;
+  el.innerHTML = spinnerCardHtml('Memuat data pasar...');
   clearCharts();
 }
 

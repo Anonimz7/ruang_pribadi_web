@@ -8,6 +8,7 @@ import { toast } from '../../ui/toast.js';
 import { createModal } from '../../ui/modal.js';
 import { DelistedBadge, StockSectorBadge } from '../../ui/stock-widgets.js';
 import { loadApexCharts, buildBaseOptions, renderChart, destroyChart, normalizeDate, toTs } from '../../ui/chart.js';
+import { pageInfo } from '../../ui/pagination.js';
 
 const MODES = {
   mcap: 'Market Cap',
@@ -938,7 +939,7 @@ export function render() {
     function renderPagination() {
       // remove old controls, keep the selected-count span
       pagRow.querySelectorAll('.pag-ctl').forEach((el) => el.remove());
-      const totalPages = Math.ceil(state2.total / state2.perPage);
+      const { totalPages } = pageInfo(state2.page, state2.perPage, state2.total);
       const info = createEl('span', { class: 'pag-ctl' }, [`${state2.page} / ${totalPages || 1} (${state2.total} saham)`]);
       const prev = createEl('button', { class: 'btn btn--ghost btn--sm pag-ctl' }, ['Prev']);
       prev.addEventListener('click', () => { if (state2.page > 1) { state2.page--; loadStocks(); } });

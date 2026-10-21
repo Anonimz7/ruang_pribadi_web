@@ -8,6 +8,7 @@ const chartPanel = createChartPanel('stocks-page');
 import { fmtPrice, formatNilaiSingkat, dateLabel, dateLabelYear } from '../../utils/format.js';
 import { StockSectorBadge, DelistedBadge } from '../../ui/stock-widgets.js';
 import { StockListItem, StockDataPoint, StockSummary, StockAnalysis } from '../../models/stocks.js';
+import { spinnerCardHtml } from '../../ui/loading.js';
 
 /* Kartu info saham khusus halaman ini (fork dari StockInfoCard di
    ui/stock-widgets.js) — memuat seksi Remarks + Riwayat Remarks yang
@@ -665,10 +666,7 @@ function renderLoading() {
     stockRefs.analysisContainer = el;
     stockRootEl.appendChild(el);
   }
-  el.innerHTML = `<div class="card" style="padding:var(--s-6);text-align:center;margin-top:var(--s-4);">
-    <div class="spinner" style="width:32px;height:32px;border:3px solid var(--c-border);border-top-color:var(--c-primary);border-radius:50%;animation:spin 1s linear infinite;margin:0 auto var(--s-3);"></div>
-    <div style="font-size:var(--text-sm);color:var(--c-text-2);">Memuat analisis...</div>
-  </div>`;
+  el.innerHTML = spinnerCardHtml('Memuat analisis...', { marginTop: true });
   clearCharts();
 }
 
