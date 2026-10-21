@@ -21,9 +21,10 @@ async function loadPage() {
   pageState.loading = true;
   renderLoading();
   try {
-    const [fpos, fown, fdec, ftype] = await Promise.all([
+    const [fpos, fown, fstruct, fdec, ftype] = await Promise.all([
       Api.get('/idx/market/foreign-position', { bucket: 30 }).catch(() => null),
       Api.get('/idx/market/foreign-ownership').catch(() => null),
+      Api.get('/idx/market/ownership-structure').catch(() => null),
       Api.get('/idx/market/foreign-decomposition', { mode: 'peak' }).catch(() => null),
       Api.get('/idx/market/ownership-by-type', { mode: 'peak' }).catch(() => null),
     ]);
@@ -32,6 +33,8 @@ async function loadPage() {
     if (fp) pageState.data.foreign_pos = fp;
     const fo = fown?.data || fown;
     if (fo) pageState.data.foreign_own = fo;
+    const fs = fstruct?.data || fstruct;
+    if (fs) pageState.data.structure = fs;
     const fd = fdec?.data || fdec;
     if (fd) { decState.data = fd; decState.mode = 'peak'; }
     const ft = ftype?.data || ftype;
@@ -97,7 +100,7 @@ function renderPage() {
   el.innerHTML = '';
   typeWrapEl = null;
 
-  if (!fp && !fo && !decState.data && !typeState.data) {
+  if (!fp && !fo && !d.structure && !decState.data && !typeState.data) {
     el.innerHTML = `<div class="card" style="padding:var(--s-6);text-align:center;">
       <div style="font-size:var(--text-sm);color:var(--c-text-3);">Data kepemilikan asing tidak tersedia</div>
     </div>`;
@@ -115,6 +118,10 @@ function renderPage() {
     el.appendChild(chartPanel('Kepemilikan Asing Pasar (KSEI)', `Nilai kepemilikan asing resmi KSEI sejak ${dateLabelYear(fo.data_start)} · snapshot bulanan`, [{ label: 'Nilai asing', color: '#E8A33D' }], 230));
     el.appendChild(buildMarketOwnershipSection(fo));
   }
+
+  // ── Struktur Kepemilikan Pasar (pangsa kapitalisasi per kelompok) ──
+  const st = d.structure;
+  if (st && st.series && st.series.length) el.appendChild(buildStructureSection(st));
 
   // ── Bedah Perubahan Nilai Asing + Arus Kotor (mengikuti jendela snapshot KSEI) ──
   if (decState.data) el.appendChild(buildDecompositionSection());
@@ -384,6 +391,71 @@ function buildMarketOwnershipSection(fo) {
   return wrap;
 }
 
+
+/* ─── Struktur Kepemilikan Pasar ─── */
+const STRUCTURE_GROUP_INFO = [
+  ['foreign', 'Asing', '#E8A33D'],
+  ['local_institutions', 'Institusi Lokal', '#5B8FF9'],
+  ['retail', 'Ritel', '#00A86B'],
+  ['local_corporates', 'Korporasi Lokal', '#F6903D'],
+  ['local_others', 'Lokal Lainnya', '#8A94A6'],
+  ['unclassified', 'Tak-terklasifikasi', '#D5DAE0'],
+];
+// Urutan tumpuk kolom (bawah -> atas): tak-terklasifikasi di dasar,
+// asing di puncak.
+const STRUCTURE_STACK_ORDER = ['unclassified', 'local_others', 'local_corporates', 'retail', 'local_institutions', 'foreign'];
+
+function buildStructureSectionHtml(res) {
+  const series = res.series || [];
+  const cur = res.current || series[series.length - 1] || {};
+  const start = res.start || series[0] || {};
+  const g = (snap, key) => ((snap.groups || {})[key] || {}).pct || 0;
+  const gv = (snap, key) => ((snap.groups || {})[key] || {}).value || 0;
+
+  const tileHtml = (label, value, color) => `
+    <div style="flex:1 1 140px;min-width:140px;padding:var(--s-3);background:var(--c-surface);border:1px solid var(--c-border);border-radius:var(--radius);">
+      <div style="font-size:var(--text-xs);color:var(--c-text-3);margin-bottom:var(--s-1);">${label}</div>
+      <div style="font-size:var(--text-lg);font-weight:700;color:${color || 'inherit'};">${value}</div>
+    </div>`;
+  const tiles = `
+    <div style="display:flex;gap:var(--s-2);flex-wrap:wrap;margin-bottom:var(--s-3);">
+      ${tileHtml('Kapitalisasi Pasar · ' + dateLabelYear(cur.date), formatNilaiSingkat(cur.total_value), 'inherit')}
+      ${STRUCTURE_GROUP_INFO.map(([key, label, color]) => tileHtml(label, g(cur, key).toFixed(1) + '%', color)).join('')}
+    </div>`;
+
+  const kolom = series.map(snap => {
+    const segs = STRUCTURE_STACK_ORDER.map(key => {
+      const pct = g(snap, key);
+      const color = STRUCTURE_GROUP_INFO.find(([k]) => k === key)[2];
+      return pct > 0 ? `<div style="height:${pct}%;background:${color};" title="${snap.date}"></div>` : '';
+    }).join('');
+    return `<div style="flex:1 1 0;min-width:3px;display:flex;flex-direction:column-reverse;height:100%;background:var(--c-surface-2);border-radius:2px;overflow:hidden;">${segs}</div>`;
+  }).join('');
+  const legenda = STRUCTURE_GROUP_INFO.map(([key, label, color]) =>
+    `<span style="font-size:var(--text-xs);color:var(--c-text-2);"><span style="display:inline-block;width:9px;height:9px;border-radius:3px;background:${color};margin-right:5px;"></span>${label} ${g(cur, key).toFixed(1)}%</span>`).join('');
+
+  const rNow = g(cur, 'retail');
+  const rStart = g(start, 'retail');
+  const rNaik = rNow >= rStart;
+  const rp = res.retail_peak || {};
+  const termometer = `Termometer ritel: kepemilikan investor individu lokal kini <b>${formatNilaiSingkat(gv(cur, 'retail'))}</b> (${rNow.toFixed(1)}% kapitalisasi), ${rNaik ? 'naik' : 'turun'} dari ${rStart.toFixed(1)}% pada ${dateLabelYear(start.date)} — pangsa ritel ${rNaik ? 'membesar' : 'mengecil'} dalam struktur pasar. Nilai ritel tertinggi ${formatNilaiSingkat(rp.value)} pada ${dateLabelYear(rp.date)}.`;
+
+  return `<div style="background:var(--c-surface);border:1px solid var(--c-border);border-radius:var(--radius);padding:var(--s-4);margin-bottom:var(--s-4);">
+    <div style="font-size:var(--text-md);font-weight:700;">● Struktur Kepemilikan Pasar</div>
+    <div style="font-size:var(--text-xs);color:var(--c-text-3);margin:var(--s-2) 0 var(--s-3);">Pangsa kapitalisasi pasar per kelompok pemilik · dari snapshot KSEI (termasuk emiten tak likuid) · ${dateLabelYear(res.data_start)} → ${dateLabelYear(res.data_end)} · tiap kolom satu snapshot</div>
+    ${tiles}
+    <div style="display:flex;gap:2px;height:110px;align-items:stretch;">${kolom}</div>
+    <div style="display:flex;gap:var(--s-3);flex-wrap:wrap;margin-top:var(--s-2);">${legenda}</div>
+    <div style="font-size:var(--text-sm);color:var(--c-text-2);line-height:1.55;margin-top:var(--s-3);">${termometer}</div>
+    <div style="font-size:var(--text-xs);color:var(--c-text-3);line-height:1.5;margin-top:var(--s-2);">Irisan tak-terklasifikasi adalah saham tanpa klasifikasi SID — umumnya saham pengendali/strategis; besarnya bukan kesalahan data, melainkan batas klasifikasi KSEI.</div>
+  </div>`;
+}
+
+function buildStructureSection(res) {
+  const wrap = createEl('div', {});
+  wrap.innerHTML = buildStructureSectionHtml(res);
+  return wrap;
+}
 
 /* ─── Bedah Golongan Asing + Cermin Lokal ─── */
 const TYPE_LABELS = { IS: 'Asuransi', CP: 'Korporasi', PF: 'Dana Pensiun', IB: 'Bank Investasi', ID: 'Individu', MF: 'Reksa Dana', SC: 'Sekuritas', FD: 'Yayasan', OT: 'Lainnya' };
