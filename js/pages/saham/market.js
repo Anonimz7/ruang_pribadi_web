@@ -65,11 +65,14 @@ async function loadMarket() {
   marketState.loading = true;
   renderLoading();
   try {
-    const [res, daily] = await Promise.all([
+    const [res, daily, tfo] = await Promise.all([
       Api.get('/idx/market/summary', { days: marketState.days }),
       Api.get('/idx/market/top-foreign-flow', { days: 1 }).catch(() => null),
+      Api.get('/idx/market/top-foreign-ownership').catch(() => null),
     ]);
     marketState.data = res?.data || res;
+    const tf = tfo?.data || tfo;
+    if (tf) marketState.data.top_foreign_own = tf;
     const dd = daily?.data || daily;
     if (dd) {
       marketState.data.top_daily_acc = dd.accumulation || [];
@@ -173,7 +176,7 @@ function renderMarket() {
   }
 
   const d = marketState.data;
-  // Backend returns { period_days, radar: { data: [], summary: {} }, top_accumulation, top_distribution, top_domination }
+  // Backend returns { period_days, radar: { data: [], summary: {} }, top_accumulation, top_distribution } + top_foreign_own (endpoint tersendiri)
   const radar = d.radar || {};
   const radarData = radar.data || [];
   // Extract ASP & MWI series from radar data (each data point has asp & mwi fields when include_market_indexes=true)
@@ -182,7 +185,7 @@ function renderMarket() {
   const marketData = radarData;
   const topAcc = d.top_accumulation || [];
   const topDist = d.top_distribution || [];
-  const topDom = d.top_domination || [];
+  const topForeignOwn = (d.top_foreign_own && d.top_foreign_own.items) || [];
   const topDailyAcc = d.top_daily_acc || [];
   const topDailyDist = d.top_daily_dist || [];
   const latestDate = marketData.length ? marketData[marketData.length - 1].date : null;
@@ -237,8 +240,9 @@ function renderMarket() {
     ticker: r.ticker, company: r.company_name, netForeign: r.net_flow_val
   }))));
 
-  if (topDom.length) el.appendChild(buildTable('TOP 10 FOREIGN DOMINATION', ['Ticker', 'Company', 'Dom %'], topDom.map(r => ({
-    ticker: r.ticker, company: r.company_name, dom: r.dom_pct
+  if (topForeignOwn.length) el.appendChild(buildTable('TOP 10 KEPEMILIKAN ASING TERBANYAK', ['Ticker', 'Company', 'Nilai Asing', '% Saham'], topForeignOwn.map(r => ({
+    ticker: r.ticker, company: r.company_name, nilaiAsing: r.foreign_value,
+    pct: r.foreign_pct_total != null ? r.foreign_pct_total.toFixed(1) + '%' : '-'
   }))));
 
   // Build market summary KPIs from radar summary
