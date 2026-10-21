@@ -20,6 +20,7 @@ const QUIZ = [
   { route: '/math-speed-legacy', icon: 'calculate', label: 'Math Speed (Old)', desc: 'Versi lama Math Speed' },
   { route: '/math-dasar', icon: 'calculate', label: 'Math Dasar', desc: 'Tabel matematika interaktif' },
   { route: '/bahasa', icon: 'globe', label: 'Bahasa', desc: 'Terjemahan & belajar bahasa' },
+  { href: 'js/pages/quiz/nalar-quest/nalarquest.html', key: 'nalarquest', icon: 'target', label: 'NalarQuest', desc: 'Latihan penalaran — prinsip sama, permukaan berbeda' },
 ];
 
 export function render() {
@@ -33,15 +34,15 @@ export function render() {
   const grid = createEl('div', { class: 'tool-grid' });
   page.appendChild(grid);
 
-  function keyOf(route) {
-    return ROUTE_TO_KEY[route] || route;
+  function keyOf(t) {
+    return t.key || ROUTE_TO_KEY[t.route] || t.route;
   }
 
   function renderGrid(minTierMap) {
     grid.innerHTML = '';
 
     const visible = QUIZ.filter((t) =>
-      Auth.canAccess(keyOf(t.route), minTierMap[keyOf(t.route)] ?? 1));
+      Auth.canAccess(keyOf(t), minTierMap[keyOf(t)] ?? 1));
 
     if (visible.length === 0) {
       if (!store.token) {
@@ -69,7 +70,10 @@ export function render() {
       body.appendChild(createEl('span', { class: 'tool-card__label' }, [t.label]));
       body.appendChild(createEl('span', { class: 'tool-card__desc' }, [t.desc]));
       card.appendChild(body);
-      card.addEventListener('click', () => navigate(t.route));
+      card.addEventListener('click', () => {
+        if (t.href) window.location.href = t.href;
+        else navigate(t.route);
+      });
       grid.appendChild(card);
     });
   }
