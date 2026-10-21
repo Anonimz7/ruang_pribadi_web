@@ -4,6 +4,7 @@ import { icons } from '../../ui/icons.js';
 import Api from '../../core/api.js';
 import { toast } from '../../ui/toast.js';
 import { loadApexCharts, buildBaseOptions, renderChart, destroyChart, normalizeDate } from '../../ui/chart.js';
+import { fmtPrice, formatNilaiSingkat, dateLabel, dateLabelYear, toTs } from '../../utils/format.js';
 
 /* ─── Inline Models ─── */
 class StockListItem {
@@ -369,42 +370,7 @@ const PERIODS = [30, 60, 90, 180, 365];
 const COMPARE_COLORS = ['#00A86B', '#5B8FF9', '#F6903D', '#E86452', '#9270CA', '#5AD8A6', '#6DC8EC', '#F6C022'];
 
 /* ─── Formatters ─── */
-function fmtPrice(v) {
-  if (v == null) return '-';
-  return new Intl.NumberFormat('id-ID', { maximumFractionDigits: 0 }).format(v);
-}
 
-function formatNilaiSingkat(v) {
-  if (v == null) return '-';
-  const n = Number(v), s = n < 0 ? '-' : '', a = Math.abs(n);
-  if (a >= 1e12) return s + (a / 1e12).toFixed(1) + 'T';
-  if (a >= 1e9) return s + (a / 1e9).toFixed(1) + 'B';
-  if (a >= 1e6) return s + (a / 1e6).toFixed(1) + 'M';
-  return s + a.toFixed(0);
-}
-
-function compact(v) {
-  if (v == null) return '-';
-  const n = Number(v), s = n < 0 ? '-' : '', a = Math.abs(n);
-  if (a >= 1e12) return s + (a / 1e12).toFixed(1) + 'T';
-  if (a >= 1e9) return s + (a / 1e9).toFixed(1) + 'B';
-  if (a >= 1e6) return s + (a / 1e6).toFixed(1) + 'M';
-  return s + a.toFixed(0);
-}
-
-function dateLabel(dateStr) {
-  const d = new Date(dateStr);
-  if (isNaN(d)) return dateStr;
-  const months = ['Jan', 'Feb', 'Mar', 'Apr', 'Mei', 'Jun', 'Jul', 'Agu', 'Sep', 'Okt', 'Nov', 'Des'];
-  return `${d.getDate()} ${months[d.getMonth()]}`;
-}
-
-function dateLabelYear(dateStr) {
-  const d = new Date(dateStr);
-  if (isNaN(d)) return dateStr;
-  const months = ['Jan', 'Feb', 'Mar', 'Apr', 'Mei', 'Jun', 'Jul', 'Agu', 'Sep', 'Okt', 'Nov', 'Des'];
-  return `${d.getDate()} ${months[d.getMonth()]} ${d.getFullYear()}`;
-}
 
 function fullDate(dateStr) {
   const d = new Date(dateStr);
@@ -414,10 +380,6 @@ function fullDate(dateStr) {
 }
 
 /* ─── ApexCharts helpers ─── */
-function toTs(dateStr) {
-  const d = new Date(normalizeDate(dateStr));
-  return isNaN(d) ? 0 : d.getTime();
-}
 
 function buildPriceChartApex(container, data) {
   const opts = buildBaseOptions({ height: 270, type: 'line' });
@@ -1205,7 +1167,7 @@ function buildSummaryTable(rawData) {
               <td style="font-weight:600;font-size:var(--text-xs);">Rp ${fmtPrice(close)}</td>
               <td style="color:${chgColor};font-size:var(--text-xs);">${chgText}</td>
               <td style="color:${netColor};font-size:var(--text-xs);">${formatNilaiSingkat(netF)}</td>
-              <td style="font-size:var(--text-xs);">${compact(atv)}</td>
+              <td style="font-size:var(--text-xs);">${formatNilaiSingkat(atv)}</td>
               <td style="color:#7B61FF;font-weight:600;font-size:var(--text-xs);">${bii.toFixed(1)}</td>
               <td style="font-size:var(--text-xs);">${frRatio.toFixed(1)}%</td>
             </tr>`;

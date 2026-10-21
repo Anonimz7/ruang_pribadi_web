@@ -5,50 +5,12 @@ import Api from '../../core/api.js';
 import { toast } from '../../ui/toast.js';
 import { StockSectorBadge, sectorColor } from '../../ui/stock-widgets.js';
 import { loadApexCharts, buildBaseOptions, renderChart, destroyChart, normalizeDate } from '../../ui/chart.js';
+import { fmtPrice, formatNilaiSingkat, dateLabel, dateLabelYear, toTs } from '../../utils/format.js';
 
 /* ─── Helpers ─── */
-function fmtPrice(v) {
-  if (v == null) return '-';
-  return new Intl.NumberFormat('id-ID', { maximumFractionDigits: 0 }).format(v);
-}
 
-function formatNilaiSingkat(v) {
-  if (v == null) return '-';
-  const n = Number(v), s = n < 0 ? '-' : '', a = Math.abs(n);
-  if (a >= 1e12) return s + (a / 1e12).toFixed(1) + 'T';
-  if (a >= 1e9) return s + (a / 1e9).toFixed(1) + 'B';
-  if (a >= 1e6) return s + (a / 1e6).toFixed(1) + 'M';
-  return s + a.toFixed(0);
-}
-
-function formatKompak(v) {
-  if (v == null) return '-';
-  const n = Number(v), s = n < 0 ? '-' : '', a = Math.abs(n);
-  if (a >= 1e12) return s + (a / 1e12).toFixed(1) + 'T';
-  if (a >= 1e9) return s + (a / 1e9).toFixed(1) + 'B';
-  if (a >= 1e6) return s + (a / 1e6).toFixed(1) + 'M';
-  return s + a.toFixed(0);
-}
-
-function dateLabel(dateStr) {
-  const d = new Date(dateStr);
-  if (isNaN(d)) return dateStr;
-  const months = ['Jan', 'Feb', 'Mar', 'Apr', 'Mei', 'Jun', 'Jul', 'Agu', 'Sep', 'Okt', 'Nov', 'Des'];
-  return `${d.getDate()} ${months[d.getMonth()]}`;
-}
-
-function dateLabelYear(dateStr) {
-  const d = new Date(dateStr);
-  if (isNaN(d)) return dateStr;
-  const months = ['Jan', 'Feb', 'Mar', 'Apr', 'Mei', 'Jun', 'Jul', 'Agu', 'Sep', 'Okt', 'Nov', 'Des'];
-  return `${d.getDate()} ${months[d.getMonth()]} ${d.getFullYear()}`;
-}
 
 /* ─── ApexCharts helpers ─── */
-function toTs(dateStr) {
-  const d = new Date(normalizeDate(dateStr));
-  return isNaN(d) ? 0 : d.getTime();
-}
 
 function buildLineChartApex(container, data, color) {
   const opts = buildBaseOptions({ height: 210, type: 'line' });

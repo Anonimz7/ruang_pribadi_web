@@ -8,6 +8,7 @@ import { toast } from '../../ui/toast.js';
 import { createModal } from '../../ui/modal.js';
 import { DelistedBadge, StockSectorBadge } from '../../ui/stock-widgets.js';
 import { loadApexCharts, buildBaseOptions, renderChart, destroyChart, normalizeDate } from '../../ui/chart.js';
+import { toTs } from '../../utils/format.js';
 
 const MODES = {
   mcap: 'Market Cap',
@@ -43,10 +44,6 @@ function fmtPct(v) {
   return (n > 0 ? '+' : '') + n.toFixed(2) + '%';
 }
 
-function toTs(dateStr) {
-  const d = new Date(normalizeDate(dateStr));
-  return isNaN(d) ? 0 : d.getTime();
-}
 
 export function render() {
   const isAdmin = Auth.isAdmin();

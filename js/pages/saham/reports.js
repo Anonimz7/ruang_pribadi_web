@@ -3,6 +3,7 @@ import { createEl } from '../../utils/dom.js';
 import { icons } from '../../ui/icons.js';
 import Api from '../../core/api.js';
 import { toast } from '../../ui/toast.js';
+import { formatBytes } from '../../utils/format.js';
 
 const PERIOD_OPTIONS = [6, 12, 24, 48, 72];
 const CARD_STATE_KEY = 'reports:collapsed';
@@ -15,13 +16,6 @@ function hourOptionsHtml(selected) {
   }).join('');
 }
 
-function formatBytes(bytes) {
-  if (!bytes || bytes === 0) return '0 B';
-  const k = 1024;
-  const sizes = ['B', 'KB', 'MB', 'GB', 'TB'];
-  const i = Math.floor(Math.log(bytes) / Math.log(k));
-  return parseFloat((bytes / Math.pow(k, i)).toFixed(1)) + ' ' + sizes[i];
-}
 
 function formatDate(iso) {
   if (!iso) return '-';
