@@ -133,6 +133,7 @@ export const ROUTE_MAP = {
   stocks: '/saham/stocks',
   stock_list: '/saham/stock-list',
   ihsg_radar: '/saham/market',
+  kepemilikan_asing: '/saham/kepemilikan-asing',
   reports: '/saham/reports',
   index_saham: '/saham/index',
   pemantauan: '/saham/pemantauan',

@@ -90,6 +90,14 @@
       "minTier": 2
     },
     {
+      "key": "kepemilikan_asing",
+      "icon": "Icons.hub",
+      "label": "Kepemilikan Asing",
+      "section": "market",
+      "portal": "saham",
+      "minTier": 2
+    },
+    {
       "key": "reports",
       "icon": "Icons.receipt_long",
       "label": "Reports",

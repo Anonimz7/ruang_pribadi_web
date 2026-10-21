@@ -37,6 +37,7 @@ const routes = {
   '/saham/stocks': () => import('../pages/saham/stocks.js'),
   '/saham/stock-list': () => import('../pages/saham/stock-list.js'),
   '/saham/market': () => import('../pages/saham/market.js'),
+  '/saham/kepemilikan-asing': () => import('../pages/saham/kepemilikan-asing.js'),
   '/saham/reports': () => import('../pages/saham/reports.js'),
   '/saham/index': () => import('../pages/saham/index-saham.js'),
   '/saham/pemantauan': () => import('../pages/saham/pemantauan.js'),

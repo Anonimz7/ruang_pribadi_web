@@ -1144,7 +1144,8 @@
 
 /* Chart panels */
 .stocks-page__chart-panel,
-.market-page__chart-panel {
+.market-page__chart-panel,
+.kepemilikan-page__chart-panel {
   background: var(--c-surface);
   border: 1px solid var(--c-border);
   border-radius: var(--radius);
@@ -1152,13 +1153,15 @@
 }
 
 .stocks-page__chart-panel:hover,
-.market-page__chart-panel:hover {
+.market-page__chart-panel:hover,
+.kepemilikan-page__chart-panel:hover {
   border-color: var(--c-border-hi);
 }
 
 /* Chart containers */
 .stocks-page__chart,
-.market-page__chart {
+.market-page__chart,
+.kepemilikan-page__chart {
   border-radius: var(--radius);
   overflow: hidden;
 }
@@ -2348,11 +2351,13 @@ button.admin-sitemaps__lang:hover { filter: brightness(0.92); }
     padding: var(--s-3);
   }
   .stocks-page__chart-panel,
-  .market-page__chart-panel {
+  .market-page__chart-panel,
+  .kepemilikan-page__chart-panel {
     padding: var(--s-3);
   }
   .stocks-page__chart,
-  .market-page__chart {
+  .market-page__chart,
+  .kepemilikan-page__chart {
     height: 180px !important;
   }
   .stocks-page__learn-btn {
