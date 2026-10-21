@@ -19,6 +19,7 @@ const QUIZ = [
   { route: '/math-speed', icon: 'calculate', label: 'Math Speed', desc: 'Latihan hitung cepat dengan rekor' },
   { route: '/math-speed-legacy', icon: 'calculate', label: 'Math Speed (Old)', desc: 'Versi lama Math Speed' },
   { route: '/math-dasar', icon: 'calculate', label: 'Math Dasar', desc: 'Tabel matematika interaktif' },
+  { route: '/bahasa', icon: 'globe', label: 'Bahasa', desc: 'Terjemahan & belajar bahasa' },
 ];
 
 export function render() {

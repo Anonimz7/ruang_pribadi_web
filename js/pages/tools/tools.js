@@ -18,7 +18,6 @@ for (const [key, route] of Object.entries(ROUTE_MAP)) {
 const TOOLS = [
   { route: '/password', icon: 'key', label: 'Password Generator', desc: 'Buat password acak yang kuat' },
   { route: '/diagram', icon: 'git-branch', label: 'Render Diagram', desc: 'Buat & render diagram dari kode' },
-  { route: '/bahasa', icon: 'globe', label: 'Bahasa', desc: 'Terjemahan & belajar bahasa' },
   { route: '/video', icon: 'download', label: 'Video Downloader', desc: 'Unduh video dari URL' },
   { route: '/color-palate', icon: 'grid', label: 'Color Palate', desc: 'Kumpulan warna & referensi' },
   { route: '/bacak', icon: 'grid', label: 'CSV Shuffler', desc: 'Acak & filter data CSV' },

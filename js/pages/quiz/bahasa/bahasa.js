@@ -1,4 +1,4 @@
-/* pages/bahasa.js — Language / Kamus (Full conversion from 4 Dart screens)
+/* pages/quiz/bahasa/bahasa.js — Language / Kamus (Full conversion from 4 Dart screens)
  *
  * Views:
  *   1. HOME   → list pasangan bahasa (bahasa_home_screen.dart)

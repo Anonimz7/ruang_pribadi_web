@@ -29,7 +29,7 @@ const routes = {
   '/gacha': () => import('../pages/games/gacha/gacha.js'),
   '/rolling': () => import('../pages/games/rolling/rolling.js'),
   '/diagram': () => import('../pages/tools/diagram/diagram.js'),
-  '/bahasa': () => import('../pages/tools/bahasa/bahasa.js'),
+  '/bahasa': () => import('../pages/quiz/bahasa/bahasa.js'),
   '/video': () => import('../pages/tools/video/video.js'),
   '/video-history': () => import('../pages/tools/video/video-history.js'),
   // Portal Saham

@@ -54,7 +54,7 @@
       "key": "language",
       "icon": "Icons.translate",
       "label": "Language",
-      "section": "menu",
+      "section": "quiz",
       "minTier": 1
     },
     {
