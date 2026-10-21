@@ -357,6 +357,7 @@ const stockState = {
   foreignPos: null,
   foreignOwn: null,
   foreignAnchor: null,
+  foreignTypes: null,
   compareMode: false, compareTickers: [], compareData: {}, compareLoading: false,
   charts: [],
   remarksHistory: {}, // cache riwayat remarks per ticker (diambil sekali)
@@ -387,6 +388,7 @@ async function loadAnalysis(ticker, { keepCompare = false } = {}) {
   stockState.foreignPos = null;
   stockState.foreignOwn = null;
   stockState.foreignAnchor = null;
+  stockState.foreignTypes = null;
   if (!keepCompare) clearCompare();
   renderStatusPencarian();
   try {
@@ -398,6 +400,8 @@ async function loadAnalysis(ticker, { keepCompare = false } = {}) {
     stockState.foreignOwn = (fo && (fo.data || fo)) || null;
     const fa = await Api.get(`/idx/stocks/${t}/foreign-ownership-anchored`).catch(() => null);
     stockState.foreignAnchor = (fa && (fa.data || fa)) || null;
+    const ft = await Api.get(`/idx/stocks/${t}/ownership-by-type`).catch(() => null);
+    stockState.foreignTypes = (ft && (ft.data || ft)) || null;
     for (const ct of stockState.compareTickers) { await refreshCompare(ct); }
   } catch (e) {
     toast('Gagal memuat analisis: ' + (e.message || e), 'danger');
@@ -768,6 +772,8 @@ function renderAnalysis() {
         : `Snapshot bulanan resmi KSEI sejak ${fo.data_start} · absolut dalam lembar saham`;
       chartsWrap.appendChild(chartPanel('Kepemilikan Asing (KSEI)', sub, [{ label: 'Lembar asing', color: '#E8A33D' }], 230));
       chartsWrap.appendChild(buildOwnershipStats(fo, fa));
+      const ft = stockState.foreignTypes;
+      if (ft && ft.series && ft.series.length) chartsWrap.appendChild(buildByTypeSection(ft));
     }
     chartsWrap.appendChild(chartPanel('BII Score (Buying Intensity Index)', 'Skor akumulasi', [{ label: 'BII Score', color: '#7B61FF' }], 210));
     chartsWrap.appendChild(chartPanel('ATV (Avg Transaction Value)', 'Ukuran transaksi rata-rata', [{ label: 'ATV', color: '#9270CA' }], 200));
@@ -893,6 +899,92 @@ function buildOwnershipStats(fo, fa) {
       ${kotakStatistikHtml('Terendah · ' + dateLabelYear(fo.trough && fo.trough.date), formatNilaiSingkat(fo.trough && fo.trough.foreign_shares) + ' lbr', '#D94B4B')}
       ${kotakStatistikHtml('Δ 3 bln / 12 bln (lbr)', deltaHtml, 'inherit')}
     </div>`;
+  return wrap;
+}
+
+const GOLONGAN_LABELS = { IS: 'Asuransi', CP: 'Korporasi', PF: 'Dana Pensiun', IB: 'Bank Investasi', ID: 'Individu', MF: 'Reksa Dana', SC: 'Sekuritas', FD: 'Yayasan', OT: 'Lainnya' };
+const GOLONGAN_COLORS = { IS: '#5B8FF9', CP: '#F6903D', PF: '#9270CA', IB: '#6DC8EC', ID: '#00A86B', MF: '#E8A33D', SC: '#F2D13D', FD: '#7FB3D5', OT: '#9AA5B1' };
+const GOLONGAN_ORDER = ['MF', 'PF', 'OT', 'IB', 'IS', 'CP', 'SC', 'ID', 'FD'];
+
+function buildByTypeSectionHtml(ft) {
+  const series = ft.series || [];
+  const last = series[series.length - 1];
+  const first = series[0];
+  const formatBertanda = (v) => v == null ? '-' : (v >= 0 ? '+' : '') + formatNilaiSingkat(v);
+
+  // Komposisi asing per snapshot: kolom tumpuk 100% per snapshot.
+  const kolom = series.map(snap => {
+    const segs = GOLONGAN_ORDER.map(code => {
+      const pct = (snap.foreign_pct || {})[code] || 0;
+      return pct > 0 ? `<div style="height:${pct}%;background:${GOLONGAN_COLORS[code]};" title="${snap.date} · ${GOLONGAN_LABELS[code]} ${pct.toFixed(1)}%"></div>` : '';
+    }).join('');
+    return `<div style="flex:1 1 0;min-width:3px;display:flex;flex-direction:column-reverse;height:100%;background:var(--c-surface-2);border-radius:2px;overflow:hidden;">${segs}</div>`;
+  }).join('');
+  const legenda = GOLONGAN_ORDER
+    .map(code => ({ code, pct: (last.foreign_pct || {})[code] || 0 }))
+    .filter(x => x.pct >= 0.05)
+    .sort((a, b) => b.pct - a.pct)
+    .map(x => `<span style="font-size:var(--text-xs);color:var(--c-text-2);"><span style="display:inline-block;width:9px;height:9px;border-radius:3px;background:${GOLONGAN_COLORS[x.code]};margin-right:5px;"></span>${GOLONGAN_LABELS[x.code]} ${x.pct.toFixed(1)}%</span>`)
+    .join('');
+
+  // Komposisi lokal terakhir (kelompok) + irisan tak-terklasifikasi.
+  const lp = last.local_pct || {};
+  const grupLokal = [
+    ['Korporasi', lp.CP || 0], ['Ritel', lp.ID || 0],
+    ['Institusi dana', (lp.MF || 0) + (lp.PF || 0) + (lp.IS || 0)],
+    ['Lainnya', (lp.IB || 0) + (lp.SC || 0) + (lp.FD || 0) + (lp.OT || 0)],
+  ].filter(([, v]) => v >= 0.05).sort((a, b) => b[1] - a[1])
+    .map(([k, v]) => `${k} ${v.toFixed(1)}%`).join(' · ');
+  const unclPct = last.total_shares ? (last.unclassified_shares / last.total_shares * 100) : 0;
+
+  // Δ antar dua snapshot terakhir (asing), dinilai pada harga snapshot akhir.
+  let deltaBlock = '';
+  const dl = ft.delta_last;
+  if (dl) {
+    const price = last.price || 0;
+    const rows = Object.keys(GOLONGAN_LABELS)
+      .map(code => ({ code, dShares: (dl.foreign_shares || {})[code] || 0 }))
+      .map(r => ({ ...r, dValue: r.dShares * price }))
+      .filter(r => r.dShares !== 0)
+      .sort((a, b) => Math.abs(b.dValue) - Math.abs(a.dValue));
+    const maxAbs = Math.max(1, ...rows.map(r => Math.abs(r.dValue)));
+    const baris = rows.map(r => {
+      const w = Math.max(2, Math.abs(r.dValue) / maxAbs * 100);
+      const arah = r.dValue < 0 ? '#D94B4B' : '#00A86B';
+      return `<div style="display:grid;grid-template-columns:150px 1fr 170px;align-items:center;gap:var(--s-3);margin:var(--s-1) 0;">
+        <div style="font-size:var(--text-sm);"><span style="display:inline-block;width:9px;height:9px;border-radius:3px;background:${GOLONGAN_COLORS[r.code]};margin-right:6px;"></span>${GOLONGAN_LABELS[r.code]}</div>
+        <div style="height:14px;background:var(--c-surface-2);border-radius:4px;overflow:hidden;"><div style="height:100%;width:${w}%;background:${arah};border-radius:4px;"></div></div>
+        <div style="font-size:var(--text-sm);text-align:right;"><b style="color:${arah};">${formatBertanda(r.dValue)}</b> <span style="color:var(--c-text-3);font-size:var(--text-xs);">(${formatBertanda(r.dShares)} lbr)</span></div>
+      </div>`;
+    }).join('');
+    const mf = (dl.foreign_shares || {}).MF || 0;
+    const pf = (dl.foreign_shares || {}).PF || 0;
+    let rotasi = '';
+    if (mf !== 0 && pf !== 0 && Math.sign(mf) !== Math.sign(pf)) {
+      const kata = (v) => v > 0 ? 'menambah' : 'melepas';
+      rotasi = `<div style="background:var(--c-info-bg);border:1px solid var(--c-border);border-radius:var(--radius);padding:var(--s-3);margin-top:var(--s-3);font-size:var(--text-sm);color:var(--c-text-2);line-height:1.55;">
+        <b style="color:var(--c-primary);">Rotasi antar golongan:</b> bulan ini Reksa Dana ${kata(mf)} ${formatNilaiSingkat(Math.abs(mf * price))} sementara Dana Pensiun ${kata(pf)} ${formatNilaiSingkat(Math.abs(pf * price))} — pergerakan asing di emiten ini tidak satu arah.
+      </div>`;
+    }
+    deltaBlock = `
+    <div style="font-size:var(--text-sm);font-weight:700;margin-top:var(--s-4);">Perubahan Golongan Asing Terakhir</div>
+    <div style="font-size:var(--text-xs);color:var(--c-text-3);margin:2px 0 var(--s-2);">${dateLabelYear(dl.from_date)} → ${dateLabelYear(dl.to_date)} · nilai pada harga snapshot akhir · Δ adalah perubahan kepemilikan (termasuk luar pasar)</div>
+    ${baris}${rotasi}`;
+  }
+
+  return `
+    <div style="font-size:var(--text-md);font-weight:700;">KEPEMILIKAN PER GOLONGAN (KSEI)</div>
+    <div style="font-size:var(--text-xs);color:var(--c-text-3);margin:2px 0 var(--s-3);">Komposisi kepemilikan asing per golongan investor · tiap kolom satu snapshot · ${dateLabelYear(first.date)} → ${dateLabelYear(last.date)}</div>
+    <div style="display:flex;gap:2px;height:96px;align-items:stretch;">${kolom}</div>
+    <div style="display:flex;gap:var(--s-3);flex-wrap:wrap;margin-top:var(--s-2);">${legenda}</div>
+    ${grupLokal ? `<div style="font-size:var(--text-sm);color:var(--c-text-2);margin-top:var(--s-3);">Komposisi lokal terakhir: ${grupLokal}.</div>` : ''}
+    <div style="font-size:var(--text-sm);color:var(--c-text-2);">Irisan tak-terklasifikasi: <b>${unclPct.toFixed(1)}%</b> dari total saham emiten ini — umumnya saham pengendali/strategis tanpa klasifikasi SID.</div>
+    ${deltaBlock}`;
+}
+
+function buildByTypeSection(ft) {
+  const wrap = createEl('div', { style: { marginBottom: 'var(--s-6)' } });
+  wrap.innerHTML = buildByTypeSectionHtml(ft);
   return wrap;
 }
 
