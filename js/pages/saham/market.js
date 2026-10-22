@@ -65,14 +65,17 @@ async function loadMarket() {
   marketState.loading = true;
   renderLoading();
   try {
-    const [res, daily, tfo] = await Promise.all([
+    const [res, daily, tfo, div] = await Promise.all([
       Api.get('/idx/market/summary', { days: marketState.days }),
       Api.get('/idx/market/top-foreign-flow', { days: 1 }).catch(() => null),
       Api.get('/idx/market/top-foreign-ownership').catch(() => null),
+      Api.get('/idx/market/divergence', { days: marketState.days }).catch(() => null),
     ]);
     marketState.data = res?.data || res;
     const tf = tfo?.data || tfo;
     if (tf) marketState.data.top_foreign_own = tf;
+    const dv = div?.data || div;
+    marketState.data.divergence = dv ? (dv.items || []) : null;
     const dd = daily?.data || daily;
     if (dd) {
       marketState.data.top_daily_acc = dd.accumulation || [];
@@ -248,6 +251,25 @@ function renderMarket() {
     el.appendChild(note);
   }
 
+  const divergence = d.divergence;
+  if (divergence != null) {
+    if (divergence.length) {
+      el.appendChild(buildTable('DIVERGENSI — HARGA/ARUS NAIK, FUNDAMENTAL TERTINGGAL', ['Ticker', 'Company', 'Perubahan Harga', 'Net Foreign', 'Laba YoY', 'Kualitas', 'Sinyal'], divergence.map(r => ({
+        ticker: r.ticker, company: r.company_name,
+        priceChange: fmtSignedPctFrac(r.price_change), netForeign: r.net_flow_val,
+        profitYoy: fmtSignedPctFrac(r.profit_yoy), quality: qualityChip(r.quality),
+        sinyal: (r.reasons || []).map(reasonLabel).join(' · ')
+      }))));
+      const dnote = createEl('div', { style: { fontSize: 'var(--text-xs)', color: 'var(--c-text-3)', marginTop: 'calc(var(--s-6) * -1 + var(--s-2))', marginBottom: 'var(--s-6)' } });
+      dnote.textContent = 'Harga naik ≥20% pada jendela terpilih atau arus asing bersih masuk, tetapi laporan keuangan terakhir menunjukkan laba rugi / EPS negatif / laba turun >20% / laba stagnan. Saringan awal untuk diperiksa — bukan rekomendasi.';
+      el.appendChild(dnote);
+    } else {
+      const dnone = createEl('div', { style: { fontSize: 'var(--text-xs)', color: 'var(--c-text-3)', marginBottom: 'var(--s-6)' } });
+      dnone.textContent = 'Divergensi: tidak ada emiten dengan harga/arus naik tetapi fundamental tertinggal pada jendela ini.';
+      el.appendChild(dnone);
+    }
+  }
+
   if (topForeignOwn.length) el.appendChild(buildTable('TOP 10 FOREIGN OWNERSHIP', ['Ticker', 'Company', 'Nilai Asing', '% Saham'], topForeignOwn.map(r => ({
     ticker: r.ticker, company: r.company_name, nilaiAsing: r.foreign_value,
     pct: r.foreign_pct_total != null ? r.foreign_pct_total.toFixed(1) + '%' : '-'
@@ -352,6 +374,14 @@ function qualityChip(q) {
   if (q === 'waspada') return '<span style="color:#E8A33D;font-weight:600;">● Waspada</span>';
   if (q === 'bermasalah') return '<span style="color:#D94B4B;font-weight:600;">● Bermasalah</span>';
   return 'belum lapor';
+}
+
+function reasonLabel(code) {
+  if (code === 'laba_rugi') return 'Laba rugi';
+  if (code === 'eps_rugi') return 'EPS negatif';
+  if (code === 'laba_turun') return 'Laba turun >20%';
+  if (code === 'laba_stagnan') return 'Laba stagnan';
+  return code;
 }
 
 function buildTable(title, headers, rows) {
