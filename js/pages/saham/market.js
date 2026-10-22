@@ -235,11 +235,11 @@ function renderMarket() {
   }
 
   // ── Tables ──
-  const fundHeaders = ['Ticker', 'Company', 'Net Foreign', 'ROE', 'Laba YoY', 'PER', 'Kualitas'];
+  const fundHeaders = ['Ticker', 'Company', 'Net Foreign', 'ROE', 'Laba YoY', 'PER', 'Kualitas', 'Skor Smart'];
   const fundRow = r => ({
     ticker: r.ticker, company: r.company_name, netForeign: r.net_flow_val,
     roe: fmtPctFrac(r.roe), profitYoy: fmtSignedPctFrac(r.profit_yoy),
-    per: fmtPer(r.per), quality: qualityChip(r.quality)
+    per: fmtPer(r.per), quality: qualityChip(r.quality), smart: smartChip(r)
   });
   if (topAcc.length) el.appendChild(buildTable('TOP ACCUMULATION', fundHeaders, topAcc.map(fundRow)));
 
@@ -247,7 +247,7 @@ function renderMarket() {
 
   if (topAcc.length || topDist.length) {
     const note = createEl('div', { style: { fontSize: 'var(--text-xs)', color: 'var(--c-text-3)', marginTop: 'calc(var(--s-6) * -1 + var(--s-2))', marginBottom: 'var(--s-6)' } });
-    note.textContent = 'ROE, Laba YoY & PER berbasis laporan keuangan terakhir per emiten (TTM bila lengkap). Kualitas: Sehat / Waspada (laba turun >20%) / Bermasalah (rugi / EPS negatif / ekuitas negatif).';
+    note.textContent = 'ROE, Laba YoY & PER berbasis laporan keuangan terakhir per emiten (TTM bila lengkap). Kualitas: Sehat / Waspada (laba turun >20%) / Bermasalah (rugi / EPS negatif / ekuitas negatif). Skor Smart (0–100) = Arus (intensitas arus asing terhadap kapitalisasi pasar, 0–50) + Fundamental (ROE, pertumbuhan laba, DER; sektor keuangan netral untuk DER, 0–50); emiten rugi dibatasi maks 39; "-" bila data fundamental belum ada.';
     el.appendChild(note);
   }
 
@@ -374,6 +374,15 @@ function qualityChip(q) {
   if (q === 'waspada') return '<span style="color:#E8A33D;font-weight:600;">● Waspada</span>';
   if (q === 'bermasalah') return '<span style="color:#D94B4B;font-weight:600;">● Bermasalah</span>';
   return 'belum lapor';
+}
+
+function smartChip(r) {
+  if (r.smart_score == null) return '-';
+  const s = r.smart_score;
+  const color = s >= 70 ? '#00A86B' : s >= 50 ? '#E8A33D' : '#D94B4B';
+  const parts = `Arus ${r.smart_flow ?? '-'} + Fundamental ${r.smart_fund ?? '-'}`;
+  const cap = r.smart_capped ? ' · dibatasi maks 39 (rugi)' : '';
+  return `<span style="color:${color};font-weight:700;" title="${parts}${cap}">${s}</span>`;
 }
 
 function reasonLabel(code) {
