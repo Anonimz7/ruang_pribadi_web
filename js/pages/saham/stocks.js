@@ -358,6 +358,7 @@ const stockState = {
   foreignOwn: null,
   foreignAnchor: null,
   foreignTypes: null,
+  financials: null,
   compareMode: false, compareTickers: [], compareData: {}, compareLoading: false,
   charts: [],
   remarksHistory: {}, // cache riwayat remarks per ticker (diambil sekali)
@@ -389,6 +390,7 @@ async function loadAnalysis(ticker, { keepCompare = false } = {}) {
   stockState.foreignOwn = null;
   stockState.foreignAnchor = null;
   stockState.foreignTypes = null;
+  stockState.financials = null;
   if (!keepCompare) clearCompare();
   renderStatusPencarian();
   try {
@@ -402,6 +404,8 @@ async function loadAnalysis(ticker, { keepCompare = false } = {}) {
     stockState.foreignAnchor = (fa && (fa.data || fa)) || null;
     const ft = await Api.get(`/idx/stocks/${t}/ownership-by-type`).catch(() => null);
     stockState.foreignTypes = (ft && (ft.data || ft)) || null;
+    const fin = await Api.get(`/idx/stocks/${t}/financials`).catch(() => null);
+    stockState.financials = (fin && (fin.data || fin)) || null;
     for (const ct of stockState.compareTickers) { await refreshCompare(ct); }
   } catch (e) {
     toast('Gagal memuat analisis: ' + (e.message || e), 'danger');
@@ -780,6 +784,8 @@ function renderAnalysis() {
     chartsWrap.appendChild(chartPanel('Nilai Nego (Non-Regular)', 'Transaksi negosiasi', [{ label: 'Nego Value', color: '#F6C022' }], 200));
     chartsWrap.appendChild(chartPanel('Frekuensi Nego', 'Jumlah transaksi negosiasi per hari', [{ label: 'Nego Freq', color: '#90A4AE' }], 180));
     chartsWrap.appendChild(buildSummaryTable(rawData));
+    const fin = stockState.financials;
+    if (fin && fin.periods && fin.periods.length) chartsWrap.appendChild(buildFinancialSection(fin));
     el.appendChild(chartsWrap);
     requestAnimationFrame(() => mountCharts(rawData));
   }
@@ -840,6 +846,10 @@ async function mountCharts(rawData) {
         chart = buildBarChartApex(container, normData.map(d => ({ time: d.date, value: d.atv })), '#9270CA', { timeKey: 'time' });
       } else if (type === 'Nilai Nego (Non-Regular)') {
         chart = buildBarChartApex(container, normData.map(d => ({ time: d.date, value: d.nonRegValue })), '#F6C022', { timeKey: 'time' });
+      } else if (type === 'Tren Laba & Pendapatan (Kuartal)') {
+        chart = stockState.financials ? buildProfitTrendChartApex(container, stockState.financials) : null;
+      } else if (type === 'Valuasi Historis (PER & PBV)') {
+        chart = stockState.financials ? buildValuationChartApex(container, stockState.financials) : null;
       } else if (type === 'Frekuensi Nego') {
         chart = buildBarChartApex(container, normData.map(d => ({ time: d.date, value: d.nonRegFreq })), '#90A4AE', { timeKey: 'time' });
       }
@@ -986,6 +996,163 @@ function buildByTypeSection(ft) {
   const wrap = createEl('div', { style: { marginBottom: 'var(--s-6)' } });
   wrap.innerHTML = buildByTypeSectionHtml(ft);
   return wrap;
+}
+
+function fmtFracPct(v) { return v == null ? '-' : (v * 100).toFixed(1) + '%'; }
+function fmtMult(v) { return v == null ? '-' : v.toFixed(2) + '×'; }
+function fmtEps(v) {
+  if (v == null) return '-';
+  const a = Math.abs(v);
+  return a >= 100 ? v.toFixed(0) : a >= 1 ? v.toFixed(2) : v.toFixed(4);
+}
+function fmtMoney(v) { return v == null ? '-' : formatNilaiSingkat(v); }
+
+function sparklineSvg(values, color) {
+  const pts = values.filter(v => v != null);
+  if (pts.length < 2) return '';
+  const min = Math.min(...pts), max = Math.max(...pts);
+  const span = (max - min) || 1;
+  const w = 96, h = 26, pad = 2;
+  const coords = pts.map((v, i) => `${(pad + i * (w - 2 * pad) / (pts.length - 1)).toFixed(1)},${(h - pad - (v - min) / span * (h - 2 * pad)).toFixed(1)}`).join(' ');
+  return `<svg width="${w}" height="${h}" style="display:block;margin:4px auto 0;"><polyline points="${coords}" fill="none" stroke="${color}" stroke-width="1.6"/></svg>`;
+}
+
+function ratioCard(label, value, medianText, color, spark) {
+  return `<div style="flex:1 1 100px;min-width:100px;padding:var(--s-3);background:${color}1A;border:1px solid ${color}4D;border-radius:var(--radius);text-align:center;">
+    <div style="color:${color};font-size:var(--text-md);font-weight:700;">${value}</div>
+    ${spark || ''}
+    <div style="font-size:var(--text-xs);color:var(--c-text-3);margin-top:2px;">${label}</div>
+    ${medianText ? `<div style="font-size:var(--text-xs);color:var(--c-text-2);">sektor: ${medianText}</div>` : ''}
+  </div>`;
+}
+
+function qEndBack(dstr, back) {
+  const [y, m] = dstr.split('-').map(Number);
+  const mm = (y * 12 + (m - 1)) - 3 * back;
+  const yy = Math.floor(mm / 12), mo = (mm % 12) + 1;
+  const last = new Date(yy, mo, 0).getDate();
+  return `${yy}-${String(mo).padStart(2, '0')}-${String(last).padStart(2, '0')}`;
+}
+
+function finTableRows(fin, mode) {
+  const periods = fin.periods || [];
+  if (mode === 'A') return periods.filter(p => p.period_type === 'A');
+  if (mode === 'Q') return periods.filter(p => p.period_type === 'Q').slice(0, 20);
+  // TTM: jumlah 4 kuartal murni kontinu per akhir kuartal
+  const q = periods.filter(p => p.period_type === 'Q');
+  const byEnd = new Map(q.map(p => [p.period_end, p]));
+  const out = [];
+  for (const p of q) {
+    const win = [0, 1, 2, 3].map(k => byEnd.get(qEndBack(p.period_end, k)));
+    if (win.some(w => !w)) continue;
+    const sum = key => win.some(w => w[key] == null) ? null : win.reduce((a, w) => a + w[key], 0);
+    out.push({
+      period_end: p.period_end, period_type: 'TTM',
+      revenue: sum('revenue'), gross_profit: sum('gross_profit'),
+      net_income: sum('net_income'), eps_basic: sum('eps_basic'),
+      incomplete_flag: win.some(w => w.incomplete_flag) ? 1 : 0, usd_flag: p.usd_flag || 0,
+    });
+  }
+  return out;
+}
+
+function finTableHtml(fin, mode) {
+  const rows = finTableRows(fin, mode);
+  if (!rows.length) return `<div style="font-size:var(--text-sm);color:var(--c-text-3);padding:var(--s-3);">Tidak ada data pada mode ini.</div>`;
+  return `<div style="overflow-x:auto;">
+    <table class="table">
+      <thead><tr><th>Periode</th><th>Pendapatan</th><th>Laba Kotor</th><th>Laba Bersih</th><th>EPS</th></tr></thead>
+      <tbody>
+        ${rows.map(p => `<tr>
+          <td style="font-size:var(--text-xs);white-space:nowrap;">${dateLabel(p.period_end)}${p.period_type === 'TTM' ? ' (TTM)' : ''}${p.incomplete_flag ? ' <span style="color:var(--c-text-3);">· parsial</span>' : ''}${p.usd_flag ? ' <span style="color:var(--c-text-3);">· USD→IDR</span>' : ''}</td>
+          <td style="font-size:var(--text-xs);">${fmtMoney(p.revenue)}</td>
+          <td style="font-size:var(--text-xs);">${fmtMoney(p.gross_profit)}</td>
+          <td style="font-size:var(--text-xs);font-weight:600;color:${p.net_income != null && p.net_income < 0 ? 'var(--c-danger)' : 'inherit'};">${fmtMoney(p.net_income)}</td>
+          <td style="font-size:var(--text-xs);">${fmtEps(p.eps_basic)}</td>
+        </tr>`).join('')}
+      </tbody>
+    </table>
+  </div>`;
+}
+
+function buildFinancialSection(fin) {
+  const wrap = createEl('div', { style: { marginTop: 'var(--s-6)' } });
+  const rl = fin.ratios_latest;
+  const v = fin.valuation || {};
+  const sm = fin.sector_medians;
+  const med = (sm && sm.medians) || {};
+  const basisTxt = rl ? `${rl.period_type === 'Q' ? 'TTM' : 'Tahunan'} s.d. ${dateLabel(rl.period_end)}` : '-';
+  const medNote = sm ? `Median sektor = ${sm.group} (${sm.level === 'sub_sector' ? 'Sub-sektor' : sm.level === 'primary_sector' ? 'Sektor primer' : 'Sektor'}, ${sm.peer_count} emiten pembanding).` : 'Median sektor tidak tersedia (anggota pembanding < 3).';
+  const annualRoe = (fin.ratios || []).filter(r => r.period_type === 'A' && r.roe != null)
+    .slice().sort((a, b) => a.period_end < b.period_end ? -1 : 1).slice(-6).map(r => r.roe);
+  const qCount = (fin.periods || []).filter(p => p.period_type === 'Q').length;
+  const hasHist = (fin.valuation_history || []).length > 0;
+
+  wrap.innerHTML = `
+    <div style="font-size:var(--text-md);font-weight:700;margin-bottom:2px;">FUNDAMENTAL — LAPORAN KEUANGAN (XBRL)</div>
+    <div style="font-size:var(--text-xs);color:var(--c-text-3);margin-bottom:var(--s-3);">Basis rasio: ${basisTxt} · PER/PBV live per ${v.price_date ? dateLabel(v.price_date) : '-'} · ${medNote}</div>
+    <div style="display:flex;gap:var(--s-2);flex-wrap:wrap;margin-bottom:var(--s-2);">
+      ${ratioCard('ROE', fmtFracPct(rl && rl.roe), med.roe != null ? fmtFracPct(med.roe) : '', '#00A86B', sparklineSvg(annualRoe, '#00A86B'))}
+      ${ratioCard('ROA', fmtFracPct(rl && rl.roa), med.roa != null ? fmtFracPct(med.roa) : '', '#5B8FF9')}
+      ${ratioCard('Margin Bersih', fmtFracPct(rl && rl.net_margin), med.net_margin != null ? fmtFracPct(med.net_margin) : '', '#9270CA')}
+    </div>
+    <div style="display:flex;gap:var(--s-2);flex-wrap:wrap;margin-bottom:var(--s-4);">
+      ${ratioCard('DER', fmtMult(rl && rl.der), med.der != null ? fmtMult(med.der) : '', '#F6903D')}
+      ${ratioCard('PER', fmtMult(v.per), med.per != null ? fmtMult(med.per) : '', '#F2B705')}
+      ${ratioCard('PBV', fmtMult(v.pbv), med.pbv != null ? fmtMult(med.pbv) : '', '#E8A33D')}
+    </div>
+    <div class="fin-lk-head" style="display:flex;align-items:center;gap:var(--s-2);flex-wrap:wrap;margin:var(--s-4) 0 var(--s-3);">
+      <div style="font-size:var(--text-sm);font-weight:700;">Laporan Ringkas</div>
+      <div class="fin-lk-toggle" style="display:flex;gap:var(--s-1);">
+        <button class="btn btn--sm btn--secondary" data-mode="Q">Kuartal</button>
+        <button class="btn btn--sm btn--secondary" data-mode="A">Tahunan</button>
+        <button class="btn btn--sm btn--primary" data-mode="TTM">TTM</button>
+      </div>
+      <div style="font-size:var(--text-xs);color:var(--c-text-3);">Kuartal = kuartal murni (de-kumulasi YTD) · nilai dalam Rp (M = miliar, T = triliun)</div>
+    </div>
+    <div class="fin-lk-body"></div>`;
+
+  const body = wrap.querySelector('.fin-lk-body');
+  const btns = wrap.querySelectorAll('.fin-lk-toggle button');
+  const setMode = (mode) => {
+    body.innerHTML = finTableHtml(fin, mode);
+    btns.forEach(b => { b.className = `btn btn--sm ${b.dataset.mode === mode ? 'btn--primary' : 'btn--secondary'}`; });
+  };
+  btns.forEach(b => on(b, 'click', () => setMode(b.dataset.mode)));
+  setMode('TTM');
+
+  if (qCount >= 2) wrap.appendChild(chartPanel('Tren Laba & Pendapatan (Kuartal)', 'Kuartal murni, de-kumulasi YTD · 20 kuartal terakhir', [{ label: 'Pendapatan', color: '#5B8FF9' }, { label: 'Laba Bersih', color: '#00A86B' }], 230));
+  if (hasHist) wrap.appendChild(chartPanel('Valuasi Historis (PER & PBV)', 'Basis TTM per akhir kuartal · jalur kapitalisasi · cakupan mengikuti arsip KSEI (Okt-2023+)', [{ label: 'PER', color: '#F6903D' }, { label: 'PBV', color: '#7B61FF' }], 210));
+  return wrap;
+}
+
+function buildProfitTrendChartApex(container, fin) {
+  const q = (fin.periods || []).filter(p => p.period_type === 'Q')
+    .slice().sort((a, b) => a.period_end < b.period_end ? -1 : 1).slice(-20)
+    .filter(p => p.revenue != null || p.net_income != null);
+  const opts = buildBaseOptions({ height: 230, type: 'bar' });
+  opts.colors = ['#5B8FF9', '#00A86B'];
+  opts.plotOptions = { bar: { columnWidth: '65%', borderRadius: 2, borderRadiusApplication: 'end' } };
+  opts.series = [
+    { name: 'Pendapatan', data: q.map(p => ({ x: toTs(p.period_end), y: p.revenue })) },
+    { name: 'Laba Bersih', data: q.map(p => ({ x: toTs(p.period_end), y: p.net_income })) },
+  ];
+  opts.tooltip.y = { formatter: (val) => formatNilaiSingkat(val) };
+  opts.yaxis = { labels: { formatter: (val) => formatNilaiSingkat(val) } };
+  return renderChart(container, opts);
+}
+
+function buildValuationChartApex(container, fin) {
+  const h = fin.valuation_history || [];
+  const opts = buildBaseOptions({ height: 210, type: 'line' });
+  opts.colors = ['#F6903D', '#7B61FF'];
+  opts.stroke.width = [2.5, 2.5];
+  opts.series = [
+    { name: 'PER', data: h.filter(p => p.per != null).map(p => ({ x: toTs(p.period_end), y: p.per })) },
+    { name: 'PBV', data: h.filter(p => p.pbv != null).map(p => ({ x: toTs(p.period_end), y: p.pbv })) },
+  ];
+  opts.tooltip.y = { formatter: (val) => val == null ? '-' : val.toFixed(1) + '×' };
+  return renderChart(container, opts);
 }
 
 function buildSummaryTable(rawData) {
