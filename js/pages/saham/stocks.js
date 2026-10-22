@@ -998,6 +998,7 @@ function buildByTypeSection(ft) {
   return wrap;
 }
 
+function finPeriodLabel(dstr) { return `${dateLabel(dstr)} ${String(dstr).slice(0, 4)}`; }
 function fmtFracPct(v) { return v == null ? '-' : (v * 100).toFixed(1) + '%'; }
 function fmtMult(v) { return v == null ? '-' : v.toFixed(2) + '×'; }
 function fmtEps(v) {
@@ -1064,7 +1065,7 @@ function finTableHtml(fin, mode) {
       <thead><tr><th>Periode</th><th>Pendapatan</th><th>Laba Kotor</th><th>Laba Bersih</th><th>EPS</th></tr></thead>
       <tbody>
         ${rows.map(p => `<tr>
-          <td style="font-size:var(--text-xs);white-space:nowrap;">${dateLabel(p.period_end)}${p.period_type === 'TTM' ? ' (TTM)' : ''}${p.incomplete_flag ? ' <span style="color:var(--c-text-3);">· parsial</span>' : ''}${p.usd_flag ? ' <span style="color:var(--c-text-3);">· USD→IDR</span>' : ''}</td>
+          <td style="font-size:var(--text-xs);white-space:nowrap;">${finPeriodLabel(p.period_end)}${p.period_type === 'TTM' ? ' (TTM)' : ''}${p.incomplete_flag ? ' <span style="color:var(--c-text-3);">· parsial</span>' : ''}${p.usd_flag ? ' <span style="color:var(--c-text-3);">· USD→IDR</span>' : ''}</td>
           <td style="font-size:var(--text-xs);">${fmtMoney(p.revenue)}</td>
           <td style="font-size:var(--text-xs);">${fmtMoney(p.gross_profit)}</td>
           <td style="font-size:var(--text-xs);font-weight:600;color:${p.net_income != null && p.net_income < 0 ? 'var(--c-danger)' : 'inherit'};">${fmtMoney(p.net_income)}</td>
@@ -1081,7 +1082,7 @@ function buildFinancialSection(fin) {
   const v = fin.valuation || {};
   const sm = fin.sector_medians;
   const med = (sm && sm.medians) || {};
-  const basisTxt = rl ? `${rl.period_type === 'Q' ? 'TTM' : 'Tahunan'} s.d. ${dateLabel(rl.period_end)}` : '-';
+  const basisTxt = rl ? `${rl.period_type === 'Q' ? 'TTM' : 'Tahunan'} s.d. ${finPeriodLabel(rl.period_end)}` : '-';
   const medNote = sm ? `Median sektor = ${sm.group} (${sm.level === 'sub_sector' ? 'Sub-sektor' : sm.level === 'primary_sector' ? 'Sektor primer' : 'Sektor'}, ${sm.peer_count} emiten pembanding).` : 'Median sektor tidak tersedia (anggota pembanding < 3).';
   const annualRoe = (fin.ratios || []).filter(r => r.period_type === 'A' && r.roe != null)
     .slice().sort((a, b) => a.period_end < b.period_end ? -1 : 1).slice(-6).map(r => r.roe);
