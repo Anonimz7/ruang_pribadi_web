@@ -232,13 +232,21 @@ function renderMarket() {
   }
 
   // ── Tables ──
-  if (topAcc.length) el.appendChild(buildTable('TOP ACCUMULATION', ['Ticker', 'Company', 'Net Foreign'], topAcc.map(r => ({
-    ticker: r.ticker, company: r.company_name, netForeign: r.net_flow_val
-  }))));
+  const fundHeaders = ['Ticker', 'Company', 'Net Foreign', 'ROE', 'Laba YoY', 'PER', 'Kualitas'];
+  const fundRow = r => ({
+    ticker: r.ticker, company: r.company_name, netForeign: r.net_flow_val,
+    roe: fmtPctFrac(r.roe), profitYoy: fmtSignedPctFrac(r.profit_yoy),
+    per: fmtPer(r.per), quality: qualityChip(r.quality)
+  });
+  if (topAcc.length) el.appendChild(buildTable('TOP ACCUMULATION', fundHeaders, topAcc.map(fundRow)));
 
-  if (topDist.length) el.appendChild(buildTable('TOP DISTRIBUTION', ['Ticker', 'Company', 'Net Foreign'], topDist.map(r => ({
-    ticker: r.ticker, company: r.company_name, netForeign: r.net_flow_val
-  }))));
+  if (topDist.length) el.appendChild(buildTable('TOP DISTRIBUTION', fundHeaders, topDist.map(fundRow)));
+
+  if (topAcc.length || topDist.length) {
+    const note = createEl('div', { style: { fontSize: 'var(--text-xs)', color: 'var(--c-text-3)', marginTop: 'calc(var(--s-6) * -1 + var(--s-2))', marginBottom: 'var(--s-6)' } });
+    note.textContent = 'ROE, Laba YoY & PER berbasis laporan keuangan terakhir per emiten (TTM bila lengkap). Kualitas: Sehat / Waspada (laba turun >20%) / Bermasalah (rugi / EPS negatif / ekuitas negatif).';
+    el.appendChild(note);
+  }
 
   if (topForeignOwn.length) el.appendChild(buildTable('TOP 10 FOREIGN OWNERSHIP', ['Ticker', 'Company', 'Nilai Asing', '% Saham'], topForeignOwn.map(r => ({
     ticker: r.ticker, company: r.company_name, nilaiAsing: r.foreign_value,
@@ -334,6 +342,16 @@ function buildDailyFlowSection(acc, dist, dateStr) {
       ${tabelPeringkatHtml('TOP NET SELL', dist, '#D94B4B')}
     </div>`;
   return wrap;
+}
+
+function fmtPctFrac(v) { return v == null ? '-' : (v * 100).toFixed(1) + '%'; }
+function fmtSignedPctFrac(v) { return v == null ? '-' : (v >= 0 ? '+' : '') + (v * 100).toFixed(1) + '%'; }
+function fmtPer(v) { return v == null ? '-' : v.toFixed(1) + '×'; }
+function qualityChip(q) {
+  if (q === 'sehat') return '<span style="color:#00A86B;font-weight:600;">● Sehat</span>';
+  if (q === 'waspada') return '<span style="color:#E8A33D;font-weight:600;">● Waspada</span>';
+  if (q === 'bermasalah') return '<span style="color:#D94B4B;font-weight:600;">● Bermasalah</span>';
+  return 'belum lapor';
 }
 
 function buildTable(title, headers, rows) {
