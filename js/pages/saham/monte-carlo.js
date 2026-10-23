@@ -658,18 +658,45 @@ export function render() {
     compWrap.appendChild(saveCard);
   }
 
-  async function runCompose() {
+  let compPolls = 0;
+  async function runCompose(auto = false) {
     const capital = Number(compCapInput.value || 0);
     if (!(capital >= 1000000)) {
       toast('Modal wajib diisi, minimum Rp 1.000.000 (kelas B1)', { type: 'error' });
       return;
     }
+    if (!auto) compPolls = 0;
     compBtn.disabled = true;
-    compBtn.textContent = 'Menyusun… (putusan walk-forward pertama per keadaan data bisa ±1 menit)';
+    compBtn.textContent = compPolls
+      ? `Menunggu putusan walk-forward… (pemeriksaan ${compPolls})`
+      : 'Menyusun…';
     try {
       const body = { capital };
       if (compIdxSel.value) body.compare_index_id = Number(compIdxSel.value);
       const r = await Api.post('/index-saham/monte-carlo-compose', body);
+      if (r.wf_status === 'computing') {
+        compWrap.innerHTML = '';
+        const box = createEl('div', { class: 'card', style: { borderLeft: '3px solid var(--c-warning, #f0a840)', fontSize: 'var(--text-sm)' } });
+        box.innerHTML = `<b>Putusan walk-forward sedang dihitung.</b> ${r.message || ''}`;
+        compWrap.appendChild(box);
+        compPolls += 1;
+        if (compPolls <= 12) {
+          setTimeout(() => runCompose(true), 20000);
+          return;
+        }
+        compBtn.disabled = false;
+        compBtn.textContent = 'Susun Komposisi';
+        return;
+      }
+      if (r.wf_status === 'error') {
+        compWrap.innerHTML = '';
+        const box = createEl('div', { class: 'card', style: { borderLeft: '3px solid var(--c-danger)', fontSize: 'var(--text-sm)' } });
+        box.innerHTML = `<b>Walk-forward gagal.</b> ${r.message || ''}`;
+        compWrap.appendChild(box);
+        compBtn.disabled = false;
+        compBtn.textContent = 'Susun Komposisi';
+        return;
+      }
       renderCompose(r);
     } catch (e) {
       compWrap.innerHTML = '';
@@ -680,7 +707,7 @@ export function render() {
     compBtn.disabled = false;
     compBtn.textContent = 'Susun Komposisi';
   }
-  compBtn.addEventListener('click', runCompose);
+  compBtn.addEventListener('click', () => runCompose(false));
 
   // ── Muat daftar indeks + pramuat pilihan dari detail indeks ──
   (async () => {
