@@ -285,8 +285,85 @@ function renderMarket() {
 
   if (summaryKpi.length) el.appendChild(buildTable('MARKET SUMMARY KPIs', ['Metric', 'Value'], summaryKpi));
 
+  el.appendChild(buildScreenerSection());
+
   // Mount charts
   requestAnimationFrame(() => mountMarketCharts(asp, mwi, marketData));
+}
+
+function buildScreenerSection() {
+  const wrap = createEl('div', { style: { marginBottom: 'var(--s-6)' } });
+  const inp = 'padding:var(--s-2);background:var(--c-surface);border:1px solid var(--c-border);border-radius:var(--radius);color:var(--c-text);font-size:var(--text-sm);width:104px;';
+  const sel = inp + 'width:auto;';
+  const lab = 'display:flex;flex-direction:column;gap:var(--s-1);font-size:var(--text-xs);color:var(--c-text-3);';
+  wrap.innerHTML = `
+    <div style="font-size:var(--text-md);font-weight:700;margin-bottom:var(--s-3);">SCREENER — FUNDAMENTAL + ARUS ASING</div>
+    <div style="display:flex;gap:var(--s-3);flex-wrap:wrap;align-items:flex-end;margin-bottom:var(--s-3);">
+      <label style="${lab}">ROE min (%)<input id="scr-roe" type="number" step="any" placeholder="cth 10" style="${inp}"></label>
+      <label style="${lab}">Laba YoY min (%)<input id="scr-yoy" type="number" step="any" placeholder="cth 0" style="${inp}"></label>
+      <label style="${lab}">DER maks<input id="scr-der" type="number" step="any" placeholder="cth 2" style="${inp}"></label>
+      <label style="${lab}">PER maks<input id="scr-per" type="number" step="any" placeholder="cth 15" style="${inp}"></label>
+      <label style="${lab}">Skor Smart min<input id="scr-smart" type="number" step="1" min="0" max="100" placeholder="cth 50" style="${inp}"></label>
+      <label style="${lab}">Kualitas
+        <select id="scr-quality" style="${sel}">
+          <option value="">Semua</option>
+          <option value="sehat">Sehat</option>
+          <option value="sehat,waspada">Sehat + Waspada</option>
+          <option value="bermasalah">Bermasalah</option>
+        </select></label>
+      <label style="${lab}">Arus asing
+        <select id="scr-flow" style="${sel}">
+          <option value="semua">Semua</option>
+          <option value="positif">Masuk (positif)</option>
+          <option value="negatif">Keluar (negatif)</option>
+        </select></label>
+      <label style="${lab}">Urutan
+        <select id="scr-sort" style="${sel}">
+          <option value="smart">Skor Smart</option>
+          <option value="flow">Arus terbesar</option>
+          <option value="roe">ROE tertinggi</option>
+        </select></label>
+      <button id="scr-apply" class="btn btn--primary btn--sm" type="button">Terapkan</button>
+    </div>
+    <div id="scr-result" style="font-size:var(--text-sm);color:var(--c-text-3);">Atur filter, lalu klik Terapkan. Screener menilai semua emiten yang sudah mempunyai data fundamental XBRL — tidak dimuat otomatis. Jendela arus mengikuti pemilih hari di atas.</div>`;
+  const result = wrap.querySelector('#scr-result');
+  const run = async () => {
+    const num = id => { const v = wrap.querySelector(id).value.trim(); return v === '' ? null : Number(v); };
+    const params = { days: marketState.days, limit: 50, sort: wrap.querySelector('#scr-sort').value, flow: wrap.querySelector('#scr-flow').value };
+    const roe = num('#scr-roe'); if (roe != null && !Number.isNaN(roe)) params.min_roe = roe / 100;
+    const yoy = num('#scr-yoy'); if (yoy != null && !Number.isNaN(yoy)) params.min_profit_yoy = yoy / 100;
+    const der = num('#scr-der'); if (der != null && !Number.isNaN(der)) params.max_der = der;
+    const per = num('#scr-per'); if (per != null && !Number.isNaN(per)) params.max_per = per;
+    const sm = num('#scr-smart'); if (sm != null && !Number.isNaN(sm)) params.min_smart = sm;
+    const q = wrap.querySelector('#scr-quality').value; if (q) params.quality = q;
+    result.textContent = 'Menyaring…';
+    try {
+      const res = await Api.get('/idx/market/screener', params);
+      const d = res?.data || res;
+      const items = d.items || [];
+      result.innerHTML = '';
+      const info = createEl('div', { style: { fontSize: 'var(--text-xs)', color: 'var(--c-text-3)', marginBottom: 'var(--s-3)' } });
+      info.textContent = `Menampilkan ${d.count ?? items.length} dari ${d.total_matched ?? items.length} emiten yang cocok · jendela arus ${d.period_days ?? marketState.days} hari. Filter DER diterapkan apa adanya — DER sektor keuangan memang struktural tinggi, baca bersama kolom Sektor.`;
+      result.appendChild(info);
+      if (items.length) {
+        result.appendChild(buildTable('HASIL SCREENER', ['Ticker', 'Company', 'Sektor', 'Net Foreign', 'ROE', 'Laba YoY', 'DER', 'PER', 'Kualitas', 'Skor Smart'], items.map(r => ({
+          ticker: r.ticker, company: r.company_name, sektor: r.sub_sector || r.sector || '-',
+          netForeign: r.net_flow_val, roe: fmtPctFrac(r.roe), profitYoy: fmtSignedPctFrac(r.profit_yoy),
+          der: r.der == null ? '-' : r.der.toFixed(2), per: fmtPer(r.per),
+          quality: qualityChip(r.quality), smart: smartChip(r)
+        }))));
+      } else {
+        const none = createEl('div', { style: { fontSize: 'var(--text-sm)', color: 'var(--c-text-3)' } });
+        none.textContent = 'Tidak ada emiten yang cocok dengan filter ini.';
+        result.appendChild(none);
+      }
+    } catch (e) {
+      result.textContent = 'Gagal memuat screener — coba lagi.';
+    }
+  };
+  on(wrap.querySelector('#scr-apply'), 'click', run);
+  wrap.querySelectorAll('input').forEach(i => on(i, 'keydown', ev => { if (ev.key === 'Enter') run(); }));
+  return wrap;
 }
 
 function kpiTile(label, value, change, color) {
