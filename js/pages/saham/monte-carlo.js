@@ -8,10 +8,14 @@ import { icons } from '../../ui/icons.js';
 import Api from '../../core/api.js';
 import { toast } from '../../ui/toast.js';
 import { navigate } from '../../core/router.js';
+import { formatNilaiSingkat } from '../../utils/format.js';
 
 const HORIZONS = [[21, '1 bln'], [63, '3 bln'], [126, '6 bln'], [252, '1 thn']];
 const WINDOWS = [['1y', '1 thn'], ['2y', '2 thn'], ['3y', '3 thn'], ['5y', '5 thn'], ['all', 'Semua']];
 const NSIMS = [[2000, '2.000'], [5000, '5.000'], [10000, '10.000']];
+const MODES = [['semua', 'Semua blok'], ['rezim', 'Ikuti rezim terkini'], ['tekanan', 'Skenario tekanan']];
+const STATE_LABEL = { masuk: 'Arus masuk', netral: 'Netral', keluar: 'Arus keluar' };
+const MODE_LABEL = { semua: 'Semua blok', rezim: 'Ikuti rezim terkini', tekanan: 'Skenario tekanan' };
 const WIN_LABEL = { '1y': '1 tahun terakhir', '2y': '2 tahun terakhir', '3y': '3 tahun terakhir', '5y': '5 tahun terakhir', all: 'seluruh seri' };
 
 function fmtPct(v) {
@@ -119,6 +123,7 @@ export function render() {
     horizon: 63,
     window: '3y',
     nSims: 5000,
+    mode: 'semua',
     result: null,
     running: false,
   };
@@ -160,6 +165,7 @@ export function render() {
   grid.appendChild(field('HORIZON', makeSeg(HORIZONS, state.horizon, (v) => { state.horizon = v; })));
   grid.appendChild(field('JENDELA SUMBER RETURN', makeSeg(WINDOWS, state.window, (v) => { state.window = v; })));
   grid.appendChild(field('JUMLAH SIMULASI', makeSeg(NSIMS, state.nSims, (v) => { state.nSims = v; })));
+  grid.appendChild(field('MODE REZIM ARUS', makeSeg(MODES, state.mode, (v) => { state.mode = v; })));
   const capInput = createEl('input', {
     class: 'field__input', type: 'number', min: '0', step: '100000',
     placeholder: 'cth. 25000000', style: { width: '170px' },
@@ -170,7 +176,7 @@ export function render() {
   ctl.appendChild(grid);
   ctl.appendChild(createEl('p', {
     style: { fontSize: 'var(--text-xs)', color: 'var(--c-text-3)', marginTop: 'var(--s-3)' },
-  }, ['Metode: bootstrap blok 20 hari atas log-return level indeks (return hari stale dibuang). Seed tetap — masukan yang sama menghasilkan angka yang sama. Hasil selalu dibaca bersama jendela sumbernya: keluaran mewarisi rezim jendela itu.']));
+  }, ['Metode: bootstrap blok 20 hari atas log-return level indeks (return hari stale dibuang). Seed tetap — masukan yang sama menghasilkan angka yang sama. Mode rezim mengondisikan blok pada keadaan arus asing indeks (tersil jendela: masuk / netral / keluar). Hasil selalu dibaca bersama jendela sumbernya: keluaran mewarisi rezim jendela itu.']));
   container.appendChild(ctl);
 
   const resultWrap = createEl('div', {});
@@ -188,8 +194,59 @@ export function render() {
     });
     wl.innerHTML = `<b>Jendela sumber:</b> ${WIN_LABEL[r.window.label] || r.window.label} — ` +
       `${Number(r.window.n_returns).toLocaleString('id-ID')} return harian, ${fmtDate(r.window.from)} s.d. ${fmtDate(r.window.to)} · ` +
-      `${Number(r.n_sims).toLocaleString('id-ID')} simulasi · horizon ${r.horizon_days} hari bursa. Hasil mewarisi rezim jendela ini.`;
+      `${Number(r.n_sims).toLocaleString('id-ID')} simulasi · horizon ${r.horizon_days} hari bursa. Hasil mewarisi rezim jendela ini.` +
+      (r.mode === 'tekanan'
+        ? `<br><b>SKENARIO TEKANAN:</b> hasil di bawah hanya memakai blok yang mulai pada hari arus-keluar — ini skenario "seolah rezim keluar berlanjut", bukan keadaan rata-rata.`
+        : r.mode === 'rezim'
+          ? `<br><b>Terkondisi rezim terkini:</b> hasil di bawah hanya memakai blok yang mulai pada keadaan arus terkini (${STATE_LABEL[(r.regime.current || {}).state] || '-'}).`
+          : '');
     resultWrap.appendChild(wl);
+
+    if (r.comparison) {
+      const rc = createEl('div', { class: 'card', style: { marginBottom: 'var(--s-3)' } });
+      rc.appendChild(createEl('h3', { class: 'card__title', style: { marginBottom: 'var(--s-2)' } }, ['Rezim Arus & Perbandingan Mode']));
+      const rg = r.regime || {};
+      const info = createEl('p', { style: { fontSize: 'var(--text-sm)', color: 'var(--c-text-2)', margin: '0 0 var(--s-3)' } });
+      if (rg.available && rg.current) {
+        info.textContent = `Keadaan terkini: ${STATE_LABEL[rg.current.state] || rg.current.state} ` +
+          `(${fmtDate(rg.current.date)}, arus bersih asing indeks ${formatNilaiSingkat(rg.current.flow)}). ` +
+          `Blok tersedia — masuk: ${rg.blocks.masuk}, netral: ${rg.blocks.netral}, keluar: ${rg.blocks.keluar} ` +
+          `dari ${Number(rg.flow_days).toLocaleString('id-ID')} hari berarus terbaca.`;
+      } else {
+        info.textContent = 'Arus asing indeks tidak cukup terbaca atau seragam pada jendela ini — mode terkondisi tidak tersedia; hanya mode Semua blok yang dapat dipakai.';
+      }
+      rc.appendChild(info);
+      const tbl = createEl('table', { style: { width: '100%', borderCollapse: 'collapse', fontSize: 'var(--text-sm)' } });
+      const rowHtml = (c) => {
+        const name = MODE_LABEL[c.mode] + (c.state ? ` (${STATE_LABEL[c.state] || c.state})` : '');
+        if (c.unavailable) {
+          return `<td style="padding:6px 8px;">${name}</td><td colspan="4" style="padding:6px 8px;color:var(--c-text-3);">${c.unavailable}</td>`;
+        }
+        const thin = c.thin ? ' <span style="color:var(--c-warning, #f0a840);font-weight:600;">· bahan tipis</span>' : '';
+        const sel = c.mode === r.mode ? ' style="font-weight:700;"' : '';
+        return `<td style="padding:6px 8px;"${sel}>${name}${thin}</td>` +
+          `<td style="padding:6px 8px;text-align:right;">${fmtProb(c.p_end_positive)}</td>` +
+          `<td style="padding:6px 8px;text-align:right;">${fmtPct(c.end_ret_p50)}</td>` +
+          `<td style="padding:6px 8px;text-align:right;">${fmtPct(c.end_ret_p5)}</td>` +
+          `<td style="padding:6px 8px;text-align:right;">${Number(c.blocks).toLocaleString('id-ID')}</td>`;
+      };
+      tbl.innerHTML = `<thead><tr style="border-bottom:1px solid var(--c-border);color:var(--c-text-3);font-size:var(--text-xs);">` +
+        `<th style="text-align:left;padding:6px 8px;">MODE</th><th style="text-align:right;padding:6px 8px;">P(positif)</th>` +
+        `<th style="text-align:right;padding:6px 8px;">MEDIAN</th><th style="text-align:right;padding:6px 8px;">p5</th>` +
+        `<th style="text-align:right;padding:6px 8px;">BLOK</th></tr></thead>` +
+        `<tbody>${r.comparison.map((c) => `<tr style="border-bottom:1px solid var(--c-border);">${rowHtml(c)}</tr>`).join('')}</tbody>`;
+      rc.appendChild(tbl);
+      if (r.composition) {
+        const cp = r.composition;
+        const line = createEl('p', {
+          style: { fontSize: 'var(--text-sm)', margin: 'var(--s-3) 0 0', color: cp.warning ? 'var(--c-warning, #f0a840)' : 'var(--c-text-2)' },
+        }, [cp.warning
+          ? `⚠ ${cp.warning} — berdasarkan ${cp.basis} (${cp.n_members} anggota). Peringatan lunak; pagar keras adalah urusan penyusun (MC-4).`
+          : `Konsentrasi komposisi: Sektor terbesar ${cp.top_sector} mencakup ${(cp.top_share * 100).toFixed(0).replace('.', ',')}% dari ${cp.n_members} anggota (berdasarkan ${cp.basis}).`]);
+        rc.appendChild(line);
+      }
+      resultWrap.appendChild(rc);
+    }
 
     const fanCard = createEl('div', { class: 'card', style: { marginBottom: 'var(--s-3)' } });
     fanCard.appendChild(createEl('h3', { class: 'card__title', style: { marginBottom: 'var(--s-2)' } },
@@ -277,6 +334,7 @@ export function render() {
         window: state.window,
         n_sims: state.nSims,
         capital,
+        mode: state.mode,
       });
       renderResult();
     } catch (e) {
