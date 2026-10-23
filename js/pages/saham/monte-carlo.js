@@ -1,6 +1,8 @@
 /* pages/monte-carlo.js — Monte Carlo (MC-1): penilai probabilistik
  * Index Saham. Menu sendiri (keputusan user 2026-10-23); Index Saham
  * tetap pemilik komposisi — halaman ini hanya membaca & menilai.
+ * MC-4: penyusun komposisi kelas modal + juri walk-forward
+ * (POST /index-saham/monte-carlo-compose) di kartu bawah.
  * Simulasi: POST /index-saham/{id}/monte-carlo (bootstrap blok atas
  * log-return level; seed tetap; jendela selalu dilabeli). */
 import { createEl } from '../../utils/dom.js';
@@ -223,6 +225,26 @@ export function render() {
 
   const resultWrap = createEl('div', {});
   container.appendChild(resultWrap);
+
+  // ── Penyusun Komposisi (MC-4) ──
+  const compCard = createEl('div', { class: 'card', style: { marginTop: 'var(--s-3)' } });
+  compCard.appendChild(createEl('h3', { class: 'card__title', style: { marginBottom: 'var(--s-2)' } }, ['Penyusun Komposisi (MC-4)']));
+  compCard.appendChild(createEl('p', { style: { fontSize: 'var(--text-sm)', color: 'var(--c-text-2)', margin: '0 0 var(--s-3)' } },
+    ['Masukkan modal — kelas Proposal B diturunkan darinya dan ditegakkan sebagai kendala keras (jumlah anggota kelas, posisi minimum 2× LOT*, cap sektor). Penyusun serakah mengisi susunan sampai ukuran kelas dengan tambahan terbaik menurut return p25 simulasi (horizon 1 kuartal, syarat peluang drawdown >20% ≤ 10%), memolesnya dengan tukar, lalu merealisasikannya ke lot bulat. Fitur hanya tampil bila lulus juri walk-forward di bawah.']));
+  const cgrid = createEl('div', { style: { display: 'flex', gap: 'var(--s-4)', flexWrap: 'wrap', alignItems: 'flex-end' } });
+  const compCapInput = createEl('input', {
+    class: 'field__input', type: 'number', min: '1000000', step: '500000',
+    placeholder: 'cth. 25000000', style: { width: '180px' },
+  });
+  const compIdxSel = createEl('select', { class: 'field__select', style: { minWidth: '220px' } });
+  const compBtn = createEl('button', { class: 'btn btn--primary' }, ['Susun Komposisi']);
+  cgrid.appendChild(field('MODAL (WAJIB, RP)', compCapInput));
+  cgrid.appendChild(field('BANDINGKAN DENGAN', compIdxSel));
+  cgrid.appendChild(compBtn);
+  compCard.appendChild(cgrid);
+  container.appendChild(compCard);
+  const compWrap = createEl('div', { style: { marginTop: 'var(--s-3)' } });
+  container.appendChild(compWrap);
 
   function renderFundamental(r) {
     const idx = state.indices.find((i) => String(i.id) === String(r.index_id));
@@ -498,6 +520,168 @@ export function render() {
   }
   runBtn.addEventListener('click', run);
 
+  function evalRows(ev) {
+    return [['Peluang berakhir positif', fmtProb(ev.p_end_positive)],
+      ['Return p25', fmtPct(ev.end_ret.p25)],
+      ['Return median', fmtPct(ev.end_ret.p50)],
+      ['Return p5', fmtPct(ev.end_ret.p5)],
+      ['Peluang drawdown >20%', fmtProb(ev.p_dd_gt_20)],
+      ['Drawdown median', fmtPct(-Math.abs(ev.dd_median))]];
+  }
+
+  function renderCompose(r) {
+    compWrap.innerHTML = '';
+    const wf = r.walk_forward || {};
+    const passed = !!wf.passed;
+    const wc = createEl('div', {
+      class: 'card',
+      style: { borderLeft: `3px solid ${passed ? 'var(--c-accent)' : 'var(--c-danger)'}`, marginBottom: 'var(--s-3)' },
+    });
+    wc.appendChild(createEl('h3', { class: 'card__title', style: { marginBottom: 'var(--s-2)' } },
+      [`Juri Walk-Forward — ${passed ? 'LULUS' : 'MENAHAN PENYUSUN'}`]));
+    wc.appendChild(createEl('p', { style: { fontSize: 'var(--text-sm)', color: 'var(--c-text-2)', margin: '0 0 var(--s-3)' } },
+      [`Penyusun dijalankan ulang pada ${wf.folds ? wf.folds.length : 0} tanggal potong kuartalan 2023–2025 hanya dengan data sebelum potong (modal acuan ${fmtRp(wf.capital_ref)}); realisasi 63 hari berikutnya diperiksa terhadap pita p5–p95 simulasinya. Cakupan: <b>${fmtProb(wf.coverage)}</b> dari ${wf.composed_folds} lipatan tersusun — ambang ${fmtProb(wf.threshold)}.`]));
+    const ft = createEl('table', { style: { width: '100%', borderCollapse: 'collapse', fontSize: 'var(--text-sm)' } });
+    ft.innerHTML = `<thead><tr style="border-bottom:1px solid var(--c-border);color:var(--c-text-3);font-size:var(--text-xs);">
+      <th style="text-align:left;padding:6px 8px;">POTONG</th><th style="text-align:left;padding:6px 8px;">DATA S.D.</th>
+      <th style="text-align:right;padding:6px 8px;">ANGGOTA</th><th style="text-align:right;padding:6px 8px;">REALISASI</th>
+      <th style="text-align:right;padding:6px 8px;">PITA p5–p95</th><th style="text-align:left;padding:6px 8px;">HASIL</th></tr></thead>
+      <tbody>${(wf.folds || []).map((f) => `<tr style="border-bottom:1px solid var(--c-border);">
+        <td style="padding:6px 8px;">${f.cutoff}</td>
+        <td style="padding:6px 8px;">${f.as_of ? fmtDate(f.as_of) : '-'}</td>
+        <td style="padding:6px 8px;text-align:right;">${f.composed ? f.n_members : '-'}</td>
+        <td style="padding:6px 8px;text-align:right;">${f.composed ? fmtPct(f.realized) : '-'}</td>
+        <td style="padding:6px 8px;text-align:right;">${f.composed ? fmtPct(f.p5) + ' s.d. ' + fmtPct(f.p95) : '-'}</td>
+        <td style="padding:6px 8px;">${f.composed ? (f.covered ? 'Di dalam pita' : '<b>Di luar pita</b>') : (f.error ? 'Gagal: ' + f.error : 'Tak tersusun')}</td></tr>`).join('')}</tbody>`;
+    wc.appendChild(ft);
+    compWrap.appendChild(wc);
+    if (r.withheld) {
+      const rb = createEl('div', { class: 'card', style: { borderLeft: '3px solid var(--c-danger)', fontSize: 'var(--text-sm)' } });
+      rb.innerHTML = `<b>Penyusun ditahan.</b> ${r.reason || ''}`;
+      compWrap.appendChild(rb);
+      return;
+    }
+    const c = r.composition;
+    const strip = createEl('div', {
+      class: 'card',
+      style: { borderLeft: '3px solid var(--c-warning, #f0a840)', marginBottom: 'var(--s-3)', fontSize: 'var(--text-sm)' },
+    });
+    strip.innerHTML = `<b>Kelas ${c.class}</b> (rentang anggota ${c.class_range[0]}–${c.class_range[1]}) · modal ${fmtRp(r.capital)} · ` +
+      `LOT* ${fmtRp(r.lot_star)} (median 1 lot dari ${r.universe_size} emiten likuid teratas) · ` +
+      `${r.candidates} kandidat lolos saringan kualitas + Skor Smart · data s.d. ${fmtDate(r.as_of)} · ` +
+      `terinvestasi ${fmtRp(c.invested)} · <b>sisa kas ${fmtRp(c.cash)} (${fmtProb(c.cash_pct)})</b>.` +
+      (c.below_class_min ? `<br><b>Catatan:</b> jumlah anggota akhir ${c.members.length} di bawah minimum kelas ${c.class_range[0]} — kendala posisi minimum 2× LOT* / kolam kandidat yang mengikat; dilaporkan apa adanya.` : '') +
+      (c.dd_relaxed ? `<br><b>Catatan:</b> pada sebagian langkah pengisian tidak ada kandidat yang memenuhi syarat drawdown, sehingga dipilih kandidat berpeluang drawdown terkecil (pelonggaran tercatat, bukan disembunyikan).` : '');
+    compWrap.appendChild(strip);
+
+    const cmp = createEl('div', {
+      style: { display: 'grid', gridTemplateColumns: 'repeat(auto-fit,minmax(260px,1fr))', gap: 'var(--s-3)', marginBottom: 'var(--s-3)' },
+    });
+    const mkEvCard = (title, ev) => {
+      const card = createEl('div', { class: 'card', style: { marginBottom: '0' } });
+      card.appendChild(createEl('h3', { class: 'card__title', style: { marginBottom: 'var(--s-2)' } }, [title]));
+      const tb = createEl('table', { style: { width: '100%', borderCollapse: 'collapse', fontSize: 'var(--text-sm)' } });
+      tb.innerHTML = evalRows(ev).map(([k, v]) => `<tr style="border-bottom:1px solid var(--c-border);">
+        <td style="padding:5px 8px;color:var(--c-text-2);">${k}</td>
+        <td style="padding:5px 8px;text-align:right;font-weight:600;">${v}</td></tr>`).join('');
+      card.appendChild(tb);
+      return card;
+    };
+    cmp.appendChild(mkEvCard(`Susunan Usulan — evaluasi MC (1 kuartal)`, c.evaluation));
+    const b = r.benchmark || {};
+    const bTitle = b.kind === 'index'
+      ? `Pembanding — indeks terpilih (evaluasi MC)`
+      : `Pembanding — semesta likuid sama rata (${b.n_members} emiten)`;
+    cmp.appendChild(mkEvCard(bTitle, b.evaluation));
+    compWrap.appendChild(cmp);
+
+    const mc = createEl('div', { class: 'card', style: { marginBottom: 'var(--s-3)' } });
+    mc.appendChild(createEl('h3', { class: 'card__title', style: { marginBottom: 'var(--s-2)' } }, [`Komposisi Terealisasi — ${c.members.length} anggota`]));
+    const tbl = createEl('table', { style: { width: '100%', borderCollapse: 'collapse', fontSize: 'var(--text-sm)' } });
+    tbl.innerHTML = `<thead><tr style="border-bottom:1px solid var(--c-border);color:var(--c-text-3);font-size:var(--text-xs);">
+      <th style="text-align:left;padding:6px 8px;">EMITEN</th><th style="text-align:left;padding:6px 8px;">SEKTOR / SUB</th>
+      <th style="text-align:right;padding:6px 8px;">SKOR SMART</th><th style="text-align:right;padding:6px 8px;">HARGA</th>
+      <th style="text-align:right;padding:6px 8px;">LOT</th><th style="text-align:right;padding:6px 8px;">NILAI</th>
+      <th style="text-align:right;padding:6px 8px;">TARGET</th><th style="text-align:right;padding:6px 8px;">TEREALISASI</th></tr></thead>
+      <tbody>${c.members.map((m) => `<tr style="border-bottom:1px solid var(--c-border);">
+        <td style="padding:6px 8px;font-weight:600;">${m.ticker}</td>
+        <td style="padding:6px 8px;">${m.sector || '-'} / ${m.sub_sector || '-'}</td>
+        <td style="padding:6px 8px;text-align:right;">${m.smart != null ? Number(m.smart).toFixed(0) : '-'}</td>
+        <td style="padding:6px 8px;text-align:right;">${fmtRp(m.price)}</td>
+        <td style="padding:6px 8px;text-align:right;">${Number(m.lots).toLocaleString('id-ID')}</td>
+        <td style="padding:6px 8px;text-align:right;">${fmtRp(m.value)}</td>
+        <td style="padding:6px 8px;text-align:right;">${(m.target_weight * 100).toFixed(1).replace('.', ',')}%</td>
+        <td style="padding:6px 8px;text-align:right;">${(m.realized_weight * 100).toFixed(2).replace('.', ',')}%</td></tr>`).join('')}</tbody>`;
+    mc.appendChild(tbl);
+    const topSec = Object.entries(c.realized_sector_shares || {}).sort((a, b2) => b2[1] - a[1])[0];
+    mc.appendChild(createEl('p', { style: { fontSize: 'var(--text-xs)', color: 'var(--c-text-3)', marginTop: 'var(--s-2)' } },
+      [`Pangsa sektor terealisasi terbesar: ${topSec ? topSec[0] + ' ' + fmtProb(topSec[1]) + ' dari terinvestasi' : '-'}. Cap 40% Sektor / 25% Sub_Sektor ditegakkan sebagai batas hitungan anggota saat konstruksi (dibulatkan ke atas ke anggota utuh); distorsi lot pada pangsa nilai ditampilkan apa adanya, tidak diamputasi.`]));
+    compWrap.appendChild(mc);
+
+    const saveCard = createEl('div', { class: 'card', style: { display: 'flex', alignItems: 'center', gap: 'var(--s-3)', flexWrap: 'wrap' } });
+    saveCard.appendChild(createEl('div', { style: { flex: '1', minWidth: '220px', fontSize: 'var(--text-sm)', color: 'var(--c-text-2)' } },
+      ['Simpan susunan ini sebagai Index Saham (pembobotan custom menurut bobot terealisasi) untuk dipantau & dinilai berkala. Membuat indeks adalah kewenangan admin.']));
+    const saveBtn = createEl('button', { class: 'btn btn--secondary' }, ['Simpan sebagai Indeks']);
+    saveBtn.addEventListener('click', async () => {
+      saveBtn.disabled = true;
+      saveBtn.textContent = 'Menyimpan…';
+      try {
+        const name = `MC-4 ${c.class} ${r.as_of}`;
+        const created = await Api.post('/index-saham', {
+          name, weighting_mode: 'custom', base_value: 100, min_coverage: 60,
+          description: `Susunan MC-4 kelas ${c.class} dari modal ${fmtRp(r.capital)} per ${r.as_of}; LOT* ${fmtRp(r.lot_star)}; sisa kas ${fmtRp(c.cash)}.`,
+        });
+        const newId = created && created.index && created.index.id;
+        if (!newId) throw new Error('Respons pembuatan indeks tidak memuat id');
+        const tot = c.members.reduce((a, m) => a + m.realized_weight, 0) || 1;
+        const weightMap = {};
+        let acc = 0;
+        c.members.forEach((m, i) => {
+          let pct = i === c.members.length - 1
+            ? Math.round((100 - acc) * 100) / 100
+            : Math.round((m.realized_weight / tot) * 10000) / 100;
+          acc += pct;
+          weightMap[m.ticker] = pct;
+        });
+        await Api.put(`/index-saham/${newId}/members`, {
+          tickers: c.members.map((m) => m.ticker), weight_map: weightMap,
+        });
+        toast(`Indeks "${name}" tersimpan dengan ${c.members.length} anggota.`, { type: 'success', duration: 5000 });
+        saveBtn.textContent = 'Tersimpan ✓';
+      } catch (e) {
+        toast('Gagal menyimpan indeks: ' + (e.message || e), { type: 'error' });
+        saveBtn.disabled = false;
+        saveBtn.textContent = 'Simpan sebagai Indeks';
+      }
+    });
+    saveCard.appendChild(saveBtn);
+    compWrap.appendChild(saveCard);
+  }
+
+  async function runCompose() {
+    const capital = Number(compCapInput.value || 0);
+    if (!(capital >= 1000000)) {
+      toast('Modal wajib diisi, minimum Rp 1.000.000 (kelas B1)', { type: 'error' });
+      return;
+    }
+    compBtn.disabled = true;
+    compBtn.textContent = 'Menyusun… (putusan walk-forward pertama per keadaan data bisa ±1 menit)';
+    try {
+      const body = { capital };
+      if (compIdxSel.value) body.compare_index_id = Number(compIdxSel.value);
+      const r = await Api.post('/index-saham/monte-carlo-compose', body);
+      renderCompose(r);
+    } catch (e) {
+      compWrap.innerHTML = '';
+      const box = createEl('div', { class: 'card', style: { borderLeft: '3px solid var(--c-danger)', fontSize: 'var(--text-sm)' } });
+      box.innerHTML = `<b>Penyusunan tidak dapat dijalankan.</b> ${e.message || e}`;
+      compWrap.appendChild(box);
+    }
+    compBtn.disabled = false;
+    compBtn.textContent = 'Susun Komposisi';
+  }
+  compBtn.addEventListener('click', runCompose);
+
   // ── Muat daftar indeks + pramuat pilihan dari detail indeks ──
   (async () => {
     try {
@@ -514,6 +698,11 @@ export function render() {
     }
     state.indices.forEach((i) => {
       idxSel.appendChild(createEl('option', { value: String(i.id) }, [`${i.name} (${i.code})`]));
+    });
+    compIdxSel.innerHTML = '';
+    compIdxSel.appendChild(createEl('option', { value: '' }, ['Semesta likuid (sama rata)']));
+    state.indices.forEach((i) => {
+      compIdxSel.appendChild(createEl('option', { value: String(i.id) }, [`Indeks: ${i.name} (${i.code})`]));
     });
     let initial = '';
     try {
