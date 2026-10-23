@@ -40,6 +40,7 @@ const routes = {
   '/saham/kepemilikan-asing': () => import('../pages/saham/kepemilikan-asing.js'),
   '/saham/reports': () => import('../pages/saham/reports.js'),
   '/saham/index': () => import('../pages/saham/index-saham.js'),
+  '/saham/monte-carlo': () => import('../pages/saham/monte-carlo.js'),
   '/saham/pemantauan': () => import('../pages/saham/pemantauan.js'),
   '/saham/admin/dashboard': () => import('../pages/saham/admin/dashboard.js'),
   '/saham/admin/users': () => import('../pages/saham/admin/users.js'),

@@ -136,6 +136,7 @@ export const ROUTE_MAP = {
   kepemilikan_asing: '/saham/kepemilikan-asing',
   reports: '/saham/reports',
   index_saham: '/saham/index',
+  monte_carlo: '/saham/monte-carlo',
   pemantauan: '/saham/pemantauan',
   video_downloader: '/video',
   user_permissions: '/saham/admin/users',

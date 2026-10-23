@@ -9,6 +9,7 @@ import { createModal } from '../../ui/modal.js';
 import { DelistedBadge, StockSectorBadge } from '../../ui/stock-widgets.js';
 import { loadApexCharts, buildBaseOptions, renderChart, destroyChart, normalizeDate, toTs } from '../../ui/chart.js';
 import { pageInfo } from '../../ui/pagination.js';
+import { navigate } from '../../core/router.js';
 
 const MODES = {
   mcap: 'Market Cap',
@@ -209,6 +210,7 @@ export function render() {
       series.length ? totalReturnPct(series[series.length - 1].level, series[0].level) : null,
     ));
     detailWrap.appendChild(buildChartCard(idx, series));
+    detailWrap.appendChild(buildMonteCarloStrip(idx));
     const two = createEl('div', {
       style: { display: 'grid', gridTemplateColumns: 'repeat(auto-fit,minmax(340px,1fr))', gap: 'var(--s-3)', marginTop: 'var(--s-3)' },
     });
@@ -257,6 +259,32 @@ export function render() {
     }
 
     return head;
+  }
+
+  function buildMonteCarloStrip(idx) {
+    // Pengantar ke menu Monte Carlo (penilai probabilistik). Komposisi
+    // tetap diubah di sini; strip ini hanya menyerahkan indeks terpilih
+    // lewat localStorage (pola yang sama seperti stocks_initial_ticker).
+    const strip = createEl('div', {
+      class: 'card',
+      style: {
+        display: 'flex', alignItems: 'center', gap: 'var(--s-3)', flexWrap: 'wrap',
+        marginTop: 'var(--s-3)', borderLeft: '3px solid var(--c-primary)',
+      },
+    });
+    const info = createEl('div', { style: { flex: '1', minWidth: '220px' } });
+    info.appendChild(createEl('div', { style: { fontWeight: 600 } }, ['Nilai susunan ini dengan Monte Carlo']));
+    info.appendChild(createEl('div', { style: { fontSize: 'var(--text-sm)', color: 'var(--c-text-2)' } },
+      ['Sebaran hasil, peluang berakhir positif, dan risiko drawdown dari seri level indeks ini.']));
+    strip.appendChild(info);
+    const btn = createEl('button', { class: 'btn btn--primary btn--sm' });
+    btn.innerHTML = `${icons['dice']} Monte Carlo`;
+    btn.addEventListener('click', () => {
+      try { localStorage.setItem('mc_initial_index', String(idx.id)); } catch (e) { /* abaikan */ }
+      navigate('/saham/monte-carlo');
+    });
+    strip.appendChild(btn);
+    return strip;
   }
 
   function buildChartCard(idx, series) {

@@ -114,6 +114,14 @@
       "minTier": 2
     },
     {
+      "key": "monte_carlo",
+      "icon": "Icons.casino",
+      "label": "Monte Carlo",
+      "section": "market",
+      "portal": "saham",
+      "minTier": 2
+    },
+    {
       "key": "pemantauan",
       "icon": "Icons.visibility",
       "label": "Pemantauan",
