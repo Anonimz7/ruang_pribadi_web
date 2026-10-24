@@ -119,6 +119,52 @@ function fanSvg(fan, horizon) {
     ${line('p50', 'var(--c-primary)', 2.2)}${xl}</svg>`;
 }
 
+function fanSvgRealized(fan, horizon, points) {
+  /* Kipas tersimpan + garis realisasi (buku besar §17): points =
+   * [{h, v}] return kumulatif realisasi pada titik periksa. */
+  const W = 900, H = 320, L = 56, R = 12, T = 12, B = 26;
+  const vals = fan.flatMap((f) => [f.p5, f.p95])
+    .concat(points.map((p) => p.v)).concat([0]);
+  let mn = Math.min(...vals), mx = Math.max(...vals);
+  const sp = (mx - mn) * 0.08 || 0.01; mn -= sp; mx += sp;
+  const X = (h) => L + (h / horizon) * (W - L - R);
+  const Y = (v) => T + ((mx - v) / (mx - mn)) * (H - T - B);
+  const band = (lo, hi, op) => {
+    let d1 = '', d2 = '';
+    fan.forEach((f) => { d1 += `L${X(f.h).toFixed(1)},${Y(f[hi]).toFixed(1)} `; });
+    [...fan].reverse().forEach((f) => { d2 += `L${X(f.h).toFixed(1)},${Y(f[lo]).toFixed(1)} `; });
+    return `<path d="M${X(0)},${Y(0)} ${d1}${d2}Z" fill="var(--c-primary)" fill-opacity="${op}"/>`;
+  };
+  const line = (k, color, w) => {
+    let d = `M${X(0)},${Y(0)} `;
+    fan.forEach((f) => { d += `L${X(f.h).toFixed(1)},${Y(f[k]).toFixed(1)} `; });
+    return `<path d="${d}" fill="none" stroke="${color}" stroke-width="${w}"/>`;
+  };
+  let grid = '';
+  for (let g = 0; g <= 4; g++) {
+    const v = mn + (mx - mn) * g / 4, y = Y(v);
+    grid += `<line x1="${L}" y1="${y}" x2="${W - R}" y2="${y}" stroke="var(--c-border)" stroke-width="1"/>
+      <text x="${L - 6}" y="${y + 4}" fill="var(--c-text-3)" font-size="11" text-anchor="end">${fmtPct(v)}</text>`;
+  }
+  let xl = '';
+  fan.forEach((f) => {
+    if (f.h % 21 === 0 || f.h === horizon) {
+      xl += `<text x="${X(f.h)}" y="${H - 6}" fill="var(--c-text-3)" font-size="11" text-anchor="middle">${f.h} hr</text>`;
+    }
+  });
+  let realized = '';
+  if (points.length) {
+    let d = `M${X(0)},${Y(0)} `;
+    points.forEach((p) => { d += `L${X(p.h).toFixed(1)},${Y(p.v).toFixed(1)} `; });
+    realized = `<path d="${d}" fill="none" stroke="#f0a840" stroke-width="2.4"/>`
+      + points.map((p) => `<circle cx="${X(p.h)}" cy="${Y(p.v)}" r="4.5" fill="#f0a840" stroke="#fff" stroke-width="1.4"/>`).join('');
+  }
+  return `<svg viewBox="0 0 ${W} ${H}" style="width:100%;height:auto;display:block;">
+    ${grid}${band('p5', 'p95', 0.13)}${band('p25', 'p75', 0.28)}
+    <line x1="${L}" y1="${Y(0)}" x2="${W - R}" y2="${Y(0)}" stroke="var(--c-danger)" stroke-width="1.2"/>
+    ${line('p50', 'var(--c-primary)', 2.2)}${realized}${xl}</svg>`;
+}
+
 function fanSvgQ(fan, quarters) {
   const W = 900, H = 320, L = 56, R = 12, T = 12, B = 26;
   const vals = fan.flatMap((f) => [f.p5, f.p95]).concat([0]);
@@ -245,6 +291,19 @@ export function render() {
   container.appendChild(compCard);
   const compWrap = createEl('div', { style: { marginTop: 'var(--s-3)' } });
   container.appendChild(compWrap);
+
+  // ── Buku Besar Simulasi (Fase A §17) ──
+  const ledgerCard = createEl('div', { class: 'card', style: { marginTop: 'var(--s-3)' } });
+  ledgerCard.appendChild(createEl('h3', { class: 'card__title', style: { marginBottom: 'var(--s-2)' } }, ['Riwayat & Kalibrasi Simulasi']));
+  ledgerCard.appendChild(createEl('p', { style: { fontSize: 'var(--text-sm)', color: 'var(--c-text-2)', margin: '0 0 var(--s-3)' } },
+    ['Setiap simulasi Level (MC-1/MC-2) tersimpan otomatis sebagai hipotesis terdaftar — lengkap dengan snapshot anggota & sidik jari datanya. Sesudah titik periksa bulanannya jatuh tempo, realisasi dinilai terhadap jalur tersimpan (persentil & di dalam/luar pita) dan sisa horizon dapat dibaca terkondisi tanpa simulasi ulang. Simulasi tidak memutuskan apa pun; ia menunggu dinilai realitas.']));
+  const pitWrap = createEl('div', { style: { marginBottom: 'var(--s-3)' } });
+  ledgerCard.appendChild(pitWrap);
+  const ledgerListWrap = createEl('div', {});
+  ledgerCard.appendChild(ledgerListWrap);
+  container.appendChild(ledgerCard);
+  const ledgerDetailWrap = createEl('div', { style: { marginTop: 'var(--s-3)' } });
+  container.appendChild(ledgerDetailWrap);
 
   function renderFundamental(r) {
     const idx = state.indices.find((i) => String(i.id) === String(r.index_id));
@@ -510,6 +569,7 @@ export function render() {
         });
       }
       renderResult();
+      if (state.method === 'level') loadLedger();
     } catch (e) {
       state.result = null;
       renderError(e.message || String(e));
@@ -709,6 +769,204 @@ export function render() {
   }
   compBtn.addEventListener('click', () => runCompose(false));
 
+  // ── Buku besar: daftar, detail, kalibrasi ──
+  const idxName = (id) => {
+    const hit = state.indices.find((i) => String(i.id) === String(id));
+    return hit ? `${hit.name} (${hit.code})` : `Indeks #${id}`;
+  };
+
+  async function loadPit() {
+    try {
+      const pit = await Api.get('/index-saham/monte-carlo-runs/pit');
+      pitWrap.innerHTML = '';
+      if (!pit || !pit.n) {
+        pitWrap.appendChild(createEl('div', { style: { fontSize: 'var(--text-sm)', color: 'var(--c-text-3)' } },
+          ['Kalibrasi lintas larian: belum ada penilaian jatuh tempo.']));
+        return;
+      }
+      const mx = Math.max(...pit.bins, 1);
+      const bars = createEl('div', { style: { display: 'flex', alignItems: 'flex-end', gap: '3px', height: '44px' } });
+      pit.bins.forEach((n, i) => {
+        const b = createEl('div', {
+          title: `Persentil ${i * 10}–${i * 10 + 10}: ${n} penilaian`,
+          style: {
+            flex: '1', height: `${Math.max(6, (n / mx) * 100)}%`,
+            background: (i === 0 || i === 9) ? 'var(--c-danger)' : 'var(--c-primary)',
+            opacity: '0.75', borderRadius: '2px 2px 0 0',
+          },
+        });
+        bars.appendChild(b);
+      });
+      pitWrap.appendChild(createEl('div', { style: { fontSize: 'var(--text-sm)', color: 'var(--c-text-2)', marginBottom: 'var(--s-1)' } },
+        [`Kalibrasi lintas larian — ${pit.n} penilaian jatuh tempo. Sebaran rata = simulator terkalibrasi; menumpuk di tepi (terutama tepi bawah) = bias.`]));
+      pitWrap.appendChild(bars);
+    } catch (e) { /* diamkan: seksi lain tetap jalan */ }
+  }
+
+  async function loadLedger() {
+    try {
+      const r = await Api.get('/index-saham/monte-carlo-runs', { limit: 30 });
+      const runs = (r && r.runs) || [];
+      ledgerListWrap.innerHTML = '';
+      if (!runs.length) {
+        ledgerListWrap.appendChild(createEl('div', { style: { fontSize: 'var(--text-sm)', color: 'var(--c-text-3)' } },
+          ['Belum ada simulasi tersimpan. Jalankan simulasi Level di atas — ia tersimpan otomatis.']));
+        return;
+      }
+      const tbl = createEl('table', { style: { width: '100%', borderCollapse: 'collapse', fontSize: 'var(--text-sm)' } });
+      tbl.innerHTML = `<thead><tr style="text-align:left;color:var(--c-text-3);">
+        <th style="padding:4px 6px;">Simulasi</th><th style="padding:4px 6px;">Indeks</th>
+        <th style="padding:4px 6px;">Mesin</th><th style="padding:4px 6px;">Horizon</th>
+        <th style="padding:4px 6px;">Median akhir</th><th style="padding:4px 6px;">Penilaian terakhir</th></tr></thead>`;
+      const tb = createEl('tbody', {});
+      runs.forEach((run) => {
+        const tr = createEl('tr', { style: { borderTop: '1px solid var(--c-border)', cursor: 'pointer' } });
+        const ev = run.last_evaluation;
+        const evTxt = !ev ? 'belum jatuh tempo'
+          : `P${Math.round(ev.percentile_rank * 100)} · ${ev.in_band ? 'di dalam pita' : 'DI LUAR PITA'} (hr ${ev.h_days})`;
+        const modeTxt = run.engine === 'mc2'
+          ? `Rezim (${MODE_LABEL[run.params?.mode] || run.params?.mode || '-'})` : 'Level';
+        tr.innerHTML = `
+          <td style="padding:5px 6px;">${run.pinned ? '📌 ' : ''}${run.name ? run.name : fmtDate((run.created_at || '').slice(0, 10))}</td>
+          <td style="padding:5px 6px;">${idxName(run.index_id)}</td>
+          <td style="padding:5px 6px;">${modeTxt}</td>
+          <td style="padding:5px 6px;">${run.params?.horizon_days ?? '-'} hr</td>
+          <td style="padding:5px 6px;">${fmtPct(run.summary?.end_ret?.p50)}</td>
+          <td style="padding:5px 6px;">${evTxt}</td>`;
+        tr.addEventListener('click', () => openLedgerDetail(run.id));
+        tb.appendChild(tr);
+      });
+      tbl.appendChild(tb);
+      ledgerListWrap.appendChild(tbl);
+    } catch (e) {
+      ledgerListWrap.innerHTML = '';
+      ledgerListWrap.appendChild(createEl('div', { style: { fontSize: 'var(--text-sm)', color: 'var(--c-danger)' } },
+        [`Gagal memuat riwayat: ${e.message || e}`]));
+    }
+    loadPit();
+  }
+
+  async function openLedgerDetail(runId) {
+    ledgerDetailWrap.innerHTML = '';
+    const loading = createEl('div', { class: 'card', style: { fontSize: 'var(--text-sm)', color: 'var(--c-text-2)' } }, ['Memuat detail larian…']);
+    ledgerDetailWrap.appendChild(loading);
+    let d = null;
+    let cond = null;
+    try {
+      d = await Api.get(`/index-saham/monte-carlo-runs/${runId}`);
+      cond = await Api.get(`/index-saham/monte-carlo-runs/${runId}/conditioned`);
+    } catch (e) {
+      loading.textContent = `Gagal memuat detail: ${e.message || e}`;
+      return;
+    }
+    ledgerDetailWrap.innerHTML = '';
+    const card = createEl('div', { class: 'card' });
+    const title = d.name || `Simulasi ${fmtDate((d.created_at || '').slice(0, 10))}`;
+    card.appendChild(createEl('h3', { class: 'card__title', style: { marginBottom: 'var(--s-2)' } }, [`${d.pinned ? '📌 ' : ''}${title} — ${idxName(d.index_id)}`]));
+    const fp = d.fingerprint || {};
+    card.appendChild(createEl('p', { style: { fontSize: 'var(--text-sm)', color: 'var(--c-text-2)', margin: '0 0 var(--s-2)' } },
+      [`Mesin ${d.engine === 'mc2' ? 'MC-2 (rezim)' : 'MC-1 (level)'} v${d.engine_version} · data s.d. ${fmtDate(d.as_of_date)} · horizon ${d.params?.horizon_days ?? '-'} hari · ${d.params?.n_sims ?? '-'} simulasi · jendela ${WIN_LABEL[d.params?.window] || d.params?.window || '-'} · anggota saat simulasi: ${(d.members_snapshot || []).length} emiten.`]));
+    card.appendChild(createEl('p', { style: { fontSize: 'var(--text-sm)', color: 'var(--c-text-3)', margin: '0 0 var(--s-3)' } },
+      [`Sidik jari data: pasar s.d. ${fp.market_max || '-'} · fundamental s.d. ${fp.fundamentals_max || '-'} · rasio ${fp.ratios_count ?? '-'} baris · KSEI ${fp.ksei_latest || '-'}.${d.members_changed ? ' PERHATIAN: anggota indeks berubah sejak simulasi — penilaian memakai seri indeks terkini apa adanya.' : ''}`]));
+    const fan = (d.summary && d.summary.fan) || [];
+    if (fan.length) {
+      const pts = (d.evaluations || []).map((e) => ({ h: e.h_days, v: e.realized_ret }));
+      const fc = createEl('div', {});
+      fc.innerHTML = fanSvgRealized(fan, d.params?.horizon_days || 63, pts);
+      card.appendChild(fc);
+      card.appendChild(createEl('div', { style: { fontSize: 'var(--text-xs)', color: 'var(--c-text-3)', marginBottom: 'var(--s-3)' } },
+        ['Garis oranye = realisasi pada titik periksa bulanan; pita = sebaran jalur tersimpan.']));
+    }
+    if ((d.evaluations || []).length) {
+      const et = createEl('table', { style: { width: '100%', borderCollapse: 'collapse', fontSize: 'var(--text-sm)', marginBottom: 'var(--s-3)' } });
+      et.innerHTML = `<thead><tr style="text-align:left;color:var(--c-text-3);">
+        <th style="padding:4px 6px;">Titik</th><th style="padding:4px 6px;">Jatuh tempo</th>
+        <th style="padding:4px 6px;">Realisasi</th><th style="padding:4px 6px;">Persentil</th>
+        <th style="padding:4px 6px;">Status</th></tr></thead>`;
+      const tb = createEl('tbody', {});
+      d.evaluations.forEach((e) => {
+        const tr = createEl('tr', { style: { borderTop: '1px solid var(--c-border)' } });
+        tr.innerHTML = `
+          <td style="padding:5px 6px;">hr ${e.h_days}</td>
+          <td style="padding:5px 6px;">${fmtDate(e.due_date)}</td>
+          <td style="padding:5px 6px;">${fmtPct(e.realized_ret)}</td>
+          <td style="padding:5px 6px;">P${Math.round(e.percentile_rank * 100)}</td>
+          <td style="padding:5px 6px;">${e.in_band ? 'Di dalam pita' : '<b>Di luar pita</b>'}</td>`;
+        tb.appendChild(tr);
+      });
+      et.appendChild(tb);
+      card.appendChild(et);
+    } else {
+      card.appendChild(createEl('p', { style: { fontSize: 'var(--text-sm)', color: 'var(--c-text-3)', margin: '0 0 var(--s-3)' } },
+        ['Belum ada titik periksa yang jatuh tempo — penilaian pertama pada hari perdagangan ke-21 sesudah tanggal simulasi.']));
+    }
+    if (cond) {
+      const cc = createEl('div', { style: { borderTop: '1px solid var(--c-border)', paddingTop: 'var(--s-3)', marginBottom: 'var(--s-3)' } });
+      cc.appendChild(createEl('div', { style: { fontWeight: 700, marginBottom: 'var(--s-2)' } }, ['Sisa Horizon Terkondisi (tanpa simulasi ulang)']));
+      if (cond.status === 'di luar amplop') {
+        cc.appendChild(createEl('div', { style: { fontSize: 'var(--text-sm)', color: 'var(--c-danger)' } },
+          ['Realisasi berada DI LUAR amplop simulasi tersimpan — tidak ada angka terkondisi yang jujur untuk sisa horizon. Skenario simulasi ini patut ditinjau.']));
+      } else {
+        if (cond.status === 'belum ada titik berlalu') {
+          cc.appendChild(createEl('div', { style: { fontSize: 'var(--text-sm)', color: 'var(--c-text-2)', marginBottom: 'var(--s-2)' } },
+            ['Belum ada titik berlalu — angka di bawah adalah distribusi awal apa adanya.']));
+        } else {
+          cc.appendChild(createEl('div', { style: { fontSize: 'var(--text-sm)', color: 'var(--c-text-2)', marginBottom: 'var(--s-2)' } },
+            [`Dikondisikan pada realisasi s.d. titik ${(cond.elapsed_checkpoints || []).join(', ') || '-'} · jalur efektif ≈ ${Math.round(cond.ess || 0)}.`]));
+        }
+        const ct = createEl('table', { style: { width: '100%', borderCollapse: 'collapse', fontSize: 'var(--text-sm)' } });
+        ct.innerHTML = `<thead><tr style="text-align:left;color:var(--c-text-3);">
+          <th style="padding:4px 6px;">Titik</th><th style="padding:4px 6px;">p5</th>
+          <th style="padding:4px 6px;">Median</th><th style="padding:4px 6px;">p95</th></tr></thead>`;
+        const tb = createEl('tbody', {});
+        (cond.points || []).forEach((p) => {
+          const tr = createEl('tr', { style: { borderTop: '1px solid var(--c-border)' } });
+          tr.innerHTML = `<td style="padding:5px 6px;">hr ${p.h}</td>
+            <td style="padding:5px 6px;">${fmtPct(p.p5)}</td>
+            <td style="padding:5px 6px;">${fmtPct(p.p50)}</td>
+            <td style="padding:5px 6px;">${fmtPct(p.p95)}</td>`;
+          tb.appendChild(tr);
+        });
+        ct.appendChild(tb);
+        cc.appendChild(ct);
+        if (cond.p_end_positive != null) {
+          cc.appendChild(createEl('div', { style: { fontSize: 'var(--text-sm)', marginTop: 'var(--s-2)' } },
+            [`Peluang berakhir positif (terkondisi): ${fmtProb(cond.p_end_positive)}`]));
+        }
+      }
+      card.appendChild(cc);
+    }
+    const acts = createEl('div', { style: { display: 'flex', gap: 'var(--s-2)', flexWrap: 'wrap' } });
+    const pinBtn = createEl('button', { class: 'btn btn--secondary btn--sm' }, [d.pinned ? 'Lepas pin' : 'Pin']);
+    pinBtn.addEventListener('click', async () => {
+      try {
+        await Api.patch(`/index-saham/monte-carlo-runs/${runId}`, { pinned: !d.pinned });
+        loadLedger(); openLedgerDetail(runId);
+      } catch (e) { toast(e.message || String(e), { type: 'error' }); }
+    });
+    const nameBtn = createEl('button', { class: 'btn btn--secondary btn--sm' }, ['Beri nama']);
+    nameBtn.addEventListener('click', async () => {
+      const nm = window.prompt('Nama larian:', d.name || '');
+      if (nm == null) return;
+      try {
+        await Api.patch(`/index-saham/monte-carlo-runs/${runId}`, { name: nm });
+        loadLedger(); openLedgerDetail(runId);
+      } catch (e) { toast(e.message || String(e), { type: 'error' }); }
+    });
+    const delBtn = createEl('button', { class: 'btn btn--secondary btn--sm' }, ['Hapus']);
+    delBtn.addEventListener('click', async () => {
+      if (!window.confirm('Hapus larian simulasi ini permanen?')) return;
+      try {
+        await Api.delete(`/index-saham/monte-carlo-runs/${runId}`);
+        ledgerDetailWrap.innerHTML = '';
+        loadLedger();
+      } catch (e) { toast(e.message || String(e), { type: 'error' }); }
+    });
+    acts.appendChild(pinBtn); acts.appendChild(nameBtn); acts.appendChild(delBtn);
+    card.appendChild(acts);
+    ledgerDetailWrap.appendChild(card);
+  }
+
   // ── Muat daftar indeks + pramuat pilihan dari detail indeks ──
   (async () => {
     try {
@@ -739,6 +997,7 @@ export function render() {
     const hit = state.indices.find((i) => String(i.id) === String(initial));
     state.indexId = hit ? String(hit.id) : String(state.indices[0].id);
     idxSel.value = state.indexId;
+    loadLedger();
   })();
 
   return container;

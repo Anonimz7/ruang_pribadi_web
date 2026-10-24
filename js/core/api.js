@@ -89,6 +89,7 @@ const Api = {
   get: (path, params) => _request('GET', path, { params }),
   post: (path, body) => _request('POST', path, { body }),
   put: (path, body) => _request('PUT', path, { body }),
+  patch: (path, body) => _request('PATCH', path, { body }),
   delete: (path) => _request('DELETE', path),
 
   // Special: authenticated download URL builder (like Flutter getDownloadUrl)
