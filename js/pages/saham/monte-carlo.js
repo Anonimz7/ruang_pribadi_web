@@ -635,6 +635,12 @@ export function render() {
       [`Mesin ${d.engine === 'mc2' ? 'MC-2 (rezim)' : 'MC-1 (level)'} v${d.engine_version} · data s.d. ${fmtDate(d.as_of_date)} · horizon ${d.params?.horizon_days ?? '-'} hari · ${d.params?.n_sims ?? '-'} simulasi · jendela ${WIN_LABEL[d.params?.window] || d.params?.window || '-'} · anggota saat simulasi: ${(d.members_snapshot || []).length} emiten.`]));
     card.appendChild(createEl('p', { style: { fontSize: 'var(--text-sm)', color: 'var(--c-text-3)', margin: '0 0 var(--s-3)' } },
       [`Sidik jari data: pasar s.d. ${fp.market_max || '-'} · fundamental s.d. ${fp.fundamentals_max || '-'} · rasio ${fp.ratios_count ?? '-'} baris · KSEI ${fp.ksei_latest || '-'}.`]));
+    const snap = d.members_snapshot || [];
+    if (snap.length) {
+      const parts = snap.map((m) => `${m.ticker || '-'} ${m.weight_pct != null ? m.weight_pct.toLocaleString('id-ID') + '%' : '-'}`).join(' · ');
+      card.appendChild(createEl('p', { style: { fontSize: 'var(--text-sm)', color: 'var(--c-text-2)', margin: '0 0 var(--s-3)' } },
+        [`Daftar anggota (${snap.length}): ${parts}.`]));
+    }
     const fan = (d.summary && d.summary.fan) || [];
     if (fan.length) {
       const fc = createEl('div', {});
