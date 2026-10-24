@@ -637,7 +637,7 @@ export function render() {
       [`Sidik jari data: pasar s.d. ${fp.market_max || '-'} · fundamental s.d. ${fp.fundamentals_max || '-'} · rasio ${fp.ratios_count ?? '-'} baris · KSEI ${fp.ksei_latest || '-'}.`]));
     const snap = d.members_snapshot || [];
     if (snap.length) {
-      const parts = snap.map((m) => `${m.ticker || '-'} ${m.weight_pct != null ? m.weight_pct.toLocaleString('id-ID') + '%' : '-'}`).join(' · ');
+      const parts = snap.map((m) => (m.weight_pct != null ? `${m.ticker || '-'} ${m.weight_pct.toLocaleString('id-ID') + '%'}` : (m.ticker || '-'))).join(' · ');
       card.appendChild(createEl('p', { style: { fontSize: 'var(--text-sm)', color: 'var(--c-text-2)', margin: '0 0 var(--s-3)' } },
         [`Daftar anggota (${snap.length}): ${parts}.`]));
     }
