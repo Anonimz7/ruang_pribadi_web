@@ -811,6 +811,7 @@ export function render() {
       if (!runs.length) {
         ledgerListWrap.appendChild(createEl('div', { style: { fontSize: 'var(--text-sm)', color: 'var(--c-text-3)' } },
           ['Belum ada simulasi tersimpan. Jalankan simulasi Level di atas — ia tersimpan otomatis.']));
+        loadPit();
         return;
       }
       const tbl = createEl('table', { style: { width: '100%', borderCollapse: 'collapse', fontSize: 'var(--text-sm)' } });
