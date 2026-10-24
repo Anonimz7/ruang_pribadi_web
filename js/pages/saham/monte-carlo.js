@@ -275,13 +275,11 @@ export function render() {
   container.appendChild(resultWrap);
 
 
-  // ── Buku Besar Simulasi (Fase A §17) ──
+  // ── Riwayat Simulasi (rujukan; tanpa penilaian/kalibrasi) ──
   const ledgerCard = createEl('div', { class: 'card', style: { marginTop: 'var(--s-3)' } });
-  ledgerCard.appendChild(createEl('h3', { class: 'card__title', style: { marginBottom: 'var(--s-2)' } }, ['Riwayat & Kalibrasi Simulasi']));
+  ledgerCard.appendChild(createEl('h3', { class: 'card__title', style: { marginBottom: 'var(--s-2)' } }, ['Riwayat Simulasi']));
   ledgerCard.appendChild(createEl('p', { style: { fontSize: 'var(--text-sm)', color: 'var(--c-text-2)', margin: '0 0 var(--s-3)' } },
-    ['Setiap simulasi Level (MC-1/MC-2) tersimpan otomatis sebagai hipotesis terdaftar — lengkap dengan snapshot anggota & sidik jari datanya. Sesudah titik periksa bulanannya jatuh tempo, realisasi dinilai terhadap jalur tersimpan (persentil & di dalam/luar pita) Penilaian tiap titik dicatat sebagai jurnal: apa yang dulu diperkirakan versus apa yang terjadi. Halaman ini menilai, bukan memutuskan.']));
-  const pitWrap = createEl('div', { style: { marginBottom: 'var(--s-3)' } });
-  ledgerCard.appendChild(pitWrap);
+    ['Setiap simulasi Level (MC-1/MC-2) tersimpan otomatis — lengkap dengan parameter, hasil, kipas, snapshot anggota & sidik jari datanya — supaya tidak perlu diulang dan bisa dibuka lagi sebagai bahan rujukan. Riwayat ini hanya mencatat; ia tidak menilai dan tidak memutuskan.']));
   const ledgerListWrap = createEl('div', {});
   ledgerCard.appendChild(ledgerListWrap);
   container.appendChild(ledgerCard);
@@ -579,34 +577,6 @@ export function render() {
     return hit ? `${hit.name} (${hit.code})` : `Indeks #${id}`;
   };
 
-  async function loadPit() {
-    try {
-      const pit = await Api.get('/index-saham/monte-carlo-runs/pit');
-      pitWrap.innerHTML = '';
-      if (!pit || !pit.n) {
-        pitWrap.appendChild(createEl('div', { style: { fontSize: 'var(--text-sm)', color: 'var(--c-text-3)' } },
-          ['Kalibrasi lintas larian: belum ada penilaian jatuh tempo.']));
-        return;
-      }
-      const mx = Math.max(...pit.bins, 1);
-      const bars = createEl('div', { style: { display: 'flex', alignItems: 'flex-end', gap: '3px', height: '44px' } });
-      pit.bins.forEach((n, i) => {
-        const b = createEl('div', {
-          title: `Persentil ${i * 10}–${i * 10 + 10}: ${n} penilaian`,
-          style: {
-            flex: '1', height: `${Math.max(6, (n / mx) * 100)}%`,
-            background: (i === 0 || i === 9) ? 'var(--c-danger)' : 'var(--c-primary)',
-            opacity: '0.75', borderRadius: '2px 2px 0 0',
-          },
-        });
-        bars.appendChild(b);
-      });
-      pitWrap.appendChild(createEl('div', { style: { fontSize: 'var(--text-sm)', color: 'var(--c-text-2)', marginBottom: 'var(--s-1)' } },
-        [`Kalibrasi lintas larian — ${pit.n} penilaian jatuh tempo. Sebaran rata = simulator terkalibrasi; menumpuk di tepi (terutama tepi bawah) = bias.`]));
-      pitWrap.appendChild(bars);
-    } catch (e) { /* diamkan: seksi lain tetap jalan */ }
-  }
-
   async function loadLedger() {
     try {
       const r = await Api.get('/index-saham/monte-carlo-runs', { limit: 30 });
@@ -615,20 +585,16 @@ export function render() {
       if (!runs.length) {
         ledgerListWrap.appendChild(createEl('div', { style: { fontSize: 'var(--text-sm)', color: 'var(--c-text-3)' } },
           ['Belum ada simulasi tersimpan. Jalankan simulasi Level di atas — ia tersimpan otomatis.']));
-        loadPit();
         return;
       }
       const tbl = createEl('table', { style: { width: '100%', borderCollapse: 'collapse', fontSize: 'var(--text-sm)' } });
       tbl.innerHTML = `<thead><tr style="text-align:left;color:var(--c-text-3);">
         <th style="padding:4px 6px;">Simulasi</th><th style="padding:4px 6px;">Indeks</th>
         <th style="padding:4px 6px;">Mesin</th><th style="padding:4px 6px;">Horizon</th>
-        <th style="padding:4px 6px;">Median akhir</th><th style="padding:4px 6px;">Penilaian terakhir</th></tr></thead>`;
+        <th style="padding:4px 6px;">Median akhir</th></tr></thead>`;
       const tb = createEl('tbody', {});
       runs.forEach((run) => {
         const tr = createEl('tr', { style: { borderTop: '1px solid var(--c-border)', cursor: 'pointer' } });
-        const ev = run.last_evaluation;
-        const evTxt = !ev ? 'belum jatuh tempo'
-          : `P${Math.round(ev.percentile_rank * 100)} · ${ev.in_band ? 'di dalam pita' : 'DI LUAR PITA'} (hr ${ev.h_days})`;
         const modeTxt = run.engine === 'mc2'
           ? `Rezim (${MODE_LABEL[run.params?.mode] || run.params?.mode || '-'})` : 'Level';
         tr.innerHTML = `
@@ -636,8 +602,7 @@ export function render() {
           <td style="padding:5px 6px;">${idxName(run.index_id)}</td>
           <td style="padding:5px 6px;">${modeTxt}</td>
           <td style="padding:5px 6px;">${run.params?.horizon_days ?? '-'} hr</td>
-          <td style="padding:5px 6px;">${fmtPct(run.summary?.end_ret?.p50)}</td>
-          <td style="padding:5px 6px;">${evTxt}</td>`;
+          <td style="padding:5px 6px;">${fmtPct(run.summary?.end_ret?.p50)}</td>`;
         tr.addEventListener('click', () => openLedgerDetail(run.id));
         tb.appendChild(tr);
       });
@@ -648,7 +613,6 @@ export function render() {
       ledgerListWrap.appendChild(createEl('div', { style: { fontSize: 'var(--text-sm)', color: 'var(--c-danger)' } },
         [`Gagal memuat riwayat: ${e.message || e}`]));
     }
-    loadPit();
   }
 
   async function openLedgerDetail(runId) {
@@ -670,38 +634,14 @@ export function render() {
     card.appendChild(createEl('p', { style: { fontSize: 'var(--text-sm)', color: 'var(--c-text-2)', margin: '0 0 var(--s-2)' } },
       [`Mesin ${d.engine === 'mc2' ? 'MC-2 (rezim)' : 'MC-1 (level)'} v${d.engine_version} · data s.d. ${fmtDate(d.as_of_date)} · horizon ${d.params?.horizon_days ?? '-'} hari · ${d.params?.n_sims ?? '-'} simulasi · jendela ${WIN_LABEL[d.params?.window] || d.params?.window || '-'} · anggota saat simulasi: ${(d.members_snapshot || []).length} emiten.`]));
     card.appendChild(createEl('p', { style: { fontSize: 'var(--text-sm)', color: 'var(--c-text-3)', margin: '0 0 var(--s-3)' } },
-      [`Sidik jari data: pasar s.d. ${fp.market_max || '-'} · fundamental s.d. ${fp.fundamentals_max || '-'} · rasio ${fp.ratios_count ?? '-'} baris · KSEI ${fp.ksei_latest || '-'}.${d.members_changed ? ' PERHATIAN: anggota indeks berubah sejak simulasi — penilaian memakai seri indeks terkini apa adanya.' : ''}`]));
+      [`Sidik jari data: pasar s.d. ${fp.market_max || '-'} · fundamental s.d. ${fp.fundamentals_max || '-'} · rasio ${fp.ratios_count ?? '-'} baris · KSEI ${fp.ksei_latest || '-'}.`]));
     const fan = (d.summary && d.summary.fan) || [];
     if (fan.length) {
-      const pts = (d.evaluations || []).map((e) => ({ h: e.h_days, v: e.realized_ret }));
       const fc = createEl('div', {});
-      fc.innerHTML = fanSvgRealized(fan, d.params?.horizon_days || 63, pts);
+      fc.innerHTML = fanSvgRealized(fan, d.params?.horizon_days || 63, []);
       card.appendChild(fc);
       card.appendChild(createEl('div', { style: { fontSize: 'var(--text-xs)', color: 'var(--c-text-3)', marginBottom: 'var(--s-3)' } },
-        ['Garis oranye = realisasi pada titik periksa bulanan; pita = sebaran jalur tersimpan.']));
-    }
-    if ((d.evaluations || []).length) {
-      const et = createEl('table', { style: { width: '100%', borderCollapse: 'collapse', fontSize: 'var(--text-sm)', marginBottom: 'var(--s-3)' } });
-      et.innerHTML = `<thead><tr style="text-align:left;color:var(--c-text-3);">
-        <th style="padding:4px 6px;">Titik</th><th style="padding:4px 6px;">Jatuh tempo</th>
-        <th style="padding:4px 6px;">Realisasi</th><th style="padding:4px 6px;">Persentil</th>
-        <th style="padding:4px 6px;">Status</th></tr></thead>`;
-      const tb = createEl('tbody', {});
-      d.evaluations.forEach((e) => {
-        const tr = createEl('tr', { style: { borderTop: '1px solid var(--c-border)' } });
-        tr.innerHTML = `
-          <td style="padding:5px 6px;">hr ${e.h_days}</td>
-          <td style="padding:5px 6px;">${fmtDate(e.due_date)}</td>
-          <td style="padding:5px 6px;">${fmtPct(e.realized_ret)}</td>
-          <td style="padding:5px 6px;">P${Math.round(e.percentile_rank * 100)}</td>
-          <td style="padding:5px 6px;">${e.in_band ? 'Di dalam pita' : '<b>Di luar pita</b>'}</td>`;
-        tb.appendChild(tr);
-      });
-      et.appendChild(tb);
-      card.appendChild(et);
-    } else {
-      card.appendChild(createEl('p', { style: { fontSize: 'var(--text-sm)', color: 'var(--c-text-3)', margin: '0 0 var(--s-3)' } },
-        ['Belum ada titik periksa yang jatuh tempo — penilaian pertama pada hari perdagangan ke-21 sesudah tanggal simulasi.']));
+        ['Pita = sebaran jalur tersimpan pada tanggal simulasi.']));
     }
     const acts = createEl('div', { style: { display: 'flex', gap: 'var(--s-2)', flexWrap: 'wrap' } });
     const pinBtn = createEl('button', { class: 'btn btn--secondary btn--sm' }, [d.pinned ? 'Lepas pin' : 'Pin']);
