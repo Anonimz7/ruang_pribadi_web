@@ -48,6 +48,10 @@ function fmtPct(v) {
 
 export function render() {
   const isAdmin = Auth.isAdmin();
+  // Mode detail penuh: '#/saham/index?id=3' merender hanya detail satu
+  // indeks (halaman tersendiri), bukan panel di bawah daftar.
+  const detailId = new URLSearchParams(store.routeQuery || '').get('id');
+  const detailMode = !!detailId;
 
   const state = {
     indices: [],
@@ -63,27 +67,34 @@ export function render() {
     style: { maxWidth: '1100px', margin: '0 auto', padding: 'var(--s-4)' },
   });
 
-  // Header
-  const header = createEl('div', {
-    style: { display: 'flex', alignItems: 'center', gap: 'var(--s-3)', marginBottom: 'var(--s-4)', flexWrap: 'wrap' },
-  });
-  header.appendChild(createEl('h1', {}, ['Index Saham']));
-  header.appendChild(createEl('p', {
-    style: { color: 'var(--c-text-2)', flex: '1', minWidth: '200px' },
-  }, ['Indeks kustom yang dibangun dari daftar saham IDX.']));
-  if (isAdmin) {
-    const createBtn = createEl('button', { class: 'btn btn--primary' });
-    createBtn.innerHTML = `${icons['plus']} Buat Index`;
-    createBtn.addEventListener('click', () => openCreateModal());
-    header.appendChild(createBtn);
-  }
-  container.appendChild(header);
-
-  // Index list
+  // Header daftar (mode detail: diganti bilah kembali)
   const listWrap = createEl('div', { id: 'index-list', style: { marginBottom: 'var(--s-5)' } });
-  container.appendChild(listWrap);
+  if (detailMode) {
+    const backBar = createEl('div', { style: { marginBottom: 'var(--s-3)' } });
+    const backBtn = createEl('button', { class: 'btn btn--secondary btn--sm' });
+    backBtn.textContent = '← Daftar Index';
+    backBtn.addEventListener('click', () => navigate('/saham/index'));
+    backBar.appendChild(backBtn);
+    container.appendChild(backBar);
+  } else {
+    const header = createEl('div', {
+      style: { display: 'flex', alignItems: 'center', gap: 'var(--s-3)', marginBottom: 'var(--s-4)', flexWrap: 'wrap' },
+    });
+    header.appendChild(createEl('h1', {}, ['Index Saham']));
+    header.appendChild(createEl('p', {
+      style: { color: 'var(--c-text-2)', flex: '1', minWidth: '200px' },
+    }, ['Indeks kustom yang dibangun dari daftar saham IDX.']));
+    if (isAdmin) {
+      const createBtn = createEl('button', { class: 'btn btn--primary' });
+      createBtn.innerHTML = `${icons['plus']} Buat Index`;
+      createBtn.addEventListener('click', () => openCreateModal());
+      header.appendChild(createBtn);
+    }
+    container.appendChild(header);
+    container.appendChild(listWrap);
+  }
 
-  // Detail (hidden until selection)
+  // Detail (mode daftar: tidak pernah ditampilkan; mode detail: seluruh halaman)
   const detailWrap = createEl('div', { id: 'index-detail', style: { display: 'none' } });
   container.appendChild(detailWrap);
 
@@ -162,7 +173,7 @@ export function render() {
       `;
       card.addEventListener('mouseenter', () => card.style.borderColor = 'var(--c-border-hi)');
       card.addEventListener('mouseleave', () => card.style.borderColor = '');
-      card.addEventListener('click', () => selectIndex(idx.id));
+      card.addEventListener('click', () => navigate(`/saham/index?id=${idx.id}`));
       grid.appendChild(card);
     });
 
@@ -186,6 +197,7 @@ export function render() {
       state.selected = null;
       toast('Gagal memuat detail: ' + (e.message || e), { type: 'error' });
       detailWrap.style.display = 'none';
+      if (detailMode) navigate('/saham/index');
       return;
     }
     state.compareId = '';
@@ -501,7 +513,8 @@ export function render() {
         detailWrap.style.display = 'none';
         state.chart && destroyChart(state.chart);
         state.chart = null;
-        loadIndices();
+        if (detailMode) navigate('/saham/index');
+        else loadIndices();
       } catch (e) {
         toast('Gagal hapus: ' + (e.message || e), { type: 'error' });
       }
@@ -1083,6 +1096,12 @@ export function render() {
   };
 
   // Init
-  loadIndices();
+  if (detailMode) {
+    // Daftar tetap dimuat dulu (opsi pembanding di kartu grafik),
+    // lalu detail indeks yang diminta dirender sebagai halaman penuh.
+    loadIndices().then(() => selectIndex(detailId));
+  } else {
+    loadIndices();
+  }
   return container;
 }

@@ -143,7 +143,14 @@ export async function navigate(path, push = true) {
   const app = $('#page-root');
   if (!app) return;
 
-  path = normalizePath(path);
+  // Dukungan query di hash: '#/saham/index?id=3' -> rute '/saham/index'
+  // + store.routeQuery = 'id=3' untuk dibaca halaman. URL lengkap tetap
+  // dipertahankan di hash & pendingRoute.
+  const qIdx = path.indexOf('?');
+  const rawBase = qIdx >= 0 ? path.slice(0, qIdx) : path;
+  const query = qIdx >= 0 ? path.slice(qIdx + 1) : '';
+  path = normalizePath(rawBase);
+  const fullPath = query ? `${path}?${query}` : path;
 
   // Sinkronkan portal aktif (drawer menyempit saat berada di dalam portal)
   store.activePortal = path.startsWith('/saham') ? 'saham' : null;
@@ -153,7 +160,7 @@ export async function navigate(path, push = true) {
   if (!allowed) {
     if (reason === 'login_required') {
       // Show login modal directly (no page redirect)
-      store.pendingRoute = path;
+      store.pendingRoute = fullPath;
       store.activePortal = null;
       showLogin();
       return;
@@ -192,6 +199,7 @@ export async function navigate(path, push = true) {
     if (!moduleCache.has(path)) moduleCache.set(path, mod);
     currentPageModule = mod;
     app.innerHTML = '';
+    store.routeQuery = query;
     const page = mod.render ? mod.render() : mod.default?.render?.();
     if (page) {
       app.appendChild(page);
@@ -203,7 +211,7 @@ export async function navigate(path, push = true) {
       console.warn('[Router] Page render returned null or no render function');
     }
     store.currentPage = path;
-    if (push) window.location.hash = path;
+    if (push) window.location.hash = fullPath;
     window.scrollTo(0, 0);
   } catch (err) {
     console.error('[Router] Page load error:', err);
