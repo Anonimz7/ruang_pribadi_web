@@ -248,9 +248,15 @@ export function render() {
   const idxSel = createEl('select', { class: 'field__select', style: { minWidth: '220px' } });
   idxSel.addEventListener('change', (e) => { state.indexId = e.target.value; });
   const modeField = field('MODE REZIM ARUS', makeSeg(MODES, state.mode, (v) => { state.mode = v; }));
+  const methodNote = createEl('p', {
+    style: { fontSize: 'var(--text-xs)', color: 'var(--c-text-3)', marginTop: 'var(--s-3)' },
+  }, ['Metode: bootstrap blok 20 hari atas log-return level indeks (return hari stale dibuang). Seed tetap — masukan yang sama menghasilkan angka yang sama. Mode rezim mengondisikan blok pada keadaan arus asing indeks (tersil jendela: masuk / netral / keluar). Hasil selalu dibaca bersama jendela sumbernya: keluaran mewarisi rezim jendela itu.']);
   const methodField = field('METODE', makeSeg(METHODS, state.method, (v) => {
     state.method = v;
     modeField.style.display = v === 'fundamental' ? 'none' : '';
+    methodNote.textContent = v === 'fundamental'
+      ? 'Metode: uraian fundamental laba × kelipatan + dividen per kuartal (anggota yang tak memenuhi syarat uraian dinilai jalur harga cadangannya). Seed tetap — masukan yang sama menghasilkan angka yang sama. Parameter jendela hanya mengatur jalur cadangan; kolam laba & PER memakai seluruh riwayat. Tanpa statistik drawdown — simpul kuartalan terlalu kasar.'
+      : 'Metode: bootstrap blok 20 hari atas log-return level indeks (return hari stale dibuang). Seed tetap — masukan yang sama menghasilkan angka yang sama. Mode rezim mengondisikan blok pada keadaan arus asing indeks (tersil jendela: masuk / netral / keluar). Hasil selalu dibaca bersama jendela sumbernya: keluaran mewarisi rezim jendela itu.';
   }));
   grid.appendChild(methodField);
   grid.appendChild(field('INDEKS', idxSel));
@@ -266,9 +272,7 @@ export function render() {
   const runBtn = createEl('button', { class: 'btn btn--primary' }, ['Jalankan Simulasi']);
   grid.appendChild(runBtn);
   ctl.appendChild(grid);
-  ctl.appendChild(createEl('p', {
-    style: { fontSize: 'var(--text-xs)', color: 'var(--c-text-3)', marginTop: 'var(--s-3)' },
-  }, ['Metode: bootstrap blok 20 hari atas log-return level indeks (return hari stale dibuang). Seed tetap — masukan yang sama menghasilkan angka yang sama. Mode rezim mengondisikan blok pada keadaan arus asing indeks (tersil jendela: masuk / netral / keluar). Hasil selalu dibaca bersama jendela sumbernya: keluaran mewarisi rezim jendela itu.']));
+  ctl.appendChild(methodNote);
   container.appendChild(ctl);
 
   const resultWrap = createEl('div', {});
@@ -279,7 +283,7 @@ export function render() {
   const ledgerCard = createEl('div', { class: 'card', style: { marginTop: 'var(--s-3)' } });
   ledgerCard.appendChild(createEl('h3', { class: 'card__title', style: { marginBottom: 'var(--s-2)' } }, ['Riwayat Simulasi']));
   ledgerCard.appendChild(createEl('p', { style: { fontSize: 'var(--text-sm)', color: 'var(--c-text-2)', margin: '0 0 var(--s-3)' } },
-    ['Setiap simulasi Level (MC-1/MC-2) tersimpan otomatis — lengkap dengan parameter, hasil, kipas, snapshot anggota & sidik jari datanya — supaya tidak perlu diulang dan bisa dibuka lagi sebagai bahan rujukan. Riwayat ini hanya mencatat; ia tidak menilai dan tidak memutuskan.']));
+    ['Setiap simulasi — Level (MC-1/MC-2) maupun Fundamental (MC-3) — tersimpan otomatis — lengkap dengan parameter, hasil, kipas, snapshot anggota & sidik jari datanya — supaya tidak perlu diulang dan bisa dibuka lagi sebagai bahan rujukan. Riwayat ini hanya mencatat; ia tidak menilai dan tidak memutuskan.']));
   const ledgerListWrap = createEl('div', {});
   ledgerCard.appendChild(ledgerListWrap);
   container.appendChild(ledgerCard);
