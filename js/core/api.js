@@ -12,6 +12,25 @@ class ApiError extends Error {
   }
 }
 
+/**
+ * Ubah `detail` error FastAPI menjadi pesan yang bisa dibaca.
+ * Untuk 422, detail adalah array objek validasi — dilempar mentah
+ * ia berubah menjadi "[object Object]" di toast. Format: gabungkan
+ * tiap item menjadi "lokasi: pesan".
+ */
+function _formatDetail(detail) {
+  if (typeof detail === 'string') return detail;
+  if (Array.isArray(detail)) {
+    return detail.map((d) => {
+      const loc = Array.isArray(d?.loc) ? d.loc.join('.') : '';
+      const msg = d?.msg || JSON.stringify(d);
+      return loc ? `${loc}: ${msg}` : msg;
+    }).join('; ');
+  }
+  if (detail && typeof detail === 'object') return JSON.stringify(detail);
+  return null;
+}
+
 function _triggerSessionExpired() {
   store.token = null;
   store.user = null;
@@ -81,7 +100,7 @@ async function _request(method, path, { params, body, isMultipart = false, file,
     _triggerSessionExpired(); // Auto-logout on expired/invalid token
     return null;
   }
-  const msg = data?.detail || `Error ${res.status}`;
+  const msg = _formatDetail(data?.detail) || `Error ${res.status}`;
   throw new ApiError(msg, res.status);
 }
 
