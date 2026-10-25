@@ -38,7 +38,7 @@ export function createAppBar() {
   homeBtn.className = 'appbar__btn tooltip';
   homeBtn.innerHTML = icons['grid'];
   homeBtn.setAttribute('aria-label', 'Home');
-  homeBtn.title = 'Beranda';
+  homeBtn.title = 'Home';
   homeBtn.addEventListener('click', () => {
     navigate('/');
     store.drawerOpen = false;

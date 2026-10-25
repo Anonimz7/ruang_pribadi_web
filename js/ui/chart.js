@@ -151,7 +151,7 @@ export function buildPositionChartApex(container, series) {
   opts.colors = ['#0EA5A4'];
   opts.stroke.width = 2.5;
   opts.series = [{
-    name: 'Posisi kumulatif',
+    name: 'Cumulative position',
     data: series.filter(d => d.date && d.value != null).map(d => ({ x: toTs(d.date), y: d.value })),
   }];
   opts.tooltip.y = { formatter: (v) => (v >= 0 ? '+' : '') + formatNilaiSingkat(v) };
