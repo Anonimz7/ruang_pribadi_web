@@ -18,9 +18,9 @@ const HORIZONS = [[21, '1 mo'], [63, '3 mo'], [126, '6 mo'], [252, '1 yr']];
 const WINDOWS = [['1y', '1 yr'], ['2y', '2 yr'], ['3y', '3 yr'], ['5y', '5 yr'], ['all', 'All']];
 const NSIMS = [[2000, '2,000'], [5000, '5,000'], [10000, '10,000']];
 const METHODS = [['level', 'Level (price)'], ['fundamental', 'Fundamental (earnings × multiple)']];
-const MODES = [['semua', 'All blocks'], ['rezim', 'Follow current regime'], ['tekanan', 'Stress scenario']];
+const MODES = [['semua', 'All blocks'], ['rezim', 'Current flow regime'], ['tekanan', 'Stress scenario']];
 const STATE_LABEL = { masuk: 'Inflow', netral: 'Neutral', keluar: 'Outflow' };
-const MODE_LABEL = { semua: 'All blocks', rezim: 'Follow current regime', tekanan: 'Stress scenario' };
+const MODE_LABEL = { semua: 'All blocks', rezim: 'Current flow regime', tekanan: 'Stress scenario' };
 const WIN_LABEL = { '1y': 'Last 1 year', '2y': 'Last 2 years', '3y': 'Last 3 years', '5y': 'Last 5 years', all: 'full series' };
 
 function fmtPct(v) {
@@ -223,7 +223,7 @@ export function render() {
   const hinfo = createEl('div', { style: { flex: '1', minWidth: '220px' } });
   hinfo.appendChild(createEl('h2', { style: { fontSize: 'var(--text-lg)', fontWeight: 700 } }, ['Monte Carlo']));
   hinfo.appendChild(createEl('div', { style: { fontSize: 'var(--text-sm)', color: 'var(--c-text-2)' } },
-    ['Probabilistic appraisal of an index basket: outcome spread, chance of a positive result, and drawdown risk — not a direction forecast.']));
+    ['Probabilistic appraisal of an index basket: outcome spread, chance of a positive result, and drawdown risk (fall from peak) — not a direction forecast.']));
   head.appendChild(hinfo);
   const toIdx = createEl('button', { class: 'btn btn--secondary btn--sm' });
   toIdx.innerHTML = `${icons['layers']} Open Stock Indexes`;
@@ -248,6 +248,9 @@ export function render() {
   const idxSel = createEl('select', { class: 'field__select', style: { minWidth: '220px' } });
   idxSel.addEventListener('change', (e) => { state.indexId = e.target.value; });
   const modeField = field('FLOW REGIME MODE', makeSeg(MODES, state.mode, (v) => { state.mode = v; }));
+  modeField.appendChild(createEl('p', {
+    style: { fontSize: 'var(--text-xs)', color: 'var(--c-text-3)', marginTop: 'var(--s-1)' },
+  }, ['Regime = the index foreign-flow window state (inflow / neutral / outflow). Current regime uses only blocks from the current state; stress uses only outflow blocks, as if outflow continued.']));
   const methodNote = createEl('p', {
     style: { fontSize: 'var(--text-xs)', color: 'var(--c-text-3)', marginTop: 'var(--s-3)' },
   }, ['Method: 20-day block bootstrap over log returns of the index level (stale (no-trade) days skipped). Fixed seed — same input gives the same result. Regime mode conditions blocks on the index foreign-flow state (window state: inflow / neutral / outflow). Results always read together with their source window: output inherits the regime of that window.']);
@@ -255,7 +258,7 @@ export function render() {
     state.method = v;
     modeField.style.display = v === 'fundamental' ? 'none' : '';
     methodNote.textContent = v === 'fundamental'
-      ? 'Method: fundamental attribution — earnings × multiple + dividends per quarter (constituents not eligible for attribution are valued on their fallback price path). Fixed seed — same input gives the same result. The window parameter only governs the fallback path; profit & PER history pools use the full history. No drawdown statistics — quarterly points too coarse.'
+      ? 'Method: fundamental attribution — earnings × multiple + dividends per quarter (constituents not eligible for attribution are valued on their fallback price path). Fixed seed — same input gives the same result. The window parameter only governs the fallback path; profit & PER history pools use the full history. No drawdown (fall from peak) statistics — quarterly points too coarse.'
       : 'Method: 20-day block bootstrap over log returns of the index level (stale (no-trade) days skipped). Fixed seed — same input gives the same result. Regime mode conditions blocks on the index foreign-flow state (window state: inflow / neutral / outflow). Results always read together with their source window: output inherits the regime of that window.';
   }));
   grid.appendChild(methodField);
@@ -329,7 +332,7 @@ export function render() {
 
     const at = r.attribution || {};
     const ac = createEl('div', { class: 'card', style: { marginBottom: 'var(--s-3)' } });
-    ac.appendChild(createEl('h3', { class: 'card__title', style: { marginBottom: 'var(--s-2)' } }, ['Return attribution (median per component)']));
+    ac.appendChild(createEl('h3', { class: 'card__title', style: { marginBottom: 'var(--s-2)' } }, ['Return attribution — what drives the median outcome']));
     const arows = [
       ['Earnings growth', at.earnings], ['Multiple change (PER)', at.multiple],
       ['Earnings × multiple interaction', at.interaction], ['Dividends (cash)', at.dividend],
@@ -475,9 +478,9 @@ export function render() {
       statCard('MEDIAN RETURN (middle outcome)', fmtPct(r.end_ret.p50)),
       statCard('WORST 5% RETURN (5th percentile)', fmtPct(r.end_ret.p5), 'var(--c-danger)'),
       statCard('BEST 5% RETURN (95th percentile)', fmtPct(r.end_ret.p95), 'var(--c-accent)'),
-      statCard('CHANCE OF DRAWDOWN >10%', fmtProb(r.p_dd_gt_10)),
-      statCard('CHANCE OF DRAWDOWN >20%', fmtProb(r.p_dd_gt_20)),
-      statCard('MEDIAN DRAWDOWN', fmtPct(-Math.abs(r.dd_median)), 'var(--c-danger)'),
+      statCard('CHANCE OF DRAWDOWN (FALL FROM PEAK) >10%', fmtProb(r.p_dd_gt_10)),
+      statCard('CHANCE OF DRAWDOWN (FALL FROM PEAK) >20%', fmtProb(r.p_dd_gt_20)),
+      statCard('MEDIAN DRAWDOWN (FALL FROM PEAK)', fmtPct(-Math.abs(r.dd_median)), 'var(--c-danger)'),
     );
     resultWrap.appendChild(stats);
 
@@ -570,8 +573,8 @@ export function render() {
       ['25th percentile return', fmtPct(ev.end_ret.p25)],
       ['Median return', fmtPct(ev.end_ret.p50)],
       ['Worst 5% return', fmtPct(ev.end_ret.p5)],
-      ['Chance of drawdown >20%', fmtProb(ev.p_dd_gt_20)],
-      ['Median drawdown', fmtPct(-Math.abs(ev.dd_median))]];
+      ['Chance of drawdown (fall from peak) >20%', fmtProb(ev.p_dd_gt_20)],
+      ['Median drawdown (fall from peak)', fmtPct(-Math.abs(ev.dd_median))]];
   }
 
 

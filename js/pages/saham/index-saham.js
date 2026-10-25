@@ -165,7 +165,7 @@ export function render() {
           </div>
         </div>
         <div style="display:flex;gap:var(--s-2);margin-top:var(--s-3);font-size:var(--text-xs);color:var(--c-text-3);flex-wrap:wrap;">
-          <span style="font-weight:600;color:${trColor};">${tr == null ? '' : `${fmtPct(tr)} since base`}</span>
+          <span style="font-weight:600;color:${trColor};">${tr == null ? '' : `${fmtPct(tr)} since start`}</span>
           <span>${idx.member_count ?? 0} constituents</span>
           ${idx.last_stale ? `<span style="color:var(--c-warn);">incomplete data</span>` : ''}
           ${idx.is_active ? '' : `<span style="color:var(--c-danger);">inactive</span>`}
@@ -239,11 +239,11 @@ export function render() {
     const info = createEl('div', { style: { flex: '1', minWidth: '220px' } });
     info.appendChild(createEl('h2', { style: { fontSize: 'var(--text-lg)', fontWeight: 700 } }, [idx.name]));
     const sub = createEl('div', { style: { fontSize: 'var(--text-sm)', color: 'var(--c-text-2)' } },
-      [`${idx.code} · ${MODES[idx.weighting_mode] || idx.weighting_mode} · base ${fmtLevel(idx.base_value)} @ ${idx.base_date || '-'} · ${members.length} constituents`]);
+      [`${idx.code} · ${MODES[idx.weighting_mode] || idx.weighting_mode} · starting value ${fmtLevel(idx.base_value)} @ ${idx.base_date || '-'} · ${members.length} constituents`]);
     if (totalReturn != null) {
       const span = createEl('span', {
         style: { fontWeight: 600, color: totalReturn >= 0 ? 'var(--c-accent)' : 'var(--c-danger)' },
-      }, [` ${fmtPct(totalReturn)} since base`]);
+      }, [` ${fmtPct(totalReturn)} since start`]);
       sub.appendChild(span);
     }
     info.appendChild(sub);
@@ -287,7 +287,7 @@ export function render() {
     const info = createEl('div', { style: { flex: '1', minWidth: '220px' } });
     info.appendChild(createEl('div', { style: { fontWeight: 600 } }, ['Appraise this basket with Monte Carlo']));
     info.appendChild(createEl('div', { style: { fontSize: 'var(--text-sm)', color: 'var(--c-text-2)' } },
-      ['Outcome spread, chance of ending positive, and drawdown risk from this index level series.']));
+      ['Outcome spread, chance of ending positive, and drawdown risk (fall from peak) from this index level series.']));
     strip.appendChild(info);
     const btn = createEl('button', { class: 'btn btn--primary btn--sm' });
     btn.innerHTML = `${icons['dice']} Monte Carlo`;
@@ -389,7 +389,7 @@ export function render() {
 
   function buildContributionsCard(contribs) {
     const card = createEl('div', { class: 'card' });
-    card.appendChild(createEl('h3', { class: 'card__title', style: { marginBottom: 'var(--s-3)' } }, ['Contributions Since Base']));
+    card.appendChild(createEl('h3', { class: 'card__title', style: { marginBottom: 'var(--s-3)' } }, ['Contributions Since Start']));
 
     // Transparansi: level kumulatif vs jumlah kontribusi harian (bunga-berbunga)
     const tr = contribs.total_return_pct;
