@@ -16,16 +16,16 @@ for (const [key, route] of Object.entries(ROUTE_MAP)) {
 }
 
 const TOOLS = [
-  { route: '/password', icon: 'key', label: 'Password Generator', desc: 'Buat password acak yang kuat' },
-  { route: '/diagram', icon: 'git-branch', label: 'Render Diagram', desc: 'Buat & render diagram dari kode' },
-  { route: '/video', icon: 'download', label: 'Video Downloader', desc: 'Unduh video dari URL' },
-  { route: '/color-palate', icon: 'grid', label: 'Color Palate', desc: 'Kumpulan warna & referensi' },
-  { route: '/bacak', icon: 'grid', label: 'CSV Shuffler', desc: 'Acak & filter data CSV' },
-  { route: '/tint-shade', icon: 'grid', label: 'Tint & Shade', desc: 'Buat gradasi warna' },
-  { route: '/color-blind', icon: 'grid', label: 'Edukasi Warna', desc: 'Simulasi & pencampuran warna' },
-  { route: '/jepunese', icon: 'globe', label: 'Jepunese', desc: 'Belajar karakter Jepang' },
-  { route: '/bahasa-interaktif', icon: 'book-open', label: 'Bahasa Interaktif', desc: 'Latihan bahasa drag & drop' },
-  { route: '/type-writing', icon: 'article', label: 'Type Writing', desc: 'Mode pengetik natural' },
+  { route: '/password', icon: 'key', label: 'Password Generator', desc: 'Create strong random passwords' },
+  { route: '/diagram', icon: 'git-branch', label: 'Render Diagram', desc: 'Create & render diagrams from code' },
+  { route: '/video', icon: 'download', label: 'Video Downloader', desc: 'Download videos from a URL' },
+  { route: '/color-palate', icon: 'grid', label: 'Color Palate', desc: 'Color collection & reference' },
+  { route: '/bacak', icon: 'grid', label: 'CSV Shuffler', desc: 'Shuffle & filter CSV data' },
+  { route: '/tint-shade', icon: 'grid', label: 'Tint & Shade', desc: 'Create color gradients' },
+  { route: '/color-blind', icon: 'grid', label: 'Edukasi Warna', desc: 'Color simulation & mixing' },
+  { route: '/jepunese', icon: 'globe', label: 'Jepunese', desc: 'Learn Japanese characters' },
+  { route: '/bahasa-interaktif', icon: 'book-open', label: 'Bahasa Interaktif', desc: 'Drag & drop language exercises' },
+  { route: '/type-writing', icon: 'article', label: 'Type Writing', desc: 'Natural typer modes' },
 ];
 
 export function render() {
@@ -33,7 +33,7 @@ export function render() {
 
   const header = createEl('div', { class: 'page-head' });
   header.appendChild(createEl('h1', {}, ['Tools']));
-  header.appendChild(createEl('p', { class: 'page-head__sub' }, ['Kumpulan tool produktivitas.']));
+  header.appendChild(createEl('p', { class: 'page-head__sub' }, ['A collection of productivity tools.']));
   page.appendChild(header);
 
   const grid = createEl('div', { class: 'tool-grid' });
@@ -53,14 +53,14 @@ export function render() {
       if (!store.token) {
         const empty = createEl('div', { class: 'tools-empty' }, []);
         empty.appendChild(createEl('p', { class: 'empty' },
-          ['Login dengan akun Premium untuk mengakses Tools.']));
+          ['Log in with a Premium account to access Tools.']));
         const loginBtn = createEl('button', { class: 'btn btn--primary' }, ['Login']);
         loginBtn.addEventListener('click', () => showLogin());
         empty.appendChild(loginBtn);
         grid.appendChild(empty);
       } else {
         grid.appendChild(createEl('p', { class: 'empty' },
-          ['Akses Tools membutuhkan tier Premium ke atas.']));
+          ['Accessing Tools requires Premium tier or higher.']));
       }
       return;
     }

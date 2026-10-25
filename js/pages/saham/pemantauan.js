@@ -18,8 +18,8 @@ const escapeHtml = (v) => String(v ?? '').replace(/[&<>"']/g, (c) => (
   { '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;' }[c]
 ));
 
-const MONTHS = ['Jan', 'Feb', 'Mar', 'Apr', 'Mei', 'Jun', 'Jul', 'Agu',
-  'Sep', 'Okt', 'Nov', 'Des'];
+const MONTHS = ['Jan', 'Feb', 'Mar', 'Apr', 'May', 'Jun', 'Jul', 'Aug',
+  'Sep', 'Oct', 'Nov', 'Dec'];
 
 /** 'YYYY-MM-DD' -> '29 Sep 2026' (komponen dibaca manual, tanpa Date/timezone). */
 function fmtDate(iso) {
@@ -37,10 +37,10 @@ function relLabel(iso) {
   const now = new Date();
   const today = Date.UTC(now.getFullYear(), now.getMonth(), now.getDate());
   const days = Math.round((today - then) / 86400000);
-  if (days <= 0) return 'hari ini';
-  if (days < 30) return `${days} hari lalu`;
-  if (days < 365) return `${Math.floor(days / 30)} bulan lalu`;
-  return `${Math.floor(days / 365)} tahun lalu`;
+  if (days <= 0) return 'today';
+  if (days < 30) return days === 1 ? '1 day ago' : `${days} days ago`;
+  if (days < 365) { const mo = Math.floor(days / 30); return mo === 1 ? '1 month ago' : `${mo} months ago`; }
+  const yr = Math.floor(days / 365); return yr === 1 ? '1 year ago' : `${yr} years ago`;
 }
 
 export function render() {
@@ -70,14 +70,14 @@ export function render() {
   const header = createEl('div', { class: 'pemantauan-page__header' });
   header.innerHTML = `
     <div>
-      <h1>Pemantauan</h1>
-      <p>Saham dengan flag dari data terbaru (bukan historis) — merah untuk
-         sanksi &amp; kondisi berat, oranye untuk pelanggaran administratif.</p>
+      <h1>Monitoring</h1>
+      <p>Stocks flagged from the latest data (not historical) — red for
+         sanctions &amp; severe conditions, orange for administrative violations.</p>
     </div>
     <div class="pemantauan-page__meta">
-      <span class="pemantauan-page__date" id="pm-date">Memuat…</span>
+      <span class="pemantauan-page__date" id="pm-date">Loading…</span>
       <button type="button" class="btn btn--ghost btn--sm" id="pm-refresh"
-              title="Muat ulang" aria-label="Muat ulang data pemantauan">${icons['refresh']}</button>
+              title="Reload" aria-label="Reload monitoring data">${icons['refresh']}</button>
     </div>`;
   container.appendChild(header);
 
@@ -91,15 +91,15 @@ export function render() {
     <div class="search" id="pm-search-wrap">
       <span class="search__icon">${icons['search']}</span>
       <input type="text" class="search__input" id="pm-search"
-             placeholder="Cari ticker / nama perusahaan…" aria-label="Cari saham">
+             placeholder="Search ticker / company name…" aria-label="Search stocks">
       <button type="button" class="search__clear" id="pm-clear"
-              aria-label="Bersihkan pencarian">${icons['x']}</button>
+              aria-label="Clear search">${icons['x']}</button>
     </div>
     <div class="field" style="width:180px;min-width:180px;">
-      <label class="field__label" for="pm-sort">Urutkan</label>
+      <label class="field__label" for="pm-sort">Sort</label>
       <select class="field__select" id="pm-sort">
-        <option value="recent">Terbaru → terlama</option>
-        <option value="most">Terbanyak flag</option>
+        <option value="recent">Newest → oldest</option>
+        <option value="most">Most flags</option>
         <option value="ticker">Ticker A–Z</option>
       </select>
     </div>
@@ -118,18 +118,18 @@ export function render() {
     const el = header.querySelector('#pm-date');
     if (el) {
       el.textContent = state.dataDate
-        ? `Data per ${fmtDate(state.dataDate)}`
-        : 'Data terbaru tidak diketahui';
+        ? `Data as of ${fmtDate(state.dataDate)}`
+        : 'Latest data date unknown';
     }
   }
 
   function renderSummary() {
     const c = state.counts;
     const cards = [
-      { key: 'danger', label: 'Merah', hint: 'sanksi & kondisi berat', value: c.danger, dot: 'danger' },
-      { key: 'warning', label: 'Oranye', hint: 'pelanggaran administratif', value: c.warning, dot: 'warn' },
-      { key: '__latest__', label: 'Flag terbaru', hint: relLabel(state.latestFlag) || '—', value: fmtDate(state.latestFlag), dot: '' },
-      { key: 'clean', label: 'Bersih', hint: 'tanpa flag sama sekali', value: c.clean, dot: 'ok' },
+      { key: 'danger', label: 'Red', hint: 'sanctions & severe conditions', value: c.danger, dot: 'danger' },
+      { key: 'warning', label: 'Orange', hint: 'administrative violations', value: c.warning, dot: 'warn' },
+      { key: '__latest__', label: 'Latest flag', hint: relLabel(state.latestFlag) || '—', value: fmtDate(state.latestFlag), dot: '' },
+      { key: 'clean', label: 'Clean', hint: 'no flags at all', value: c.clean, dot: 'ok' },
     ];
     summary.innerHTML = cards.map((card) => {
       const clickable = card.key !== '__latest__';
@@ -152,8 +152,8 @@ export function render() {
   function renderTotal() {
     const el = toolbar.querySelector('#pm-total');
     if (!el) return;
-    const filter = state.q ? ` untuk “${state.q}”` : '';
-    el.textContent = `${state.total} saham${filter}`;
+    const filter = state.q ? ` for “${state.q}”` : '';
+    el.textContent = `${state.total} stocks${filter}`;
   }
 
   function flagChips(s, max) {
@@ -165,7 +165,7 @@ export function render() {
              title="${escapeHtml(f.text)}">${escapeHtml(f.text)}</span>`
     )).join('');
     const more = rest > 0
-      ? `<span class="pemantauan-page__more">+${rest} lagi</span>`
+      ? `<span class="pemantauan-page__more">+${rest} more</span>`
       : '';
     return chips + more || '<span style="color:var(--c-text-3);">—</span>';
   }
@@ -176,25 +176,25 @@ export function render() {
       ? `<ul class="pemantauan-page__flaglist">${flags.map((f) => `
           <li>
             <span class="badge badge--${f.tone === 'danger' ? 'danger' : 'warn'}">${escapeHtml(f.text)}</span>
-            <span class="pemantauan-page__tone">${f.tone === 'danger' ? 'Sanksi & kondisi berat' : 'Pelanggaran administratif'}</span>
+            <span class="pemantauan-page__tone">${f.tone === 'danger' ? 'Sanctions & severe conditions' : 'Administrative violations'}</span>
           </li>`).join('')}</ul>`
-      : '<p class="pemantauan-page__tone">Tidak ada flag — saham bersih.</p>';
+      : '<p class="pemantauan-page__tone">No flags — stock is clean.</p>';
 
     return `<tr class="pemantauan-page__detail"><td colspan="4">
       <div class="pemantauan-page__detail-head">
         <span><strong>${escapeHtml(s.ticker)}</strong> — ${escapeHtml(s.company_name)}
           · ${escapeHtml(s.primary_sector || s.sector || '-')}${s.sub_sector ? ` / ${escapeHtml(s.sub_sector)}` : ''}</span>
         <span class="pemantauan-page__tone">
-          ${s.danger_count} merah · ${s.warning_count} oranye ·
-          melekat sejak ${fmtDate(s.flag_since)} (${relLabel(s.flag_since)})
+          ${s.danger_count} red · ${s.warning_count} orange ·
+          flagged since ${fmtDate(s.flag_since)} (${relLabel(s.flag_since)})
         </span>
       </div>
       ${list}
       <div class="pemantauan-page__detail-actions">
         <a class="btn btn--sm" href="${analysisUrl}" target="_blank" rel="noopener"
-           onclick="localStorage.setItem('stocks_initial_ticker','${escapeHtml(s.ticker)}')">Buka analisis</a>
-        <span class="pemantauan-page__tone">Riwayat perubahan flag ada di kartu saham
-          (IDX Stocks → bagian Remarks).</span>
+           onclick="localStorage.setItem('stocks_initial_ticker','${escapeHtml(s.ticker)}')">Open analysis</a>
+        <span class="pemantauan-page__tone">Flag change history is on the stock card
+          (IDX Stocks → Remarks section).</span>
       </div>
     </td></tr>`;
   }
@@ -207,8 +207,8 @@ export function render() {
         class: 'empty',
         style: { padding: 'var(--s-5)', textAlign: 'center', color: 'var(--c-danger)' },
       });
-      box.appendChild(createEl('p', {}, [`Gagal memuat: ${state.error}`]));
-      const retry = createEl('button', { class: 'btn btn--ghost btn--sm', type: 'button' }, ['Coba lagi']);
+      box.appendChild(createEl('p', {}, [`Failed to load: ${state.error}`]));
+      const retry = createEl('button', { class: 'btn btn--ghost btn--sm', type: 'button' }, ['Try again']);
       retry.addEventListener('click', () => muatPemantauan());
       box.appendChild(retry);
       tableWrap.appendChild(box);
@@ -226,8 +226,8 @@ export function render() {
       box.appendChild(icon);
       box.appendChild(createEl('p', { style: { color: 'var(--c-text-2)' } }, [
         allClean
-          ? '🎉 Tidak ada saham ter-flag — semua bersih.'
-          : 'Tidak ada saham yang cocok dengan filter/pencarian ini.',
+          ? '🎉 No flagged stocks — all clean.'
+          : 'No stocks match this filter/search.',
       ]));
       tableWrap.appendChild(box);
       return;
@@ -257,7 +257,7 @@ export function render() {
       if (group && group !== lastGroup) {
         lastGroup = group;
         rows.push(`<tr class="pemantauan-page__group">
-          <td colspan="4">${escapeHtml(fmtDate(group))} · ${groupCount(group)} saham
+          <td colspan="4">${escapeHtml(fmtDate(group))} · ${groupCount(group)} stocks
             <span class="pemantauan-page__tone">(${escapeHtml(relLabel(group))})</span></td>
         </tr>`);
       }
@@ -272,7 +272,7 @@ export function render() {
       });
       const statusHtml = badge ? badge.outerHTML : '';
       const sectorBadge = StockSectorBadge(s.sector, true);
-      const eyeTitle = delisted ? 'Saham telah delisted' : `Analisis ${s.ticker} (buka di tab baru)`;
+      const eyeTitle = delisted ? 'Stock has been delisted' : `Analysis of ${s.ticker} (opens in new tab)`;
       const open = state.expanded === s.ticker;
 
       rows.push(`
@@ -281,7 +281,7 @@ export function render() {
             ${delisted
               ? `<span class="pemantauan-page__ticker pemantauan-page__ticker--delisted">${escapeHtml(s.ticker)}</span>`
               : `<a href="${analysisUrl}" target="_blank" rel="noopener" class="pemantauan-page__ticker"
-                   title="Analisis ${escapeHtml(s.ticker)} (buka di tab baru)"
+                   title="Analysis of ${escapeHtml(s.ticker)} (opens in new tab)"
                    onclick="localStorage.setItem('stocks_initial_ticker','${escapeHtml(s.ticker)}')">${escapeHtml(s.ticker)}</a>`}
             <div class="pemantauan-page__name">${escapeHtml(s.company_name)}
               ${sectorBadge ? sectorBadge.outerHTML : ''}
@@ -293,8 +293,8 @@ export function render() {
           <td><div class="table__actions">
             <button type="button" class="btn btn--ghost btn--sm pemantauan-page__expand"
                     data-expand="${escapeHtml(s.ticker)}" aria-expanded="${open}"
-                    aria-label="${open ? 'Tutup' : 'Buka'} detail ${escapeHtml(s.ticker)}"
-                    title="${open ? 'Tutup detail' : 'Lihat semua flag'}">${icons['chevron-down']}</button>
+                    aria-label="${open ? 'Close' : 'Open'} details for ${escapeHtml(s.ticker)}"
+                    title="${open ? 'Close details' : 'See all flags'}">${icons['chevron-down']}</button>
             ${delisted
               ? `<button class="btn btn--ghost btn--sm" disabled title="${eyeTitle}" aria-label="${eyeTitle}">${icons['eye']}</button>`
               : `<a class="btn btn--ghost btn--sm" href="${analysisUrl}" target="_blank" rel="noopener"
@@ -309,7 +309,7 @@ export function render() {
     const table = createEl('table', { class: 'table pemantauan-page__table' });
     table.innerHTML = `
       <thead><tr>
-        <th>Saham</th><th>Flag</th><th>Sejak</th><th></th>
+        <th>Stock</th><th>Flag</th><th>Since</th><th></th>
       </tr></thead>
       <tbody>${rows.join('')}</tbody>`;
     tableWrap.appendChild(table);

@@ -76,9 +76,9 @@ export function render() {
     const header = createEl('div', { class: 'admin-dashboard__logheader' });
     header.innerHTML = `<span class="admin-dashboard__logfile" title="${state.logFile}"></span>`;
     const fileEl = header.querySelector('.admin-dashboard__logfile');
-    const countEl = createEl('span', { class: 'admin-dashboard__logcount' }, ['0 baris']);
+    const countEl = createEl('span', { class: 'admin-dashboard__logcount' }, ['0 lines']);
 
-    const refreshBtn = createEl('button', { class: 'btn btn--ghost btn--sm', title: 'Muat ulang log', type: 'button' }, []);
+    const refreshBtn = createEl('button', { class: 'btn btn--ghost btn--sm', title: 'Reload logs', type: 'button' }, []);
     refreshBtn.innerHTML = icons['refresh'];
     refreshBtn.addEventListener('click', loadLogs);
 
@@ -93,8 +93,8 @@ export function render() {
     wrap.appendChild(logBody);
 
     function renderLogContent() {
-      fileEl.textContent = state.logFile ? `${state.logFile} (${state.logType})` : 'Belum ada log';
-      countEl.textContent = `${state.logLines.length} baris`;
+      fileEl.textContent = state.logFile ? `${state.logFile} (${state.logType})` : 'No logs yet';
+      countEl.textContent = `${state.logLines.length} lines`;
       spinner.style.display = state.logsLoading ? '' : 'none';
       refreshBtn.disabled = state.logsLoading;
 
@@ -103,7 +103,7 @@ export function render() {
         const empty = createEl('div', { class: 'admin-dashboard__log-empty' }, []);
         empty.innerHTML = `<div style="width:40px;height:40px;margin:0 auto var(--s-2);color:var(--c-text-3);">${icons['file-text']}</div>`;
         empty.appendChild(createEl('p', { style: { color: 'var(--c-text-3)', fontSize: 'var(--text-sm)' } },
-          ['Belum ada log. Tekan refresh untuk memuat.']));
+          ['No logs yet. Press refresh to load.']));
         logBody.appendChild(empty);
         return;
       }
@@ -170,11 +170,11 @@ export function render() {
     dashboardPane.appendChild(buildScraperBanner());
 
     // ── SISTEM ──
-    dashboardPane.appendChild(sectionLabel('SISTEM'));
+    dashboardPane.appendChild(sectionLabel('SYSTEM'));
     const sysGrid = createEl('div', { class: 'grid grid--3', style: { marginBottom: 'var(--s-3)' } });
     sysGrid.append(
       kpiTileHtml('Status', maintenance ? 'MAINTENANCE' : 'ACTIVE', maintenance ? 'danger' : 'success'),
-      kpiTileHtml('Registrasi', regEnabled ? 'ON' : 'OFF', regEnabled ? 'success' : 'warn'),
+      kpiTileHtml('Registration', regEnabled ? 'ON' : 'OFF', regEnabled ? 'success' : 'warn'),
       kpiTileHtml('DB Size', st.db_size_mb > 0 ? `${st.db_size_mb} MB` : '—', 'info'),
     );
     dashboardPane.appendChild(sysGrid);
@@ -184,12 +184,12 @@ export function render() {
     const mtnBtn = createEl('button', {
       type: 'button',
       class: 'btn ' + (maintenance ? 'btn--accent' : 'btn--danger'),
-    }, [maintenance ? 'Nonaktif Maintenance' : 'Aktifkan Maintenance']);
+    }, [maintenance ? 'Disable Maintenance' : 'Enable Maintenance']);
     mtnBtn.addEventListener('click', toggleMaintenance);
     const regBtn = createEl('button', {
       type: 'button',
       class: 'btn ' + (regEnabled ? 'btn--warn' : 'btn--accent'),
-    }, [regEnabled ? 'Matikan Registrasi' : 'Hidupkan Registrasi']);
+    }, [regEnabled ? 'Disable Registration' : 'Enable Registration']);
     regBtn.addEventListener('click', toggleRegistration);
     toggles.append(mtnBtn, regBtn);
     dashboardPane.appendChild(toggles);
@@ -208,8 +208,8 @@ export function render() {
     dashboardPane.appendChild(sectionLabel('DATABASE'));
     const dbGrid = createEl('div', { class: 'grid grid--3', style: { marginBottom: 'var(--s-6)' } });
     dbGrid.append(
-      kpiTileHtml('Berita', dbNews.article_count ?? 0, 'primary'),
-      kpiTileHtml('Saham', dbIdx.stock_count ?? 0, 'success'),
+      kpiTileHtml('News', dbNews.article_count ?? 0, 'primary'),
+      kpiTileHtml('Stocks', dbIdx.stock_count ?? 0, 'success'),
       kpiTileHtml('Trade Days', dbIdx.trade_days ?? 0, 'warn'),
     );
     dashboardPane.appendChild(dbGrid);
@@ -226,12 +226,12 @@ export function render() {
       if (state.scraperRunning) {
         const spin = createEl('span', { class: 'admin-dashboard__spin' });
         runBtn.appendChild(spin);
-        runBtn.appendChild(createEl('span', {}, ['Sedang Berjalan...']));
+        runBtn.appendChild(createEl('span', {}, ['Running...']));
       } else {
         const icon = createEl('span', { style: { display: 'inline-flex' } });
         icon.innerHTML = icons['play'];
         runBtn.appendChild(icon);
-        runBtn.appendChild(createEl('span', {}, ['Jalankan Scraper']));
+        runBtn.appendChild(createEl('span', {}, ['Run Scraper']));
       }
     };
     renderRunBtn();
@@ -242,9 +242,9 @@ export function render() {
           state.scraperRunning = true;
           renderRunBtn();
           renderDashboard();
-          toast('Scraper dimulai', { type: 'success' });
+          toast('Scraper started', { type: 'success' });
         } else {
-          toast(res?.message || 'Scraper sedang jalan', { type: 'info' });
+          toast(res?.message || 'Scraper already running', { type: 'info' });
         }
       } catch (e) {
         toast('Error: ' + (e.message || e), { type: 'error' });
@@ -274,15 +274,15 @@ export function render() {
 
     const text = createEl('div', { class: 'admin-dashboard__banner-text' });
     text.appendChild(createEl('div', { class: 'admin-dashboard__banner-title' },
-      [state.scraperRunning ? 'Scraper Sedang Berjalan' : 'Scraper Idle']));
+      [state.scraperRunning ? 'Scraper Running' : 'Scraper Idle']));
     text.appendChild(createEl('div', { class: 'admin-dashboard__banner-sub' },
-      [state.scraperRunning ? 'Menunggu selesai...' : 'Siap dijalankan']));
+      [state.scraperRunning ? 'Waiting to finish...' : 'Ready to run']));
 
     const lastScrape = state.systemStatus?.last_scrape_time;
     if (!state.scraperRunning && lastScrape) {
       const src = state.systemStatus?.last_scrape_source;
       text.appendChild(createEl('div', { class: 'admin-dashboard__banner-last' },
-        [`Terakhir: ${lastScrape}${src ? ` (${src})` : ''}`]));
+        [`Last: ${lastScrape}${src ? ` (${src})` : ''}`]));
     }
 
     banner.append(icon, text);
@@ -352,7 +352,7 @@ export function render() {
         state.scraperRunning = false;
         loadStats();
         loadSystemStatus();
-        toast('Scraping selesai!', { type: 'success' });
+        toast('Scraping complete!', { type: 'success' });
       }
     },
   });

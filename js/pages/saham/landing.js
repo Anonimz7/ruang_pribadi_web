@@ -61,8 +61,8 @@ export function render() {
 
     // Header
     const header = createEl('div', { class: 'landing-header' });
-    header.appendChild(createEl('h1', {}, ['Pilih Menu']));
-    header.appendChild(createEl('p', {}, ['Klik tombol untuk memulai']));
+    header.appendChild(createEl('h1', {}, ['Choose a Menu']));
+    header.appendChild(createEl('p', {}, ['Click a button to get started']));
     card.appendChild(header);
 
     // Grid menu — semua kartu tampil; akses dicek saat klik (router)

@@ -9,20 +9,20 @@ import { createEl } from '../../utils/dom.js';
 import Api from '../../core/api.js';
 import { toast } from '../../ui/toast.js';
 
-const HORIZONS = [[21, '1 bln'], [63, '3 bln'], [126, '6 bln'], [252, '1 thn'], [504, '2 thn']];
-const NSIMS = [[10000, '10.000'], [50000, '50.000'], [100000, '100.000'], [250000, '250.000']];
+const HORIZONS = [[21, '1 mo'], [63, '3 mo'], [126, '6 mo'], [252, '1 yr'], [504, '2 yr']];
+const NSIMS = [[10000, '10,000'], [50000, '50,000'], [100000, '100,000'], [250000, '250,000']];
 const BUCKETS = ['bullish', 'sideways', 'bearish'];
 const COLORS = { bullish: '#3b82f6', sideways: '#9ca3af', bearish: '#f59e0b' };
-const LABELS = { bullish: 'Bullish (naik)', sideways: 'Sideways (stagnan)', bearish: 'Bearish (turun)' };
+const LABELS = { bullish: 'Bullish (up)', sideways: 'Sideways (flat)', bearish: 'Bearish (down)' };
 
 function fmtPct(v) {
   if (v == null || isNaN(v)) return '-';
   const n = Number(v) * 100;
-  return (n > 0 ? '+' : '') + n.toFixed(1).replace('.', ',') + '%';
+  return (n > 0 ? '+' : '') + n.toFixed(1) + '%';
 }
 function fmtProb(v) {
   if (v == null || isNaN(v)) return '-';
-  return (Number(v) * 100).toFixed(1).replace('.', ',') + '%';
+  return (Number(v) * 100).toFixed(1) + '%';
 }
 
 function linesSvg(points, lines) {
@@ -45,7 +45,7 @@ function linesSvg(points, lines) {
   const yLbl = (v, y) => `<text x="${L - 6}" y="${y}" text-anchor="end" font-size="11" fill="var(--c-text-3)">${fmtPct(v)}</text>`;
   s += yLbl(mx, T + 4) + yLbl(0, Y(0) + 4) + yLbl(mn, H - B + 4);
   const mid = points[Math.floor(points.length / 2)];
-  const xLbl = (d) => `<text x="${X(d).toFixed(1)}" y="${H - 6}" text-anchor="middle" font-size="11" fill="var(--c-text-3)">hari ${d}</text>`;
+  const xLbl = (d) => `<text x="${X(d).toFixed(1)}" y="${H - 6}" text-anchor="middle" font-size="11" fill="var(--c-text-3)">day ${d}</text>`;
   s += xLbl(points[0]) + xLbl(mid) + xLbl(points[points.length - 1]);
   s += '</svg>';
   return s;
@@ -54,15 +54,15 @@ function linesSvg(points, lines) {
 export function render() {
   const container = createEl('div', {});
   const head = createEl('div', { style: { marginBottom: 'var(--s-3)' } });
-  head.appendChild(createEl('h2', {}, ['Simulasi Iseng']));
+  head.appendChild(createEl('h2', {}, ['Playful Simulation']));
   head.appendChild(createEl('p', { style: { fontSize: 'var(--text-sm)', color: 'var(--c-text-2)', margin: '0' } },
-    ['Iseng semata — tiga garis perwakilan dari simulasi atas data historis emiten atau indeks. Bukan ramalan, bukan rekomendasi. Tidak ada yang disimpan.']));
+    ['Just for fun — three representative lines from simulations over historical issuer or index data. Not a forecast, not a recommendation. Nothing is saved.']));
   container.appendChild(head);
 
   const state = { target: 'indeks', ticker: '', indexId: '', horizon: 63, nSims: 50000, running: false, hasResult: false };
 
   const ctl = createEl('div', { class: 'card', style: { marginBottom: 'var(--s-3)' } });
-  ctl.appendChild(createEl('h3', { class: 'card__title', style: { marginBottom: 'var(--s-3)' } }, ['Pengaturan Simulasi']));
+  ctl.appendChild(createEl('h3', { class: 'card__title', style: { marginBottom: 'var(--s-3)' } }, ['Simulation Settings']));
   const grid = createEl('div', { style: { display: 'flex', gap: 'var(--s-4)', flexWrap: 'wrap', alignItems: 'flex-end' } });
   const field = (label, el) => {
     const w = createEl('div', {});
@@ -79,13 +79,13 @@ export function render() {
     s.addEventListener('change', (e) => onChange(e.target.value));
     return s;
   };
-  const targetSel = sel([['indeks', 'Indeks'], ['saham', 'Emiten']], state.target, (v) => {
+  const targetSel = sel([['indeks', 'Index'], ['saham', 'Issuer']], state.target, (v) => {
     state.target = v;
     tickerField.style.display = v === 'saham' ? '' : 'none';
     idxField.style.display = v === 'indeks' ? '' : 'none';
   });
   const tickerInput = createEl('input', {
-    class: 'field__input', type: 'text', placeholder: 'cth. BBCA',
+    class: 'field__input', type: 'text', placeholder: 'e.g. BBCA',
     style: { width: '140px', textTransform: 'uppercase' },
   });
   tickerInput.addEventListener('input', (e) => { state.ticker = e.target.value; });
@@ -93,22 +93,22 @@ export function render() {
   tickerField.style.display = 'none';
   const idxSel = createEl('select', { class: 'field__select', style: { minWidth: '220px' } });
   idxSel.addEventListener('change', (e) => { state.indexId = e.target.value; });
-  const idxField = field('INDEKS', idxSel);
+  const idxField = field('INDEX', idxSel);
   const horizonSel = sel(HORIZONS, state.horizon, (v) => { state.horizon = Number(v); });
   const nSimsSel = sel(NSIMS, state.nSims, (v) => { state.nSims = Number(v); });
-  const runBtn = createEl('button', { class: 'btn btn--primary' }, ['Simulasi']);
-  const againBtn = createEl('button', { class: 'btn btn--secondary', disabled: true }, ['Kocok lagi']);
+  const runBtn = createEl('button', { class: 'btn btn--primary' }, ['Simulate']);
+  const againBtn = createEl('button', { class: 'btn btn--secondary', disabled: true }, ['Roll again']);
   grid.appendChild(field('TARGET', targetSel));
   grid.appendChild(tickerField);
   grid.appendChild(idxField);
   grid.appendChild(field('HORIZON', horizonSel));
-  grid.appendChild(field('JUMLAH SIMULASI', nSimsSel));
+  grid.appendChild(field('NUMBER OF SIMULATIONS', nSimsSel));
   grid.appendChild(runBtn);
   grid.appendChild(againBtn);
   ctl.appendChild(grid);
   ctl.appendChild(createEl('p', {
     style: { fontSize: 'var(--text-xs)', color: 'var(--c-text-3)', marginTop: 'var(--s-3)' },
-  }, ['Satu titik garis = 1 hari untuk horizon pendek; horizon panjang diagregasi (1 titik = 5 hari s.d. 1 tahun, 21 hari di atas itu). Ember dari ujung jalur: naik bila return log akhir > +1%, turun bila < −1%, sisanya stagnan.']));
+  }, ['One line point = 1 day for short horizons; longer horizons are aggregated (1 point = 5 days up to 1 year, 21 days above that). Groups from path ends: up when the final log return is > +1%, down when < −1%, otherwise flat.']));
   container.appendChild(ctl);
 
   const resultWrap = createEl('div', {});
@@ -128,45 +128,45 @@ export function render() {
       c.style.borderTop = `3px solid ${COLORS[b]}`;
       const cnt = r.counts[b];
       c.appendChild(createEl('div', { style: { fontSize: 'var(--text-lg)', fontWeight: '600' } },
-        [cnt ? `${cnt.toLocaleString('id-ID')} jalur (${fmtProb(cnt / total)})` : 'tidak ada jalur']));
+        [cnt ? `${cnt.toLocaleString('en-US')} paths (${fmtProb(cnt / total)})` : 'no paths']));
       c.appendChild(createEl('div', { style: { fontSize: 'var(--text-sm)', color: 'var(--c-text-2)' } },
-        [`Median akhir: ${fmtPct(last(b))}`]));
+        [`Final median: ${fmtPct(last(b))}`]));
       stats.appendChild(c);
     });
     resultWrap.appendChild(stats);
 
     const chartCard = createEl('div', { class: 'card', style: { marginBottom: 'var(--s-3)' } });
     chartCard.appendChild(createEl('h3', { class: 'card__title', style: { marginBottom: 'var(--s-2)' } },
-      [`Garis Perwakilan — ${r.label}`]));
+      [`Representative Lines — ${r.label}`]));
     const svgWrap = createEl('div', {});
     svgWrap.innerHTML = linesSvg(r.points, r.lines);
     chartCard.appendChild(svgWrap);
     const legend = createEl('div', { style: { fontSize: 'var(--text-sm)', color: 'var(--c-text-2)' } });
     legend.innerHTML = BUCKETS.map((b) => {
       const cnt = r.counts[b];
-      return `<span style="color:${COLORS[b]}">●</span> ${LABELS[b]}: ${cnt ? `${cnt.toLocaleString('id-ID')} jalur (${fmtProb(cnt / total)})` : 'tidak ada jalur yang berakhir di sini'}`;
+      return `<span style="color:${COLORS[b]}">●</span> ${LABELS[b]}: ${cnt ? `${cnt.toLocaleString('en-US')} paths (${fmtProb(cnt / total)})` : 'no paths end here'}`;
     }).join(' · ');
     chartCard.appendChild(legend);
     resultWrap.appendChild(chartCard);
 
     resultWrap.appendChild(createEl('p', { style: { fontSize: 'var(--text-sm)', color: 'var(--c-text-2)', margin: '0 0 var(--s-2)' } },
-      [`1 titik = ${r.step_days} hari · return dipakai: ${r.n_returns.toLocaleString('id-ID')} · horizon ${r.horizon_days} hari · ${r.n_sims.toLocaleString('id-ID')} simulasi.`]));
+      [`1 point = ${r.step_days} days · returns used: ${r.n_returns.toLocaleString('en-US')} · horizon ${r.horizon_days} days · ${r.n_sims.toLocaleString('en-US')} simulations.`]));
     resultWrap.appendChild(createEl('p', { style: { fontSize: 'var(--text-xs)', color: 'var(--c-text-3)', margin: '0' } },
-      [r.note || 'Bukan ramalan, bukan rekomendasi — garis median dari simulasi atas data historis.']));
+      [r.note || 'Not a forecast, not a recommendation — median lines from simulations over historical data.']));
   }
 
   async function run() {
     if (state.running) return;
     if (state.target === 'saham' && !state.ticker.trim()) {
-      toast('Isi ticker dulu', { type: 'error' });
+      toast('Enter a ticker first', { type: 'error' });
       return;
     }
     if (state.target === 'indeks' && !state.indexId) {
-      toast('Pilih indeks dulu', { type: 'error' });
+      toast('Choose an index first', { type: 'error' });
       return;
     }
     state.running = true;
-    runBtn.textContent = 'Mengocok…';
+    runBtn.textContent = 'Rolling…';
     runBtn.disabled = true;
     againBtn.disabled = true;
     try {
@@ -183,10 +183,10 @@ export function render() {
     } catch (e) {
       resultWrap.innerHTML = '';
       resultWrap.appendChild(createEl('div', { class: 'card', style: { fontSize: 'var(--text-sm)', color: 'var(--c-danger)' } },
-        [`Gagal: ${e.message || e}`]));
+        [`Failed: ${e.message || e}`]));
     }
     state.running = false;
-    runBtn.textContent = 'Simulasi';
+    runBtn.textContent = 'Simulate';
     runBtn.disabled = false;
     againBtn.disabled = !state.hasResult;
   }
@@ -198,7 +198,7 @@ export function render() {
       const indices = (await Api.get('/index-saham')) || [];
       idxSel.innerHTML = '';
       if (!indices.length) {
-        idxSel.appendChild(createEl('option', { value: '' }, ['— belum ada indeks —']));
+        idxSel.appendChild(createEl('option', { value: '' }, ['— no index yet —']));
         return;
       }
       indices.forEach((i) => {
@@ -208,8 +208,8 @@ export function render() {
       idxSel.value = state.indexId;
     } catch (e) {
       idxSel.innerHTML = '';
-      idxSel.appendChild(createEl('option', { value: '' }, ['— gagal memuat indeks —']));
-      toast('Gagal memuat daftar indeks: ' + (e.message || e), { type: 'error' });
+      idxSel.appendChild(createEl('option', { value: '' }, ['— failed to load indexes —']));
+      toast('Failed to load the index list: ' + (e.message || e), { type: 'error' });
     }
   })();
 

@@ -6,7 +6,7 @@ import { icons } from './icons.js';
 export function createThemeToggle() {
   const btn = document.createElement('button');
   btn.className = 'appbar__btn tooltip';
-  btn.title = 'Ganti tema';
+  btn.title = 'Change theme';
   btn.setAttribute('aria-label', 'Toggle theme');
   btn.innerHTML = icons[resolveTheme(store.theme) ? 'sun' : 'moon'];
   btn.addEventListener('click', () => {

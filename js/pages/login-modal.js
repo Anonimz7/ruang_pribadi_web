@@ -23,14 +23,14 @@ export function showLogin() {
   // Username field
   const usernameInput = document.createElement('input');
   usernameInput.type = 'text';
-  usernameInput.placeholder = 'Nama Pengguna';
+  usernameInput.placeholder = 'Username';
   usernameInput.className = 'field__input';
   usernameInput.autocomplete = 'username';
 
   // Password field
   const passwordInput = document.createElement('input');
   passwordInput.type = 'password';
-  passwordInput.placeholder = 'Sandi';
+  passwordInput.placeholder = 'Password';
   passwordInput.className = 'field__input';
   passwordInput.autocomplete = 'current-password';
 
@@ -42,10 +42,10 @@ export function showLogin() {
   toggleWrapper.style.fontSize = 'var(--text-sm)';
 
   const toggleLabel = document.createElement('span');
-  toggleLabel.textContent = 'Belum punya akun?';
+  toggleLabel.textContent = "Don't have an account?";
 
   const toggleLink = document.createElement('span');
-  toggleLink.textContent = 'Daftar';
+  toggleLink.textContent = 'Register';
   toggleLink.style.cssText = 'color: var(--c-primary); cursor: pointer; font-weight: bold;';
 
   const toggleCheckbox = document.createElement('input');
@@ -81,7 +81,7 @@ export function showLogin() {
 
   // Buat modal
   const modal = createModal({
-    title: 'Login / Daftar',
+    title: 'Login / Register',
     content,
     width: '400px',
     onClose: () => {
@@ -98,9 +98,9 @@ export function showLogin() {
   let isLogin = true;
   toggleCheckbox.addEventListener('change', () => {
     isLogin = !toggleCheckbox.checked;
-    toggleLabel.textContent = isLogin ? 'Belum punya akun?' : 'Sudah punya akun?';
-    toggleLink.textContent = isLogin ? 'Daftar' : 'Login';
-    submitBtn.textContent = isLogin ? 'LOGIN' : 'DAFTAR';
+    toggleLabel.textContent = isLogin ? "Don't have an account?" : 'Already have an account?';
+    toggleLink.textContent = isLogin ? 'Register' : 'Login';
+    submitBtn.textContent = isLogin ? 'LOGIN' : 'REGISTER';
     errorEl.textContent = '';
   });
 
@@ -114,14 +114,14 @@ export function showLogin() {
     const password = passwordInput.value;
     
     if (!username || !password) {
-      errorEl.textContent = 'Harap isi semua field';
+      errorEl.textContent = 'Please fill in all fields';
       return;
     }
 
     loading = true;
     submitBtn.disabled = true;
     errorEl.textContent = '';
-    submitBtn.innerHTML = '<span class="spinner"></span> Memproses...';
+    submitBtn.innerHTML = '<span class="spinner"></span> Processing...';
 
     try {
       if (isLogin) {
@@ -132,7 +132,7 @@ export function showLogin() {
         toggleCheckbox.checked = false;
         toggleCheckbox.dispatchEvent(new Event('change'));
         errorEl.style.color = 'var(--c-success)';
-        errorEl.textContent = 'Registrasi berhasil! Silakan login.';
+        errorEl.textContent = 'Registration successful! Please log in.';
         return;
       }
 
@@ -148,9 +148,9 @@ export function showLogin() {
       errorEl.textContent = (err instanceof ApiError ? err.message : err.toString()).replace('Exception: ', '');
     } finally {
       loading = false;
-      if (!isLogin && errorEl.textContent.includes('berhasil')) return;
+      if (!isLogin && errorEl.textContent.includes('successful')) return;
       submitBtn.disabled = false;
-      submitBtn.textContent = isLogin ? 'LOGIN' : 'DAFTAR';
+      submitBtn.textContent = isLogin ? 'LOGIN' : 'REGISTER';
     }
   });
 }

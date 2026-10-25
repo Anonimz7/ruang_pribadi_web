@@ -28,7 +28,7 @@ function buildForeignMarketChartApex(container, data) {
     },
   };
   opts.series = [{
-    name: 'Net Foreign',
+    name: 'Net foreign flow',
     data: data.filter(d => d.date && d.net_foreign != null).map(d => ({ x: toTs(d.date), y: d.net_foreign })),
   }];
   opts.tooltip.y = { formatter: (v) => (v >= 0 ? '+' : '') + formatNilaiSingkat(v) };
@@ -85,7 +85,7 @@ async function loadMarket() {
     renderMarket();
   } catch (e) {
     marketState.loading = false;
-    toast('Gagal memuat data pasar: ' + (e.message || e), 'danger');
+    toast('Failed to load market data: ' + (e.message || e), 'danger');
     renderLoading();
   }
 }
@@ -105,12 +105,12 @@ function renderHeader() {
   header.innerHTML = `
     <div style="display:flex;align-items:center;justify-content:space-between;flex-wrap:wrap;gap:var(--s-3);">
       <div>
-        <h1 style="font-size:var(--text-lg);font-weight:700;margin-bottom:var(--s-1);">Ringkasan Pasar</h1>
-        <p style="color:var(--c-text-2);font-size:var(--text-sm);">Analisis pasar saham Indonesia.</p>
+        <h1 style="font-size:var(--text-lg);font-weight:700;margin-bottom:var(--s-1);">Market Summary</h1>
+        <p style="color:var(--c-text-2);font-size:var(--text-sm);">Indonesian stock market analysis.</p>
       </div>
       <div style="display:flex;gap:var(--s-2);">
         <button class="btn btn--secondary btn--sm" id="market-refresh" aria-label="Refresh">${icons['refresh']} <span>Refresh</span></button>
-        <a href="#/saham/stocks" class="btn btn--ghost btn--sm">${icons['trending-up']} <span>Analisis</span></a>
+        <a href="#/saham/stocks" class="btn btn--ghost btn--sm">${icons['trending-up']} <span>Analysis</span></a>
       </div>
     </div>
   `;
@@ -139,7 +139,7 @@ function renderPeriodChips() {
         borderRadius: '16px',
       }
     });
-    chip.textContent = d + 'H';
+    chip.textContent = d + 'D';
     on(chip, 'click', () => {
       if (marketState.days === d) return;
       marketState.days = d;
@@ -158,7 +158,7 @@ function renderLoading() {
     marketRefs.content = el;
     marketRootEl.appendChild(el);
   }
-  el.innerHTML = spinnerCardHtml('Memuat data pasar...');
+  el.innerHTML = spinnerCardHtml('Loading market data…');
   clearCharts();
 }
 
@@ -173,7 +173,7 @@ function renderMarket() {
 
   if (!marketState.data) {
     el.innerHTML = `<div class="card" style="padding:var(--s-6);text-align:center;">
-      <div style="font-size:var(--text-sm);color:var(--c-text-3);">Data pasar tidak tersedia</div>
+      <div style="font-size:var(--text-sm);color:var(--c-text-3);">Market data unavailable</div>
     </div>`;
     return;
   }
@@ -208,14 +208,14 @@ function renderMarket() {
     ${kpiTile('MWI (Market-cap Weighted Index) · base 100', latestMwi ? fmtPrice(latestMwi.close) : '-', mwiChange, '#F2B705')}
     ${kpiTile('Total Value', radarSummary.total_reg_value ? formatNilaiSingkat(radarSummary.total_reg_value) : '-', 0, '#F6903D')}
     ${kpiTile('Total Volume', marketData.length ? formatNilaiSingkat(marketData.reduce((sum, p) => sum + (p.volume || 0), 0)) : '-', 0, '#6DC8EC')}
-    ${kpiTile('Foreign Net', radarSummary.total_net_foreign ? formatNilaiSingkat(radarSummary.total_net_foreign) : '-', 0, radarSummary.total_net_foreign >= 0 ? '#00A86B' : '#D94B4B')}
+    ${kpiTile('Net foreign flow', radarSummary.total_net_foreign ? formatNilaiSingkat(radarSummary.total_net_foreign) : '-', 0, radarSummary.total_net_foreign >= 0 ? '#00A86B' : '#D94B4B')}
     ${kpiTile('Avg BII', marketData.length ? marketData[marketData.length - 1].bii_score.toFixed(1) : '-', 0, '#7B61FF')}
   `;
   el.appendChild(kpiWrap);
 
   // ── ASP vs MWI Chart ──
   if (asp.length && mwi.length) {
-    const panel = chartPanel('ASP vs MWI', 'Rata-rata harga pasar terhadap kapitalisasi pasar tertimbang (base 100)', [
+    const panel = chartPanel('ASP vs MWI', 'Average market price vs market-cap-weighted index (base 100)', [
       { label: 'ASP', color: '#00A86B' }, { label: 'MWI', color: '#F2B705' }
     ], 270);
     el.appendChild(panel);
@@ -223,19 +223,19 @@ function renderMarket() {
 
   // ── Market Charts ──
   if (marketData.length) {
-    el.appendChild(chartPanel('Total Nilai Transaksi Pasar', 'Keseluruhan nilai transaksi harian', [{ label: 'Nilai', color: '#F6903D' }], 200));
-    el.appendChild(chartPanel('Frekuensi Transaksi Pasar', 'Jumlah transaksi harian', [{ label: 'Frekuensi', color: '#5B8FF9' }], 200));
-    el.appendChild(chartPanel('ATV Pasar', 'Ukuran transaksi rata-rata pasar', [{ label: 'ATV', color: '#9270CA' }], 200));
-    el.appendChild(chartPanel('Arus Dana Asing Pasar', 'Net foreign buy/sell keseluruhan pasar', [{ label: 'Beli', color: '#00A86B' }, { label: 'Jual', color: '#D94B4B' }], 210));
+    el.appendChild(chartPanel('Total Market Transaction Value', 'Total daily transaction value', [{ label: 'Value', color: '#F6903D' }], 200));
+    el.appendChild(chartPanel('Market Transaction Frequency', 'Daily transaction count', [{ label: 'Frequency', color: '#5B8FF9' }], 200));
+    el.appendChild(chartPanel('Market ATV', 'Average market transaction size', [{ label: 'ATV', color: '#9270CA' }], 200));
+    el.appendChild(chartPanel('Market Foreign Flow', 'Total market net foreign buy/sell', [{ label: 'Buy', color: '#00A86B' }, { label: 'Sell', color: '#D94B4B' }], 210));
     // ── Top 10 Net Foreign harian terakhir (breakdown bar terakhir chart di atas) ──
     if (topDailyAcc.length || topDailyDist.length) el.appendChild(buildDailyFlowSection(topDailyAcc, topDailyDist, latestDate));
-    el.appendChild(chartPanel('BII Score Pasar', 'Skor akumulasi pasar', [{ label: 'BII', color: '#7B61FF' }], 210));
-    el.appendChild(chartPanel('Nilai Nego Pasar', 'Transaksi non-regular pasar', [{ label: 'Nego Value', color: '#F6C022' }], 200));
-    el.appendChild(chartPanel('Frekuensi Nego Pasar', 'Transaksi negosiasi pasar', [{ label: 'Nego Freq', color: '#90A4AE' }], 180));
+    el.appendChild(chartPanel('Market BII Score', 'Market accumulation score', [{ label: 'BII', color: '#7B61FF' }], 210));
+    el.appendChild(chartPanel('Market Nego Value', 'Market non-regular transactions', [{ label: 'Nego Value', color: '#F6C022' }], 200));
+    el.appendChild(chartPanel('Market Nego Frequency', 'Market negotiated transactions', [{ label: 'Nego Freq', color: '#90A4AE' }], 180));
   }
 
   // ── Tables ──
-  const fundHeaders = ['Ticker', 'Company', 'Net Foreign', 'ROE', 'Laba YoY', 'PER', 'Kualitas', 'Skor Smart'];
+  const fundHeaders = ['Ticker', 'Company', 'Net foreign flow', 'ROE', 'Profit YoY', 'PER', 'Quality', 'Smart Score'];
   const fundRow = r => ({
     ticker: r.ticker, company: r.company_name, netForeign: r.net_flow_val,
     roe: fmtPctFrac(r.roe), profitYoy: fmtSignedPctFrac(r.profit_yoy),
@@ -247,30 +247,30 @@ function renderMarket() {
 
   if (topAcc.length || topDist.length) {
     const note = createEl('div', { style: { fontSize: 'var(--text-xs)', color: 'var(--c-text-3)', marginTop: 'calc(var(--s-6) * -1 + var(--s-2))', marginBottom: 'var(--s-6)' } });
-    note.textContent = 'ROE, Laba YoY & PER berbasis laporan keuangan terakhir per emiten (TTM bila lengkap). Kualitas: Sehat / Waspada (laba turun >20%) / Bermasalah (rugi / EPS negatif / ekuitas negatif). Skor Smart (0–100) = Arus (intensitas arus asing terhadap kapitalisasi pasar, 0–50) + Fundamental (ROE, pertumbuhan laba, DER; sektor keuangan netral untuk DER, 0–50); emiten rugi dibatasi maks 39; "-" bila data fundamental belum ada.';
+    note.textContent = 'ROE, Profit YoY & PER are based on the latest financial statements of each issuer (TTM when complete). Quality: Healthy / Caution (profit down >20%) / Distressed (loss / negative EPS / negative equity). Smart Score (0–100) = Flow (foreign flow intensity vs market cap, 0–50) + Fundamental (ROE, profit growth, DER; financial sector neutral on DER, 0–50); loss-making issuers capped at 39; "-" when fundamental data is not yet available.';
     el.appendChild(note);
   }
 
   const divergence = d.divergence;
   if (divergence != null) {
     if (divergence.length) {
-      el.appendChild(buildTable('DIVERGENSI — HARGA/ARUS NAIK, FUNDAMENTAL TERTINGGAL', ['Ticker', 'Company', 'Perubahan Harga', 'Net Foreign', 'Laba YoY', 'Kualitas', 'Sinyal'], divergence.map(r => ({
+      el.appendChild(buildTable('DIVERGENCE — PRICE/FLOW UP, FUNDAMENTALS LAGGING', ['Ticker', 'Company', 'Price Change', 'Net foreign flow', 'Profit YoY', 'Quality', 'Signal'], divergence.map(r => ({
         ticker: r.ticker, company: r.company_name,
         priceChange: fmtSignedPctFrac(r.price_change), netForeign: r.net_flow_val,
         profitYoy: fmtSignedPctFrac(r.profit_yoy), quality: qualityChip(r.quality),
         sinyal: (r.reasons || []).map(reasonLabel).join(' · ')
       }))));
       const dnote = createEl('div', { style: { fontSize: 'var(--text-xs)', color: 'var(--c-text-3)', marginTop: 'calc(var(--s-6) * -1 + var(--s-2))', marginBottom: 'var(--s-6)' } });
-      dnote.textContent = 'Harga naik ≥20% pada jendela terpilih atau arus asing bersih masuk, tetapi laporan keuangan terakhir menunjukkan laba rugi / EPS negatif / laba turun >20% / laba stagnan. Saringan awal untuk diperiksa — bukan rekomendasi.';
+      dnote.textContent = 'Price up ≥20% in the selected window or net foreign inflow, but the latest financial statements show loss-making / negative EPS / profit down >20% / stagnant profit. Initial screen for review — not a recommendation.';
       el.appendChild(dnote);
     } else {
       const dnone = createEl('div', { style: { fontSize: 'var(--text-xs)', color: 'var(--c-text-3)', marginBottom: 'var(--s-6)' } });
-      dnone.textContent = 'Divergensi: tidak ada emiten dengan harga/arus naik tetapi fundamental tertinggal pada jendela ini.';
+      dnone.textContent = 'Divergence: no issuers with rising price/flow but lagging fundamentals in this window.';
       el.appendChild(dnone);
     }
   }
 
-  if (topForeignOwn.length) el.appendChild(buildTable('TOP 10 FOREIGN OWNERSHIP', ['Ticker', 'Company', 'Nilai Asing', '% Saham'], topForeignOwn.map(r => ({
+  if (topForeignOwn.length) el.appendChild(buildTable('TOP 10 FOREIGN OWNERSHIP', ['Ticker', 'Company', 'Foreign Value', '% Shares'], topForeignOwn.map(r => ({
     ticker: r.ticker, company: r.company_name, nilaiAsing: r.foreign_value,
     pct: r.foreign_pct_total != null ? r.foreign_pct_total.toFixed(1) + '%' : '-'
   }))));
@@ -279,7 +279,7 @@ function renderMarket() {
   const summaryKpi = [];
   if (radarSummary.total_reg_value != null) summaryKpi.push({ metric: 'Total Regular Value', value: formatNilaiSingkat(radarSummary.total_reg_value) });
   if (radarSummary.total_nego_value != null) summaryKpi.push({ metric: 'Total Nego Value', value: formatNilaiSingkat(radarSummary.total_nego_value) });
-  if (radarSummary.total_net_foreign != null) summaryKpi.push({ metric: 'Total Net Foreign', value: formatNilaiSingkat(radarSummary.total_net_foreign) });
+  if (radarSummary.total_net_foreign != null) summaryKpi.push({ metric: 'Total net foreign flow', value: formatNilaiSingkat(radarSummary.total_net_foreign) });
   if (radarSummary.asp_latest != null) summaryKpi.push({ metric: 'ASP Latest (base 100)', value: fmtPrice(radarSummary.asp_latest) });
   if (radarSummary.mwi_latest != null) summaryKpi.push({ metric: 'MWI Latest (base 100)', value: fmtPrice(radarSummary.mwi_latest) });
 
@@ -297,35 +297,35 @@ function buildScreenerSection() {
   const sel = inp + 'width:auto;';
   const lab = 'display:flex;flex-direction:column;gap:var(--s-1);font-size:var(--text-xs);color:var(--c-text-3);';
   wrap.innerHTML = `
-    <div style="font-size:var(--text-md);font-weight:700;margin-bottom:var(--s-3);">SCREENER — FUNDAMENTAL + ARUS ASING</div>
+    <div style="font-size:var(--text-md);font-weight:700;margin-bottom:var(--s-3);">SCREENER — FUNDAMENTAL + FOREIGN FLOW</div>
     <div style="display:flex;gap:var(--s-3);flex-wrap:wrap;align-items:flex-end;margin-bottom:var(--s-3);">
-      <label style="${lab}">ROE min (%)<input id="scr-roe" type="number" step="any" placeholder="cth 10" style="${inp}"></label>
-      <label style="${lab}">Laba YoY min (%)<input id="scr-yoy" type="number" step="any" placeholder="cth 0" style="${inp}"></label>
-      <label style="${lab}">DER maks<input id="scr-der" type="number" step="any" placeholder="cth 2" style="${inp}"></label>
-      <label style="${lab}">PER maks<input id="scr-per" type="number" step="any" placeholder="cth 15" style="${inp}"></label>
-      <label style="${lab}">Skor Smart min<input id="scr-smart" type="number" step="1" min="0" max="100" placeholder="cth 50" style="${inp}"></label>
-      <label style="${lab}">Kualitas
+      <label style="${lab}">ROE min (%)<input id="scr-roe" type="number" step="any" placeholder="e.g. 10" style="${inp}"></label>
+      <label style="${lab}">Profit YoY min (%)<input id="scr-yoy" type="number" step="any" placeholder="e.g. 0" style="${inp}"></label>
+      <label style="${lab}">DER max<input id="scr-der" type="number" step="any" placeholder="e.g. 2" style="${inp}"></label>
+      <label style="${lab}">PER max<input id="scr-per" type="number" step="any" placeholder="e.g. 15" style="${inp}"></label>
+      <label style="${lab}">Smart Score min<input id="scr-smart" type="number" step="1" min="0" max="100" placeholder="e.g. 50" style="${inp}"></label>
+      <label style="${lab}">Quality
         <select id="scr-quality" style="${sel}">
-          <option value="">Semua</option>
-          <option value="sehat">Sehat</option>
-          <option value="sehat,waspada">Sehat + Waspada</option>
-          <option value="bermasalah">Bermasalah</option>
+          <option value="">All</option>
+          <option value="sehat">Healthy</option>
+          <option value="sehat,waspada">Healthy + Caution</option>
+          <option value="bermasalah">Distressed</option>
         </select></label>
-      <label style="${lab}">Arus asing
+      <label style="${lab}">Foreign flow
         <select id="scr-flow" style="${sel}">
-          <option value="semua">Semua</option>
-          <option value="positif">Masuk (positif)</option>
-          <option value="negatif">Keluar (negatif)</option>
+          <option value="semua">All</option>
+          <option value="positif">Inflow (positive)</option>
+          <option value="negatif">Outflow (negative)</option>
         </select></label>
-      <label style="${lab}">Urutan
+      <label style="${lab}">Sort by
         <select id="scr-sort" style="${sel}">
-          <option value="smart">Skor Smart</option>
-          <option value="flow">Arus terbesar</option>
-          <option value="roe">ROE tertinggi</option>
+          <option value="smart">Smart Score</option>
+          <option value="flow">Largest flow</option>
+          <option value="roe">Highest ROE</option>
         </select></label>
-      <button id="scr-apply" class="btn btn--primary btn--sm" type="button">Terapkan</button>
+      <button id="scr-apply" class="btn btn--primary btn--sm" type="button">Apply</button>
     </div>
-    <div id="scr-result" style="font-size:var(--text-sm);color:var(--c-text-3);">Atur filter, lalu klik Terapkan. Screener menilai semua emiten yang sudah mempunyai data fundamental XBRL — tidak dimuat otomatis. Jendela arus mengikuti pemilih hari di atas.</div>`;
+    <div id="scr-result" style="font-size:var(--text-sm);color:var(--c-text-3);">Set the filters, then click Apply. The screener covers all issuers that already have XBRL fundamental data — it does not load automatically. The flow window follows the day selector above.</div>`;
   const result = wrap.querySelector('#scr-result');
   const run = async () => {
     const num = id => { const v = wrap.querySelector(id).value.trim(); return v === '' ? null : Number(v); };
@@ -336,17 +336,17 @@ function buildScreenerSection() {
     const per = num('#scr-per'); if (per != null && !Number.isNaN(per)) params.max_per = per;
     const sm = num('#scr-smart'); if (sm != null && !Number.isNaN(sm)) params.min_smart = sm;
     const q = wrap.querySelector('#scr-quality').value; if (q) params.quality = q;
-    result.textContent = 'Menyaring…';
+    result.textContent = 'Screening…';
     try {
       const res = await Api.get('/idx/market/screener', params);
       const d = res?.data || res;
       const items = d.items || [];
       result.innerHTML = '';
       const info = createEl('div', { style: { fontSize: 'var(--text-xs)', color: 'var(--c-text-3)', marginBottom: 'var(--s-3)' } });
-      info.textContent = `Menampilkan ${d.count ?? items.length} dari ${d.total_matched ?? items.length} emiten yang cocok · jendela arus ${d.period_days ?? marketState.days} hari. Filter DER diterapkan apa adanya — DER sektor keuangan memang struktural tinggi, baca bersama kolom Sektor.`;
+      info.textContent = `Showing ${d.count ?? items.length} of ${d.total_matched ?? items.length} matching issuers · flow window ${d.period_days ?? marketState.days} days. The DER filter is applied as-is — financial-sector DER is structurally high, read it together with the Sector column.`;
       result.appendChild(info);
       if (items.length) {
-        result.appendChild(buildTable('HASIL SCREENER', ['Ticker', 'Company', 'Sektor', 'Net Foreign', 'ROE', 'Laba YoY', 'DER', 'PER', 'Kualitas', 'Skor Smart'], items.map(r => ({
+        result.appendChild(buildTable('SCREENER RESULTS', ['Ticker', 'Company', 'Sector', 'Net foreign flow', 'ROE', 'Profit YoY', 'DER', 'PER', 'Quality', 'Smart Score'], items.map(r => ({
           ticker: r.ticker, company: r.company_name, sektor: r.sub_sector || r.sector || '-',
           netForeign: r.net_flow_val, roe: fmtPctFrac(r.roe), profitYoy: fmtSignedPctFrac(r.profit_yoy),
           der: r.der == null ? '-' : r.der.toFixed(2), per: fmtPer(r.per),
@@ -354,11 +354,11 @@ function buildScreenerSection() {
         }))));
       } else {
         const none = createEl('div', { style: { fontSize: 'var(--text-sm)', color: 'var(--c-text-3)' } });
-        none.textContent = 'Tidak ada emiten yang cocok dengan filter ini.';
+        none.textContent = 'No issuers match these filters.';
         result.appendChild(none);
       }
     } catch (e) {
-      result.textContent = 'Gagal memuat screener — coba lagi.';
+      result.textContent = 'Failed to load screener — try again.';
     }
   };
   on(wrap.querySelector('#scr-apply'), 'click', run);
@@ -385,7 +385,7 @@ async function mountMarketCharts(asp, mwi, marketData) {
     console.error('[Market] Failed to load chart library:', e);
     marketRootEl.querySelectorAll('.market-page__chart').forEach(c => {
       c.innerHTML = `<div style="display:flex;align-items:center;justify-content:center;height:100%;color:var(--c-text-3);font-size:var(--text-sm);">
-        <span style="margin-right:var(--s-2);">${icons['alert-circle']}</span> Gagal memuat chart library
+        <span style="margin-right:var(--s-2);">${icons['alert-circle']}</span> Failed to load chart library
       </div>`;
     });
     return;
@@ -397,13 +397,13 @@ async function mountMarketCharts(asp, mwi, marketData) {
     let chart;
     try {
       if (type === 'ASP vs MWI') chart = buildAspMwiChartApex(container, asp, mwi);
-      else if (type === 'Total Nilai Transaksi Pasar') chart = buildBarChartApex(container, marketData.map(d => ({ date: d.date, value: d.value })), '#F6903D');
-      else if (type === 'Frekuensi Transaksi Pasar') chart = buildBarChartApex(container, marketData.map(d => ({ date: d.date, value: d.frequency })), '#5B8FF9');
-      else if (type === 'ATV Pasar') chart = buildBarChartApex(container, marketData.map(d => ({ date: d.date, value: d.atv })), '#9270CA');
-      else if (type === 'Arus Dana Asing Pasar') chart = buildForeignMarketChartApex(container, marketData);
-      else if (type === 'BII Score Pasar') chart = buildLineChartApex(container, marketData.map(d => ({ date: d.date, close: d.bii_score })), '#7B61FF');
-      else if (type === 'Nilai Nego Pasar') chart = buildBarChartApex(container, marketData.map(d => ({ date: d.date, value: d.non_reg_value })), '#F6C022');
-      else if (type === 'Frekuensi Nego Pasar') chart = buildBarChartApex(container, marketData.map(d => ({ date: d.date, value: d.non_reg_freq })), '#90A4AE');
+      else if (type === 'Total Market Transaction Value') chart = buildBarChartApex(container, marketData.map(d => ({ date: d.date, value: d.value })), '#F6903D');
+      else if (type === 'Market Transaction Frequency') chart = buildBarChartApex(container, marketData.map(d => ({ date: d.date, value: d.frequency })), '#5B8FF9');
+      else if (type === 'Market ATV') chart = buildBarChartApex(container, marketData.map(d => ({ date: d.date, value: d.atv })), '#9270CA');
+      else if (type === 'Market Foreign Flow') chart = buildForeignMarketChartApex(container, marketData);
+      else if (type === 'Market BII Score') chart = buildLineChartApex(container, marketData.map(d => ({ date: d.date, close: d.bii_score })), '#7B61FF');
+      else if (type === 'Market Nego Value') chart = buildBarChartApex(container, marketData.map(d => ({ date: d.date, value: d.non_reg_value })), '#F6C022');
+      else if (type === 'Market Nego Frequency') chart = buildBarChartApex(container, marketData.map(d => ({ date: d.date, value: d.non_reg_freq })), '#90A4AE');
       if (chart) marketState.charts.push(chart);
     } catch (e) {
       console.error(`[Market] Chart "${type}" failed:`, e);
@@ -421,7 +421,7 @@ function buildDailyFlowSection(acc, dist, dateStr) {
       <div style="font-size:var(--text-sm);font-weight:700;margin-bottom:var(--s-2);color:${color};">${title}</div>
       <div style="overflow-x:auto;">
         <table class="table">
-          <thead><tr><th>Ticker</th><th>Company</th><th style="text-align:right;">Net Foreign</th></tr></thead>
+          <thead><tr><th>Ticker</th><th>Company</th><th style="text-align:right;">Net foreign flow</th></tr></thead>
           <tbody>
             ${rows.map(r => `<tr>
               <td style="font-weight:600;font-size:var(--text-sm);"><a href="#/saham/stocks" style="color:var(--c-primary);" onclick="localStorage.setItem('stocks_initial_ticker','${r.ticker}')">${r.ticker}</a></td>
@@ -434,8 +434,8 @@ function buildDailyFlowSection(acc, dist, dateStr) {
     </div>`;
   const wrap = createEl('div', { style: { marginBottom: 'var(--s-6)' } });
   wrap.innerHTML = `
-    <div style="font-size:var(--text-md);font-weight:700;">TOP NET FOREIGN HARIAN</div>
-    <div style="font-size:var(--text-xs);color:var(--c-text-3);margin:2px 0 var(--s-3);">10 saham dengan net foreign terbesar &middot; ${dl} &middot; 1 hari terakhir</div>
+    <div style="font-size:var(--text-md);font-weight:700;">TOP DAILY NET FOREIGN FLOW</div>
+    <div style="font-size:var(--text-xs);color:var(--c-text-3);margin:2px 0 var(--s-3);">Top 10 stocks by net foreign flow &middot; ${dl} &middot; last 1 day</div>
     <div style="display:flex;gap:var(--s-4);flex-wrap:wrap;">
       ${tabelPeringkatHtml('TOP NET BUY', acc, '#00A86B')}
       ${tabelPeringkatHtml('TOP NET SELL', dist, '#D94B4B')}
@@ -447,26 +447,26 @@ function fmtPctFrac(v) { return v == null ? '-' : (v * 100).toFixed(1) + '%'; }
 function fmtSignedPctFrac(v) { return v == null ? '-' : (v >= 0 ? '+' : '') + (v * 100).toFixed(1) + '%'; }
 function fmtPer(v) { return v == null ? '-' : v.toFixed(1) + '×'; }
 function qualityChip(q) {
-  if (q === 'sehat') return '<span style="color:#00A86B;font-weight:600;">● Sehat</span>';
-  if (q === 'waspada') return '<span style="color:#E8A33D;font-weight:600;">● Waspada</span>';
-  if (q === 'bermasalah') return '<span style="color:#D94B4B;font-weight:600;">● Bermasalah</span>';
-  return 'belum lapor';
+  if (q === 'sehat') return '<span style="color:#00A86B;font-weight:600;">● Healthy</span>';
+  if (q === 'waspada') return '<span style="color:#E8A33D;font-weight:600;">● Caution</span>';
+  if (q === 'bermasalah') return '<span style="color:#D94B4B;font-weight:600;">● Distressed</span>';
+  return 'not yet reported';
 }
 
 function smartChip(r) {
   if (r.smart_score == null) return '-';
   const s = r.smart_score;
   const color = s >= 70 ? '#00A86B' : s >= 50 ? '#E8A33D' : '#D94B4B';
-  const parts = `Arus ${r.smart_flow ?? '-'} + Fundamental ${r.smart_fund ?? '-'}`;
-  const cap = r.smart_capped ? ' · dibatasi maks 39 (rugi)' : '';
+  const parts = `Flow ${r.smart_flow ?? '-'} + Fundamental ${r.smart_fund ?? '-'}`;
+  const cap = r.smart_capped ? ' · capped at max 39 (loss)' : '';
   return `<span style="color:${color};font-weight:700;" title="${parts}${cap}">${s}</span>`;
 }
 
 function reasonLabel(code) {
-  if (code === 'laba_rugi') return 'Laba rugi';
-  if (code === 'eps_rugi') return 'EPS negatif';
-  if (code === 'laba_turun') return 'Laba turun >20%';
-  if (code === 'laba_stagnan') return 'Laba stagnan';
+  if (code === 'laba_rugi') return 'Loss-making';
+  if (code === 'eps_rugi') return 'Negative EPS';
+  if (code === 'laba_turun') return 'Profit down >20%';
+  if (code === 'laba_stagnan') return 'Stagnant profit';
   return code;
 }
 

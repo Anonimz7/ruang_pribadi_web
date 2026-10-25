@@ -78,7 +78,7 @@ function normalizePath(path) {
  */
 async function checkAccess(path) {
   const routeModule = routes[path];
-  if (!routeModule) return { allowed: false, reason: 'Halaman tidak ditemukan.' };
+  if (!routeModule) return { allowed: false, reason: 'Page not found.' };
 
   // Public routes don't require authentication
   if (PUBLIC_ROUTES.has(path)) return { allowed: true, reason: null };
@@ -87,7 +87,7 @@ async function checkAccess(path) {
   if (path.startsWith('/saham')) {
     if (!store.token) return { allowed: false, reason: 'login_required' };
     if (path.startsWith('/saham/admin') && !Auth.isAdmin()) {
-      return { allowed: false, reason: 'Anda tidak memiliki akses admin.' };
+      return { allowed: false, reason: 'You do not have admin access.' };
     }
     return { allowed: true, reason: null };
   }
@@ -130,7 +130,7 @@ async function checkAccess(path) {
       return {
         allowed: false,
         reason: store.token
-          ? 'Akses membutuhkan tier lebih tinggi.'
+          ? 'Access requires a higher tier.'
           : 'login_required',
       };
     }
@@ -166,7 +166,7 @@ export async function navigate(path, push = true) {
       showLogin();
       return;
     } else {
-      app.innerHTML = `<div class="empty"><div class="empty__title">Akses Dibatasi</div><div class="empty__desc">${reason}</div></div>`;
+      app.innerHTML = `<div class="empty"><div class="empty__title">Access Restricted</div><div class="empty__desc">${reason}</div></div>`;
       return;
     }
   }
@@ -219,8 +219,8 @@ export async function navigate(path, push = true) {
     const wrap = document.createElement('div');
     wrap.className = 'empty';
     wrap.innerHTML = `
-      <div class="empty__title">Halaman Gagal Dimuat</div>
-      <div class="empty__desc">Modul halaman tidak dapat dimuat${err?.name ? ' (' + err.name + ')' : ''}. Kemungkinan cache browser masih menyimpan kegagalan lama — coba muat ulang.</div>
+      <div class="empty__title">Page Failed to Load</div>
+      <div class="empty__desc">The page module could not be loaded${err?.name ? ' (' + err.name + ')' : ''}. The browser cache may still hold an old failure — try reloading.</div>
     `;
     const btn = document.createElement('button');
     btn.className = 'btn btn--primary';

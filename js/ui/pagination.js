@@ -11,9 +11,9 @@ export function pageInfo(page, perPage, total) {
   };
 }
 
-export function pageInfoText(page, perPage, total, noun = 'saham', suffix = '') {
+export function pageInfoText(page, perPage, total, noun = 'stocks', suffix = '') {
   const { first, last } = pageInfo(page, perPage, total);
-  return `Menampilkan ${first}–${last} dari ${total} ${noun}${suffix}`;
+  return `Showing ${first}–${last} of ${total} ${noun}${suffix}`;
 }
 
 export function pagerHtml({ page, perPage, total, prevGlobal, nextGlobal, indicatorClass, infoHtml, infoStyle = 'font-size:var(--text-sm);color:var(--c-text-3);', buttonType = false }) {
@@ -25,7 +25,7 @@ export function pagerHtml({ page, perPage, total, prevGlobal, nextGlobal, indica
       </span>
       <div style="display:flex;gap:var(--s-2);align-items:center;">
         <button${typeAttr} class="btn btn--ghost btn--sm" ${page <= 1 ? 'disabled' : ''} onclick="window.${prevGlobal}()">Prev</button>
-        <span class="${indicatorClass}" aria-label="Halaman ${page} dari ${totalPages}">${page} / ${totalPages}</span>
+        <span class="${indicatorClass}" aria-label="Page ${page} of ${totalPages}">${page} / ${totalPages}</span>
         <button${typeAttr} class="btn btn--ghost btn--sm" ${page >= totalPages ? 'disabled' : ''} onclick="window.${nextGlobal}()">Next</button>
       </div>
     `;

@@ -21,20 +21,20 @@ function StockInfoCardRemarks(stock) {
   const card = createEl('div', { class: 'card', style: { marginTop: 'var(--s-3)', background: 'var(--c-surface-2)' } });
   let html = `<div style="display:flex;align-items:center;gap:var(--s-2);margin-bottom:var(--s-3);">
     <span style="color:var(--c-primary);">${icons['globe']}</span>
-    <span style="font-size:var(--text-sm);font-weight:700;">Info Sektor</span>
+    <span style="font-size:var(--text-sm);font-weight:700;">Sector Info</span>
     <span style="margin-left:auto;"></span>
   </div>`;
-  if (stock.sector) html += `<div style="display:flex;gap:var(--s-2);margin-bottom:var(--s-1);"><span style="width:120px;flex-shrink:0;font-size:var(--text-sm);font-weight:600;color:var(--c-text-2);">Sektor</span><span style="font-size:var(--text-sm);color:var(--c-text);">${stock.sector}</span></div>`;
-  if (stock.primarySector) html += `<div style="display:flex;gap:var(--s-2);margin-bottom:var(--s-1);"><span style="width:120px;flex-shrink:0;font-size:var(--text-sm);font-weight:600;color:var(--c-text-2);">Sub Sektor Primer</span><span style="font-size:var(--text-sm);color:var(--c-text);">${stock.primarySector}</span></div>`;
-  if (stock.subSector) html += `<div style="display:flex;gap:var(--s-2);margin-bottom:var(--s-1);"><span style="width:120px;flex-shrink:0;font-size:var(--text-sm);font-weight:600;color:var(--c-text-2);">Sub Sektor</span><span style="font-size:var(--text-sm);color:var(--c-text);">${stock.subSector}</span></div>`;
+  if (stock.sector) html += `<div style="display:flex;gap:var(--s-2);margin-bottom:var(--s-1);"><span style="width:120px;flex-shrink:0;font-size:var(--text-sm);font-weight:600;color:var(--c-text-2);">Sector</span><span style="font-size:var(--text-sm);color:var(--c-text);">${stock.sector}</span></div>`;
+  if (stock.primarySector) html += `<div style="display:flex;gap:var(--s-2);margin-bottom:var(--s-1);"><span style="width:120px;flex-shrink:0;font-size:var(--text-sm);font-weight:600;color:var(--c-text-2);">Primary Sub Sector</span><span style="font-size:var(--text-sm);color:var(--c-text);">${stock.primarySector}</span></div>`;
+  if (stock.subSector) html += `<div style="display:flex;gap:var(--s-2);margin-bottom:var(--s-1);"><span style="width:120px;flex-shrink:0;font-size:var(--text-sm);font-weight:600;color:var(--c-text-2);">Sub Sector</span><span style="font-size:var(--text-sm);color:var(--c-text);">${stock.subSector}</span></div>`;
   if (hasRemarks) {
     html += `<div style="display:flex;gap:var(--s-2);margin-bottom:var(--s-1);"><span style="width:120px;flex-shrink:0;font-size:var(--text-sm);font-weight:600;color:var(--c-text-2);">Remarks</span><span style="font-size:var(--text-sm);color:var(--c-text);">${remarksSegmentsHtml(stock.remarksSegments, stock.remarksText)}</span></div>`;
     html += `<div style="display:flex;gap:var(--s-2);margin-bottom:var(--s-1);">
       <span style="width:120px;flex-shrink:0;"></span>
       <span style="min-width:0;">
         <button type="button" class="stocks-page__remarks-history-btn" aria-expanded="false"
-          aria-label="Tampilkan riwayat perubahan remarks">
-          <span>Riwayat Remarks</span>${icons['chevron-right']}
+          aria-label="Show remarks change history">
+          <span>Remarks History</span>${icons['chevron-right']}
         </button>
         <div class="stocks-page__remarks-history-list" style="display:none;margin-top:var(--s-2);"></div>
       </span>
@@ -49,11 +49,11 @@ function StockInfoCardRemarks(stock) {
   }
   if (hasCore) {
     html += `<div style="margin-top:var(--s-3);padding-top:var(--s-3);border-top:1px solid var(--c-border);">
-      <div style="font-size:var(--text-xs);font-weight:600;color:var(--c-text-2);margin-bottom:var(--s-1);">Bisnis Inti</div>
+      <div style="font-size:var(--text-xs);font-weight:600;color:var(--c-text-2);margin-bottom:var(--s-1);">Core Business</div>
       <p style="font-size:var(--text-sm);line-height:1.5;color:var(--c-text-2);">${stock.coreBusiness}</p>
     </div>`;
-    const query = encodeURIComponent(`Apa itu saham ${stock.ticker} (${stock.companyName})?`);
-    html += `<a href="https://www.google.com/search?udm=50&q=${query}" target="_blank" rel="noopener" class="btn btn--secondary stocks-page__learn-btn" style="margin-top:var(--s-3);font-size:var(--text-sm);">Pelajari ${stock.companyName}</a>`;
+    const query = encodeURIComponent(`What is ${stock.ticker} stock (${stock.companyName})?`);
+    html += `<a href="https://www.google.com/search?udm=50&q=${query}" target="_blank" rel="noopener" class="btn btn--secondary stocks-page__learn-btn" style="margin-top:var(--s-3);font-size:var(--text-sm);">Learn about ${stock.companyName}</a>`;
   }
   card.innerHTML = html;
   if (hasRemarks) wireRemarksHistory(card, stock.ticker);
@@ -109,7 +109,7 @@ function renderRemarksHistory(res, start = 0) {
   const all = res.items || [];
   const total = res.count || all.length;
   if (!all.length) {
-    return '<div style="font-size:var(--text-xs);color:var(--c-text-2);">Belum ada riwayat perubahan remarks.</div>';
+    return '<div style="font-size:var(--text-xs);color:var(--c-text-2);">No remarks change history yet.</div>';
   }
   const end = Math.min(start + REMARKS_HISTORY_PAGE, all.length);
   let html = all.slice(start, end).map((it) => `
@@ -121,22 +121,22 @@ function renderRemarksHistory(res, start = 0) {
   if (all.length > REMARKS_HISTORY_PAGE) {
     html += `
       <div class="stocks-page__remarks-history-nav">
-        <button type="button" class="stocks-page__remarks-nav-btn" data-nav="prev"${start > 0 ? '' : ' disabled'}>‹ Sebelumnya</button>
-        <span class="stocks-page__remarks-nav-info">${start + 1}–${end} dari ${total}</span>
-        <button type="button" class="stocks-page__remarks-nav-btn" data-nav="next"${end < all.length ? '' : ' disabled'}>Berikutnya ›</button>
+        <button type="button" class="stocks-page__remarks-nav-btn" data-nav="prev"${start > 0 ? '' : ' disabled'}>‹ Previous</button>
+        <span class="stocks-page__remarks-nav-info">${start + 1}–${end} of ${total}</span>
+        <button type="button" class="stocks-page__remarks-nav-btn" data-nav="next"${end < all.length ? '' : ' disabled'}>Next ›</button>
       </div>`;
   } else if (total > all.length) {
     // cadangan bila server membatasi jumlah item yang dikirim
-    html += `<div style="font-size:var(--text-xs);color:var(--c-text-2);margin-top:var(--s-1);">…menampilkan ${all.length} dari ${total} perubahan</div>`;
+    html += `<div style="font-size:var(--text-xs);color:var(--c-text-2);margin-top:var(--s-1);">…showing ${all.length} of ${total} changes</div>`;
   }
   return html;
 }
 
 function setRemarksHistoryBtn(btn, open) {
-  btn.innerHTML = `<span>Riwayat Remarks</span>${open ? icons['chevron-down'] : icons['chevron-right']}`;
+  btn.innerHTML = `<span>Remarks History</span>${open ? icons['chevron-down'] : icons['chevron-right']}`;
   btn.setAttribute('aria-expanded', String(open));
   btn.setAttribute('aria-label',
-    (open ? 'Sembunyikan' : 'Tampilkan') + ' riwayat perubahan remarks');
+    (open ? 'Hide' : 'Show') + ' remarks change history');
 }
 
 function wireRemarksHistory(card, ticker) {
@@ -177,7 +177,7 @@ function wireRemarksHistory(card, ticker) {
     setRemarksHistoryBtn(btn, true);
     list.style.display = '';
     if (res) return;
-    list.innerHTML = '<div style="font-size:var(--text-xs);color:var(--c-text-2);">Memuat riwayat…</div>';
+    list.innerHTML = '<div style="font-size:var(--text-xs);color:var(--c-text-2);">Loading history…</div>';
     try {
       res = await fetchRemarksHistory(ticker);
       start = 0;
@@ -188,7 +188,7 @@ function wireRemarksHistory(card, ticker) {
       list.innerHTML = '';
       list.style.display = 'none';
       btn.remove();
-      toast('Gagal memuat riwayat remarks', 'danger');
+      toast('Failed to load remarks history', 'danger');
     }
   });
 }
@@ -202,7 +202,7 @@ const COMPARE_COLORS = ['#00A86B', '#5B8FF9', '#F6903D', '#E86452', '#9270CA', '
 function fullDate(dateStr) {
   const d = new Date(dateStr);
   if (isNaN(d)) return dateStr;
-  const months = ['Januari', 'Februari', 'Maret', 'April', 'Mei', 'Juni', 'Juli', 'Agustus', 'September', 'Oktober', 'November', 'Desember'];
+  const months = ['January', 'February', 'March', 'April', 'May', 'June', 'July', 'August', 'September', 'October', 'November', 'December'];
   return `${d.getDate()} ${months[d.getMonth()]} ${d.getFullYear()}`;
 }
 
@@ -223,7 +223,7 @@ function buildForeignChartApex(container, data) {
     },
   };
   opts.series = [{
-    name: 'Net Foreign',
+    name: 'Net foreign flow',
     data: data.filter(d => d.date && d.netForeign != null).map(d => ({ x: toTs(d.date), y: d.netForeign })),
   }];
   opts.tooltip.y = { formatter: (v) => (v >= 0 ? '+' : '') + formatNilaiSingkat(v) };
@@ -235,10 +235,10 @@ function buildOwnershipChartApex(container, series) {
   opts.colors = ['#E8A33D'];
   opts.stroke.width = 2.5;
   opts.series = [{
-    name: 'Kepemilikan asing (lembar)',
+    name: 'Foreign ownership (shares)',
     data: series.filter(d => d.date && d.foreign_shares != null).map(d => ({ x: toTs(d.date), y: d.foreign_shares })),
   }];
-  opts.tooltip.y = { formatter: (v) => formatNilaiSingkat(v) + ' lbr' };
+  opts.tooltip.y = { formatter: (v) => formatNilaiSingkat(v) + ' shares' };
   return renderChart(container, opts);
 }
 
@@ -408,7 +408,7 @@ async function loadAnalysis(ticker, { keepCompare = false } = {}) {
     stockState.financials = (fin && (fin.data || fin)) || null;
     for (const ct of stockState.compareTickers) { await refreshCompare(ct); }
   } catch (e) {
-    toast('Gagal memuat analisis: ' + (e.message || e), 'danger');
+    toast('Failed to load analysis: ' + (e.message || e), 'danger');
     console.error('[Stocks] Analysis error:', e);
   } finally {
     stockState.loading = false;
@@ -424,11 +424,11 @@ async function addCompare(ticker) {
   try {
     const res = await Api.get(`/idx/stocks/${t}/analysis`, { days: stockState.days });
     const analysis = new StockAnalysis(res);
-    if (!analysis.data.length) { toast('Tidak ada data untuk ' + t, 'warn'); stockState.compareLoading = false; renderCompareBar(); return; }
+    if (!analysis.data.length) { toast('No data for ' + t, 'warn'); stockState.compareLoading = false; renderCompareBar(); return; }
     stockState.compareTickers.push(t);
     stockState.compareData[t] = analysis.data.map(d => ({...d}));
     stockState.compareMode = true;
-  } catch (e) { toast('Gagal membandingkan: ' + (e.message || e), 'danger'); }
+  } catch (e) { toast('Failed to compare: ' + (e.message || e), 'danger'); }
   finally { stockState.compareLoading = false; renderCompareBar(); renderAnalysis(); }
 }
 
@@ -480,8 +480,8 @@ function renderToolbarOnce() {
   searchWrap.innerHTML = `<span class="search__icon">${icons['search']}</span>`;
   const input = createEl('input', {
     type: 'text', class: 'search__input stocks-page__search-input',
-    placeholder: 'Cari ticker (BBCA, GOTO...)', value: stockState.searchTerm,
-    'aria-label': 'Cari saham', autocomplete: 'off',
+    placeholder: 'Search ticker (BBCA, GOTO...)', value: stockState.searchTerm,
+    'aria-label': 'Search stock', autocomplete: 'off',
   });
   on(input, 'input', (e) => {
     stockState.searchTerm = e.target.value;
@@ -520,7 +520,7 @@ function renderToolbarOnce() {
         color: stockState.days === d ? '#fff' : 'var(--c-text-2)',
       }
     });
-    chip.textContent = d + 'H';
+    chip.textContent = d + 'D';
     on(chip, 'click', () => { stockState.days = d; updatePeriodChips(); if (stockState.selectedTicker) loadAnalysis(stockState.selectedTicker, { keepCompare: true }); });
     chips.appendChild(chip);
   });
@@ -546,7 +546,7 @@ function renderSearchDropdown() {
   if (!dd) return;
   if (stockState.searching) {
     dd.style.display = 'block';
-    dd.innerHTML = `<div style="padding:var(--s-4);text-align:center;font-size:var(--text-sm);color:var(--c-text-3);">Mencari...</div>`;
+    dd.innerHTML = `<div style="padding:var(--s-4);text-align:center;font-size:var(--text-sm);color:var(--c-text-3);">Searching…</div>`;
     return;
   }
   if (!stockState.searchResults.length) { dd.style.display = 'none'; dd.innerHTML = ''; return; }
@@ -586,20 +586,20 @@ function renderCompareBar() {
   let html = `<div style="display:flex;align-items:center;gap:var(--s-2);flex-wrap:wrap;">
     <span style="font-size:var(--text-xs);font-weight:600;color:var(--c-text-3);display:flex;align-items:center;gap:var(--s-1);">
       <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M16 3h3v3h-3zM8 3h3v3H8zM5 8h14v12a2 2 0 0 1-2 2H7a2 2 0 0 1-2-2V8zM12 12v4"/></svg>
-      Bandingkan
+      Compare
     </span>
-    <button class="btn btn--secondary btn--sm stocks-page__add-compare" style="padding:var(--s-1) var(--s-2);font-size:var(--text-xs);">${icons['plus']} Tambah</button>
+    <button class="btn btn--secondary btn--sm stocks-page__add-compare" style="padding:var(--s-1) var(--s-2);font-size:var(--text-xs);">${icons['plus']} Add</button>
   </div>`;
   if (stockState.compareTickers.length) {
     html += `<div style="display:flex;gap:var(--s-1);flex-wrap:wrap;margin-top:var(--s-2);">`;
     html += `<span style="display:inline-flex;align-items:center;gap:4px;padding:2px 8px;background:${COMPARE_COLORS[0]}1A;border:1px solid ${COMPARE_COLORS[0]}66;border-radius:16px;font-size:var(--text-xs);font-weight:600;color:${COMPARE_COLORS[0]};"><span style="width:8px;height:8px;border-radius:50%;background:${COMPARE_COLORS[0]};display:inline-block;"></span>${stockState.analysis.ticker}</span>`;
     stockState.compareTickers.forEach((t, i) => {
       const c = COMPARE_COLORS[(i + 1) % COMPARE_COLORS.length];
-      html += `<span style="display:inline-flex;align-items:center;gap:4px;padding:2px 8px;background:${c}1A;border:1px solid ${c}66;border-radius:16px;font-size:var(--text-xs);font-weight:600;color:${c};"><span style="width:8px;height:8px;border-radius:50%;background:${c};display:inline-block;"></span>${t}<button class="btn btn--ghost btn--sm stocks-page__remove-compare" data-ticker="${t}" style="padding:0;width:16px;height:16px;min-width:16px;min-height:16px;color:var(--c-text-3);margin-left:2px;" aria-label="Hapus ${t}">${icons['x']}</button></span>`;
+      html += `<span style="display:inline-flex;align-items:center;gap:4px;padding:2px 8px;background:${c}1A;border:1px solid ${c}66;border-radius:16px;font-size:var(--text-xs);font-weight:600;color:${c};"><span style="width:8px;height:8px;border-radius:50%;background:${c};display:inline-block;"></span>${t}<button class="btn btn--ghost btn--sm stocks-page__remove-compare" data-ticker="${t}" style="padding:0;width:16px;height:16px;min-width:16px;min-height:16px;color:var(--c-text-3);margin-left:2px;" aria-label="Remove ${t}">${icons['x']}</button></span>`;
     });
     html += `</div>`;
   }
-  if (stockState.compareLoading) html += `<div style="margin-top:var(--s-2);font-size:var(--text-xs);color:var(--c-text-3);">Memuat data perbandingan...</div>`;
+  if (stockState.compareLoading) html += `<div style="margin-top:var(--s-2);font-size:var(--text-xs);color:var(--c-text-3);">Loading comparison data…</div>`;
   el.innerHTML = html;
   const addBtn = el.querySelector('.stocks-page__add-compare');
   if (addBtn) on(addBtn, 'click', showCompareModal);
@@ -613,16 +613,16 @@ function showCompareModal() {
   if (document.querySelector('.stocks-page__compare-modal')) return;
   const overlay = createEl('div', {
     class: 'stocks-page__compare-modal',
-    role: 'dialog', 'aria-modal': 'true', 'aria-label': 'Tambah Saham untuk Dibandingkan',
+    role: 'dialog', 'aria-modal': 'true', 'aria-label': 'Add Stock to Compare',
   });
   const sheet = createEl('div', { class: 'stocks-page__compare-sheet' });
   sheet.innerHTML = `
     <div class="stocks-page__compare-handle"></div>
     <div class="stocks-page__compare-head">
-      <h3>Tambah Saham untuk Dibandingkan</h3>
-      <button type="button" class="btn btn--ghost stocks-page__compare-close" aria-label="Tutup">${icons['x']}</button>
+      <h3>Add Stock to Compare</h3>
+      <button type="button" class="btn btn--ghost stocks-page__compare-close" aria-label="Close">${icons['x']}</button>
     </div>
-    <div class="search stocks-page__compare-search"><span class="search__icon">${icons['search']}</span><input type="text" class="search__input stocks-page__compare-input" placeholder="Cari ticker (BBCA, GOTO...)" autofocus></div>
+    <div class="search stocks-page__compare-search"><span class="search__icon">${icons['search']}</span><input type="text" class="search__input stocks-page__compare-input" placeholder="Search ticker (BBCA, GOTO...)" autofocus></div>
     <div class="stocks-page__compare-results"></div>
   `;
   overlay.appendChild(sheet);
@@ -638,14 +638,14 @@ function showCompareModal() {
   on(input, 'input', (e) => {
     const q = e.target.value;
     if (!q.trim()) { resultsEl.innerHTML = ''; return; }
-    resultsEl.innerHTML = '<div style="padding:var(--s-4);text-align:center;color:var(--c-text-3);font-size:var(--text-sm);">Mencari...</div>';
+    resultsEl.innerHTML = '<div style="padding:var(--s-4);text-align:center;color:var(--c-text-3);font-size:var(--text-sm);">Searching…</div>';
     clearTimeout(stockState._compareDebounce);
     stockState._compareDebounce = setTimeout(async () => {
       try {
         const res = await Api.get('/idx/stocks', { q, limit: 8 });
         let list = Array.isArray(res) ? res : (res?.stocks || []);
         const items = list.map(d => new StockListItem(d));
-        if (!items.length) { resultsEl.innerHTML = '<div style="padding:var(--s-4);text-align:center;color:var(--c-text-3);font-size:var(--text-sm);">Tidak ada hasil</div>'; return; }
+        if (!items.length) { resultsEl.innerHTML = '<div style="padding:var(--s-4);text-align:center;color:var(--c-text-3);font-size:var(--text-sm);">No results</div>'; return; }
         resultsEl.innerHTML = items.map(s => {
           const already = stockState.compareTickers.includes(s.ticker.toUpperCase());
           const sectorBadge = s.sector ? StockSectorBadge(s.sector, true) : null;
@@ -660,7 +660,7 @@ function showCompareModal() {
         resultsEl.querySelectorAll('.stocks-page__compare-item').forEach(item => {
           on(item, 'click', () => { addCompare(item.dataset.ticker); tutupModalBandingkan(); });
         });
-      } catch (_) { resultsEl.innerHTML = '<div style="padding:var(--s-4);text-align:center;color:var(--c-danger);font-size:var(--text-sm);">Gagal mencari</div>'; }
+      } catch (_) { resultsEl.innerHTML = '<div style="padding:var(--s-4);text-align:center;color:var(--c-danger);font-size:var(--text-sm);">Search failed</div>'; }
     }, 300);
   });
   input.focus();
@@ -674,7 +674,7 @@ function renderLoading() {
     stockRefs.analysisContainer = el;
     stockRootEl.appendChild(el);
   }
-  el.innerHTML = spinnerCardHtml('Memuat analisis...', { marginTop: true });
+  el.innerHTML = spinnerCardHtml('Loading analysis…', { marginTop: true });
   clearCharts();
 }
 
@@ -687,7 +687,7 @@ function renderAnalysis() {
     stockRootEl.appendChild(el);
   }
   if (!stockState.analysis) {
-    el.innerHTML = `<div class="card" style="padding:var(--s-6);text-align:center;margin-top:var(--s-4);"><div style="font-size:var(--text-sm);color:var(--c-text-3);">Cari saham untuk melihat analisis</div></div>`;
+    el.innerHTML = `<div class="card" style="padding:var(--s-6);text-align:center;margin-top:var(--s-4);"><div style="font-size:var(--text-sm);color:var(--c-text-3);">Search for a stock to see its analysis</div></div>`;
     clearCharts();
     if (stockRefs.compareBar) { stockRefs.compareBar.remove(); stockRefs.compareBar = null; }
     return;
@@ -739,7 +739,7 @@ function renderAnalysis() {
     <div style="display:flex;gap:var(--s-2);flex-wrap:wrap;margin-bottom:var(--s-2);">
       ${metricCard('BII Score', s.latestBiiScore.toFixed(1), '#9270CA')}
       ${metricCard('Foreign %', s.foreignDominationPct.toFixed(1) + '%', '#5B8FF9')}
-      ${metricCard('Net Foreign', formatNilaiSingkat(s.totalNetForeign), '#00A86B')}
+      ${metricCard('Net foreign flow', formatNilaiSingkat(s.totalNetForeign), '#00A86B')}
     </div>
     <div style="display:flex;gap:var(--s-2);flex-wrap:wrap;">
       ${metricCard('Total Value', formatNilaiSingkat(s.totalValue), '#F6903D')}
@@ -755,34 +755,34 @@ function renderAnalysis() {
     const chartsWrap = createEl('div', { class: 'stocks-page__charts', style: { marginTop: 'var(--s-5)' } });
     if (stockState.compareMode && stockState.compareTickers.length > 0) {
       const compareLegend = [{ label: a.ticker, color: COMPARE_COLORS[0] }, ...stockState.compareTickers.map((t, i) => ({ label: t, color: COMPARE_COLORS[(i + 1) % COMPARE_COLORS.length] }))];
-      chartsWrap.appendChild(chartPanel('Perbandingan Harga (Normalisasi)', 'Persentase perubahan dari hari pertama', compareLegend, 300));
-      chartsWrap.appendChild(chartPanel('Perbandingan BII Score', 'Skor akumulasi (0-100) relatif tiap saham', compareLegend, 210));
+      chartsWrap.appendChild(chartPanel('Price Comparison (Normalized)', 'Percentage change from the first day', compareLegend, 300));
+      chartsWrap.appendChild(chartPanel('BII Score Comparison', 'Accumulation score (0-100), relative per stock', compareLegend, 210));
     } else {
-      chartsWrap.appendChild(chartPanel('Pergerakan Harga', 'Harga penutupan harian', [{ label: 'Harga penutupan', color: '#00A86B' }], 270));
+      chartsWrap.appendChild(chartPanel('Price Movement', 'Daily closing price', [{ label: 'Closing price', color: '#00A86B' }], 270));
     }
-    chartsWrap.appendChild(chartPanel('Total Nilai Transaksi', 'Regular value per hari', [{ label: 'Nilai transaksi', color: '#F6903D' }], 200));
-    chartsWrap.appendChild(chartPanel('Volume Perdagangan', 'Jumlah lot yang diperdagangkan', [{ label: 'Volume', color: '#6DC8EC' }], 200));
-    chartsWrap.appendChild(chartPanel('Arus Dana Asing', 'Net foreign buy / sell', [{ label: 'Beli bersih', color: '#00A86B' }, { label: 'Jual bersih', color: '#D94B4B' }], 210));
+    chartsWrap.appendChild(chartPanel('Total Transaction Value', 'Regular value per day', [{ label: 'Transaction value', color: '#F6903D' }], 200));
+    chartsWrap.appendChild(chartPanel('Trading Volume', 'Lots traded', [{ label: 'Volume', color: '#6DC8EC' }], 200));
+    chartsWrap.appendChild(chartPanel('Foreign Flow', 'Net foreign buy / sell', [{ label: 'Net buy', color: '#00A86B' }, { label: 'Net sell', color: '#D94B4B' }], 210));
     const fp = stockState.foreignPos;
     if (fp && fp.series && fp.series.length) {
-      chartsWrap.appendChild(chartPanel('Posisi Asing Kumulatif', `Net foreign kumulatif sejak ${fp.data_start} · per titik = akumulasi ${fp.bucket_days} hari`, [{ label: 'Posisi', color: '#0EA5A4' }], 230));
+      chartsWrap.appendChild(chartPanel('Cumulative Foreign Position', `Cumulative net foreign since ${fp.data_start} · each point = ${fp.bucket_days}-day accumulation`, [{ label: 'Position', color: '#0EA5A4' }], 230));
       chartsWrap.appendChild(buildPositionStats(fp));
     }
     const fo = stockState.foreignOwn;
     if (fo && fo.series && fo.series.length) {
       const fa = stockState.foreignAnchor;
       const sub = fa && fa.series && fa.series.length
-        ? `Estimasi harian (lembar) tertambat ke snapshot resmi KSEI · jangkar terakhir ${fa.last_anchor ? fa.last_anchor.date : '-'}`
-        : `Snapshot bulanan resmi KSEI sejak ${fo.data_start} · absolut dalam lembar saham`;
-      chartsWrap.appendChild(chartPanel('Kepemilikan Asing (KSEI)', sub, [{ label: 'Lembar asing', color: '#E8A33D' }], 230));
+        ? `Daily estimate (shares) anchored to official KSEI snapshots · last anchor ${fa.last_anchor ? fa.last_anchor.date : '-'}`
+        : `Official monthly KSEI snapshots since ${fo.data_start} · absolute in shares`;
+      chartsWrap.appendChild(chartPanel('Foreign Ownership (KSEI)', sub, [{ label: 'Foreign shares', color: '#E8A33D' }], 230));
       chartsWrap.appendChild(buildOwnershipStats(fo, fa));
       const ft = stockState.foreignTypes;
       if (ft && ft.series && ft.series.length) chartsWrap.appendChild(buildByTypeSection(ft));
     }
-    chartsWrap.appendChild(chartPanel('BII Score (Buying Intensity Index)', 'Skor akumulasi', [{ label: 'BII Score', color: '#7B61FF' }], 210));
-    chartsWrap.appendChild(chartPanel('ATV (Avg Transaction Value)', 'Ukuran transaksi rata-rata', [{ label: 'ATV', color: '#9270CA' }], 200));
-    chartsWrap.appendChild(chartPanel('Nilai Nego (Non-Regular)', 'Transaksi negosiasi', [{ label: 'Nego Value', color: '#F6C022' }], 200));
-    chartsWrap.appendChild(chartPanel('Frekuensi Nego', 'Jumlah transaksi negosiasi per hari', [{ label: 'Nego Freq', color: '#90A4AE' }], 180));
+    chartsWrap.appendChild(chartPanel('BII Score (Buying Intensity Index)', 'Accumulation score', [{ label: 'BII Score', color: '#7B61FF' }], 210));
+    chartsWrap.appendChild(chartPanel('ATV (Avg Transaction Value)', 'Average transaction size', [{ label: 'ATV', color: '#9270CA' }], 200));
+    chartsWrap.appendChild(chartPanel('Nego Value (Non-Regular)', 'Negotiated transactions', [{ label: 'Nego Value', color: '#F6C022' }], 200));
+    chartsWrap.appendChild(chartPanel('Nego Frequency', 'Negotiated transactions per day', [{ label: 'Nego Freq', color: '#90A4AE' }], 180));
     chartsWrap.appendChild(buildSummaryTable(rawData));
     const fin = stockState.financials;
     if (fin && fin.periods && fin.periods.length) chartsWrap.appendChild(buildFinancialSection(fin));
@@ -806,7 +806,7 @@ async function mountCharts(rawData) {
     console.error('[Stocks] Failed to load chart library:', e);
     stockRootEl.querySelectorAll('.stocks-page__chart').forEach(c => {
       c.innerHTML = `<div style="display:flex;align-items:center;justify-content:center;height:100%;color:var(--c-text-3);font-size:var(--text-sm);">
-        <span style="margin-right:var(--s-2);">${icons['alert-circle']}</span> Gagal memuat chart library
+        <span style="margin-right:var(--s-2);">${icons['alert-circle']}</span> Failed to load chart library
       </div>`;
     });
     return;
@@ -821,21 +821,21 @@ async function mountCharts(rawData) {
     const type = container.dataset.chartType;
     let chart = null;
     try {
-      if (type === 'Pergerakan Harga') {
-        chart = buildLineChartApex(container, normData, '#00A86B', { height: 270, name: 'Harga Penutupan' });
-      } else if (type === 'Perbandingan Harga (Normalisasi)') {
+      if (type === 'Price Movement') {
+        chart = buildLineChartApex(container, normData, '#00A86B', { height: 270, name: 'Closing Price' });
+      } else if (type === 'Price Comparison (Normalized)') {
         chart = buildCompareChartApex(container, normData, stockState.compareData, stockState.compareTickers, stockState.analysis.ticker);
-      } else if (type === 'Perbandingan BII Score') {
+      } else if (type === 'BII Score Comparison') {
         chart = buildCompareBiiChartApex(container, normData, stockState.compareData, stockState.compareTickers, stockState.analysis.ticker);
-      } else if (type === 'Total Nilai Transaksi') {
+      } else if (type === 'Total Transaction Value') {
         chart = buildBarChartApex(container, normData.map(d => ({ time: d.date, value: d.value })), '#F6903D', { timeKey: 'time' });
-      } else if (type === 'Volume Perdagangan') {
+      } else if (type === 'Trading Volume') {
         chart = buildBarChartApex(container, normData.map(d => ({ time: d.date, value: d.volume })), '#6DC8EC', { timeKey: 'time' });
-      } else if (type === 'Arus Dana Asing') {
+      } else if (type === 'Foreign Flow') {
         chart = buildForeignChartApex(container, normData);
-      } else if (type === 'Posisi Asing Kumulatif') {
+      } else if (type === 'Cumulative Foreign Position') {
         chart = stockState.foreignPos && stockState.foreignPos.series ? buildPositionChartApex(container, stockState.foreignPos.series) : null;
-      } else if (type === 'Kepemilikan Asing (KSEI)') {
+      } else if (type === 'Foreign Ownership (KSEI)') {
         const fa = stockState.foreignAnchor;
         chart = fa && fa.series && fa.series.length
           ? buildOwnershipChartApex(container, fa.series.map(p => ({ date: p.date, foreign_shares: p.shares })))
@@ -844,13 +844,13 @@ async function mountCharts(rawData) {
         chart = buildLineChartApex(container, normData.map(d => ({ time: d.date, close: d.biiScore })), '#7B61FF', { timeKey: 'time' });
       } else if (type === 'ATV (Avg Transaction Value)') {
         chart = buildBarChartApex(container, normData.map(d => ({ time: d.date, value: d.atv })), '#9270CA', { timeKey: 'time' });
-      } else if (type === 'Nilai Nego (Non-Regular)') {
+      } else if (type === 'Nego Value (Non-Regular)') {
         chart = buildBarChartApex(container, normData.map(d => ({ time: d.date, value: d.nonRegValue })), '#F6C022', { timeKey: 'time' });
-      } else if (type === 'Tren Laba & Pendapatan (Kuartal)') {
+      } else if (type === 'Profit & Revenue Trend (Quarterly)') {
         chart = stockState.financials ? buildProfitTrendChartApex(container, stockState.financials) : null;
-      } else if (type === 'Valuasi Historis (PER & PBV)') {
+      } else if (type === 'Historical Valuation (PER & P/B)') {
         chart = stockState.financials ? buildValuationChartApex(container, stockState.financials) : null;
-      } else if (type === 'Frekuensi Nego') {
+      } else if (type === 'Nego Frequency') {
         chart = buildBarChartApex(container, normData.map(d => ({ time: d.date, value: d.nonRegFreq })), '#90A4AE', { timeKey: 'time' });
       }
       if (chart) stockState.charts.push(chart);
@@ -872,14 +872,14 @@ function buildPositionStats(fp) {
   const warnaArah = (v) => v >= 0 ? '#00A86B' : '#D94B4B';
   const netHtml = `<span style="color:${warnaArah(fp.net_30d)};">${formatNilaiSingkat(fp.net_30d)}</span> / <span style="color:${warnaArah(fp.net_90d)};">${formatNilaiSingkat(fp.net_90d)}</span>`;
   wrap.innerHTML = `
-    <div style="font-size:var(--text-md);font-weight:700;margin-bottom:var(--s-3);">POSISI ASING KUMULATIF</div>
+    <div style="font-size:var(--text-md);font-weight:700;margin-bottom:var(--s-3);">CUMULATIVE FOREIGN POSITION</div>
     <div style="display:flex;gap:var(--s-2);flex-wrap:wrap;">
-      ${kotakStatistikHtml('Tertinggi · ' + dateLabelYear(fp.peak_date), formatNilaiSingkat(fp.peak), '#00A86B')}
-      ${kotakStatistikHtml('Terendah · ' + dateLabelYear(fp.trough_date), formatNilaiSingkat(fp.trough), '#D94B4B')}
-      ${kotakStatistikHtml('Sekarang', formatNilaiSingkat(fp.current), fp.current >= 0 ? '#00A86B' : '#D94B4B')}
-      ${kotakStatistikHtml('Posisi dalam rentang', rangePct, '#F2B705')}
-      ${kotakStatistikHtml('Net sell sejak puncak', formatNilaiSingkat(fp.distance_from_peak), '#90A4AE')}
-      ${kotakStatistikHtml('Net 30 / 90 hari', netHtml, 'inherit')}
+      ${kotakStatistikHtml('Highest · ' + dateLabelYear(fp.peak_date), formatNilaiSingkat(fp.peak), '#00A86B')}
+      ${kotakStatistikHtml('Lowest · ' + dateLabelYear(fp.trough_date), formatNilaiSingkat(fp.trough), '#D94B4B')}
+      ${kotakStatistikHtml('Now', formatNilaiSingkat(fp.current), fp.current >= 0 ? '#00A86B' : '#D94B4B')}
+      ${kotakStatistikHtml('Position in range', rangePct, '#F2B705')}
+      ${kotakStatistikHtml('Net sell since peak', formatNilaiSingkat(fp.distance_from_peak), '#90A4AE')}
+      ${kotakStatistikHtml('Net 30 / 90 days', netHtml, 'inherit')}
     </div>`;
   return wrap;
 }
@@ -891,28 +891,28 @@ function buildOwnershipStats(fo, fa) {
   const formatBertanda = (v) => v == null ? '-' : (v >= 0 ? '+' : '') + formatNilaiSingkat(v);
   const deltaHtml = `<span style="color:${warnaArah(fo.change_3m_shares)};">${formatBertanda(fo.change_3m_shares)}</span> / <span style="color:${warnaArah(fo.change_12m_shares)};">${formatBertanda(fo.change_12m_shares)}</span>`;
   const cal = fa && fa.calibration;
-  const badgeMap = { 'BERSIH': ['Arus terverifikasi KSEI', '#00A86B'], 'BOCOR': ['Ada pergerakan luar pasar', '#D94B4B'], 'DATA-TIPIS': ['Data kalibrasi tipis', '#8A8F98'] };
-  const bm = cal ? (badgeMap[cal.kelas] || ['Kalibrasi: ' + cal.kelas, '#8A8F98']) : null;
+  const badgeMap = { 'BERSIH': ['Flow verified by KSEI', '#00A86B'], 'BOCOR': ['Off-market movements present', '#D94B4B'], 'DATA-TIPIS': ['Thin calibration data', '#8A8F98'] };
+  const bm = cal ? (badgeMap[cal.kelas] || ['Calibration: ' + cal.kelas, '#8A8F98']) : null;
   const badge = bm ? `<span style="display:inline-block;margin-left:var(--s-2);padding:2px 8px;border:1px solid ${bm[1]};color:${bm[1]};border-radius:999px;font-size:var(--text-xs);font-weight:600;vertical-align:middle;">${bm[0]}</span>` +
-    (cal.flow_vs_delta_pct != null ? `<span style="font-size:var(--text-xs);color:var(--c-text-3);margin-left:var(--s-1);">arus menangkap ${cal.flow_vs_delta_pct}% perubahan resmi</span>` : '') : '';
+    (cal.flow_vs_delta_pct != null ? `<span style="font-size:var(--text-xs);color:var(--c-text-3);margin-left:var(--s-1);">flow captures ${cal.flow_vs_delta_pct}% of the official change</span>` : '') : '';
   const kotakStatistikHtml = (label, value, color) => `<div style="flex:1 1 110px;min-width:110px;padding:var(--s-3);background:var(--c-surface);border:1px solid var(--c-border);border-radius:var(--radius);text-align:center;">
     <div style="color:${color};font-size:var(--text-md);font-weight:700;">${value}</div>
     <div style="font-size:var(--text-xs);color:var(--c-text-3);margin-top:2px;">${label}</div></div>`;
   wrap.innerHTML = `
-    <div style="font-size:var(--text-md);font-weight:700;margin-bottom:var(--s-3);">KEPEMILIKAN ASING RESMI (KSEI)${badge}</div>
+    <div style="font-size:var(--text-md);font-weight:700;margin-bottom:var(--s-3);">OFFICIAL FOREIGN OWNERSHIP (KSEI)${badge}</div>
     <div style="display:flex;gap:var(--s-2);flex-wrap:wrap;">
-      ${kotakStatistikHtml('Sekarang · ' + dateLabelYear(cur.date), formatNilaiSingkat(cur.foreign_shares) + ' lbr', '#E8A33D')}
-      ${fa && fa.estimate ? kotakStatistikHtml('Estimasi ' + dateLabelYear(fa.estimate.date) + ' · jangkar ' + dateLabelYear(fa.last_anchor && fa.last_anchor.date), formatNilaiSingkat(fa.estimate.shares) + ' lbr', '#E8A33D') : ''}
-      ${kotakStatistikHtml('% total saham · klas ' + (cur.foreign_pct_classified != null ? cur.foreign_pct_classified.toFixed(1) + '%' : '-'), cur.foreign_pct_total != null ? cur.foreign_pct_total.toFixed(1) + '%' : '-', '#5B8FF9')}
-      ${kotakStatistikHtml('Nilai asing', formatNilaiSingkat(cur.foreign_value), '#00A86B')}
-      ${kotakStatistikHtml('Tertinggi · ' + dateLabelYear(fo.peak && fo.peak.date), formatNilaiSingkat(fo.peak && fo.peak.foreign_shares) + ' lbr', '#00A86B')}
-      ${kotakStatistikHtml('Terendah · ' + dateLabelYear(fo.trough && fo.trough.date), formatNilaiSingkat(fo.trough && fo.trough.foreign_shares) + ' lbr', '#D94B4B')}
-      ${kotakStatistikHtml('Δ 3 bln / 12 bln (lbr)', deltaHtml, 'inherit')}
+      ${kotakStatistikHtml('Now · ' + dateLabelYear(cur.date), formatNilaiSingkat(cur.foreign_shares) + ' shares', '#E8A33D')}
+      ${fa && fa.estimate ? kotakStatistikHtml('Estimate ' + dateLabelYear(fa.estimate.date) + ' · anchor ' + dateLabelYear(fa.last_anchor && fa.last_anchor.date), formatNilaiSingkat(fa.estimate.shares) + ' shares', '#E8A33D') : ''}
+      ${kotakStatistikHtml('% of total shares · classified ' + (cur.foreign_pct_classified != null ? cur.foreign_pct_classified.toFixed(1) + '%' : '-'), cur.foreign_pct_total != null ? cur.foreign_pct_total.toFixed(1) + '%' : '-', '#5B8FF9')}
+      ${kotakStatistikHtml('Foreign value', formatNilaiSingkat(cur.foreign_value), '#00A86B')}
+      ${kotakStatistikHtml('Highest · ' + dateLabelYear(fo.peak && fo.peak.date), formatNilaiSingkat(fo.peak && fo.peak.foreign_shares) + ' shares', '#00A86B')}
+      ${kotakStatistikHtml('Lowest · ' + dateLabelYear(fo.trough && fo.trough.date), formatNilaiSingkat(fo.trough && fo.trough.foreign_shares) + ' shares', '#D94B4B')}
+      ${kotakStatistikHtml('Δ 3 mo / 12 mo (shares)', deltaHtml, 'inherit')}
     </div>`;
   return wrap;
 }
 
-const GOLONGAN_LABELS = { IS: 'Asuransi', CP: 'Korporasi', PF: 'Dana Pensiun', IB: 'Bank Investasi', ID: 'Individu', MF: 'Reksa Dana', SC: 'Sekuritas', FD: 'Yayasan', OT: 'Lainnya' };
+const GOLONGAN_LABELS = { IS: 'Insurance', CP: 'Corporate', PF: 'Pension Fund', IB: 'Investment Bank', ID: 'Individual', MF: 'Mutual Fund', SC: 'Securities', FD: 'Foundation', OT: 'Others' };
 const GOLONGAN_COLORS = { IS: '#5B8FF9', CP: '#F6903D', PF: '#9270CA', IB: '#6DC8EC', ID: '#00A86B', MF: '#E8A33D', SC: '#F2D13D', FD: '#7FB3D5', OT: '#9AA5B1' };
 const GOLONGAN_ORDER = ['MF', 'PF', 'OT', 'IB', 'IS', 'CP', 'SC', 'ID', 'FD'];
 
@@ -940,9 +940,9 @@ function buildByTypeSectionHtml(ft) {
   // Komposisi lokal terakhir (kelompok) + irisan tak-terklasifikasi.
   const lp = last.local_pct || {};
   const grupLokal = [
-    ['Korporasi', lp.CP || 0], ['Ritel', lp.ID || 0],
-    ['Institusi dana', (lp.MF || 0) + (lp.PF || 0) + (lp.IS || 0)],
-    ['Lainnya', (lp.IB || 0) + (lp.SC || 0) + (lp.FD || 0) + (lp.OT || 0)],
+    ['Corporate', lp.CP || 0], ['Retail', lp.ID || 0],
+    ['Fund institutions', (lp.MF || 0) + (lp.PF || 0) + (lp.IS || 0)],
+    ['Others', (lp.IB || 0) + (lp.SC || 0) + (lp.FD || 0) + (lp.OT || 0)],
   ].filter(([, v]) => v >= 0.05).sort((a, b) => b[1] - a[1])
     .map(([k, v]) => `${k} ${v.toFixed(1)}%`).join(' · ');
   const unclPct = last.total_shares ? (last.unclassified_shares / last.total_shares * 100) : 0;
@@ -964,31 +964,31 @@ function buildByTypeSectionHtml(ft) {
       return `<div style="display:grid;grid-template-columns:150px 1fr 170px;align-items:center;gap:var(--s-3);margin:var(--s-1) 0;">
         <div style="font-size:var(--text-sm);"><span style="display:inline-block;width:9px;height:9px;border-radius:3px;background:${GOLONGAN_COLORS[r.code]};margin-right:6px;"></span>${GOLONGAN_LABELS[r.code]}</div>
         <div style="height:14px;background:var(--c-surface-2);border-radius:4px;overflow:hidden;"><div style="height:100%;width:${w}%;background:${arah};border-radius:4px;"></div></div>
-        <div style="font-size:var(--text-sm);text-align:right;"><b style="color:${arah};">${formatBertanda(r.dValue)}</b> <span style="color:var(--c-text-3);font-size:var(--text-xs);">(${formatBertanda(r.dShares)} lbr)</span></div>
+        <div style="font-size:var(--text-sm);text-align:right;"><b style="color:${arah};">${formatBertanda(r.dValue)}</b> <span style="color:var(--c-text-3);font-size:var(--text-xs);">(${formatBertanda(r.dShares)} shares)</span></div>
       </div>`;
     }).join('');
     const mf = (dl.foreign_shares || {}).MF || 0;
     const pf = (dl.foreign_shares || {}).PF || 0;
     let rotasi = '';
     if (mf !== 0 && pf !== 0 && Math.sign(mf) !== Math.sign(pf)) {
-      const kata = (v) => v > 0 ? 'menambah' : 'melepas';
+      const kata = (v) => v > 0 ? 'added' : 'sold';
       rotasi = `<div style="background:var(--c-info-bg);border:1px solid var(--c-border);border-radius:var(--radius);padding:var(--s-3);margin-top:var(--s-3);font-size:var(--text-sm);color:var(--c-text-2);line-height:1.55;">
-        <b style="color:var(--c-primary);">Rotasi antar golongan:</b> bulan ini Reksa Dana ${kata(mf)} ${formatNilaiSingkat(Math.abs(mf * price))} sementara Dana Pensiun ${kata(pf)} ${formatNilaiSingkat(Math.abs(pf * price))} — pergerakan asing di emiten ini tidak satu arah.
+        <b style="color:var(--c-primary);">Rotation between groups:</b> this month mutual funds ${kata(mf)} ${formatNilaiSingkat(Math.abs(mf * price))} while pension funds ${kata(pf)} ${formatNilaiSingkat(Math.abs(pf * price))} — foreign movement in this issuer is not one-directional.
       </div>`;
     }
     deltaBlock = `
-    <div style="font-size:var(--text-sm);font-weight:700;margin-top:var(--s-4);">Perubahan Golongan Asing Terakhir</div>
-    <div style="font-size:var(--text-xs);color:var(--c-text-3);margin:2px 0 var(--s-2);">${dateLabelYear(dl.from_date)} → ${dateLabelYear(dl.to_date)} · nilai pada harga snapshot akhir · Δ adalah perubahan kepemilikan (termasuk luar pasar)</div>
+    <div style="font-size:var(--text-sm);font-weight:700;margin-top:var(--s-4);">Latest Foreign Group Change</div>
+    <div style="font-size:var(--text-xs);color:var(--c-text-3);margin:2px 0 var(--s-2);">${dateLabelYear(dl.from_date)} → ${dateLabelYear(dl.to_date)} · valued at the final snapshot price · Δ is the ownership change (including off-market)</div>
     ${baris}${rotasi}`;
   }
 
   return `
-    <div style="font-size:var(--text-md);font-weight:700;">KEPEMILIKAN PER GOLONGAN (KSEI)</div>
-    <div style="font-size:var(--text-xs);color:var(--c-text-3);margin:2px 0 var(--s-3);">Komposisi kepemilikan asing per golongan investor · tiap kolom satu snapshot · ${dateLabelYear(first.date)} → ${dateLabelYear(last.date)}</div>
+    <div style="font-size:var(--text-md);font-weight:700;">OWNERSHIP BY INVESTOR GROUP (KSEI)</div>
+    <div style="font-size:var(--text-xs);color:var(--c-text-3);margin:2px 0 var(--s-3);">Foreign ownership composition by investor group · one column per snapshot · ${dateLabelYear(first.date)} → ${dateLabelYear(last.date)}</div>
     <div style="display:flex;gap:2px;height:96px;align-items:stretch;">${kolom}</div>
     <div style="display:flex;gap:var(--s-3);flex-wrap:wrap;margin-top:var(--s-2);">${legenda}</div>
-    ${grupLokal ? `<div style="font-size:var(--text-sm);color:var(--c-text-2);margin-top:var(--s-3);">Komposisi lokal terakhir: ${grupLokal}.</div>` : ''}
-    <div style="font-size:var(--text-sm);color:var(--c-text-2);">Irisan tak-terklasifikasi: <b>${unclPct.toFixed(1)}%</b> dari total saham emiten ini — umumnya saham pengendali/strategis tanpa klasifikasi SID.</div>
+    ${grupLokal ? `<div style="font-size:var(--text-sm);color:var(--c-text-2);margin-top:var(--s-3);">Latest local composition: ${grupLokal}.</div>` : ''}
+    <div style="font-size:var(--text-sm);color:var(--c-text-2);">Unclassified slice: <b>${unclPct.toFixed(1)}%</b> of this issuer's total shares — usually controlling/strategic shares without SID classification.</div>
     ${deltaBlock}`;
 }
 
@@ -1023,7 +1023,7 @@ function ratioCard(label, value, medianText, color, spark) {
     <div style="color:${color};font-size:var(--text-md);font-weight:700;">${value}</div>
     ${spark || ''}
     <div style="font-size:var(--text-xs);color:var(--c-text-3);margin-top:2px;">${label}</div>
-    ${medianText ? `<div style="font-size:var(--text-xs);color:var(--c-text-2);">sektor: ${medianText}</div>` : ''}
+    ${medianText ? `<div style="font-size:var(--text-xs);color:var(--c-text-2);">sector: ${medianText}</div>` : ''}
   </div>`;
 }
 
@@ -1059,13 +1059,13 @@ function finTableRows(fin, mode) {
 
 function finTableHtml(fin, mode) {
   const rows = finTableRows(fin, mode);
-  if (!rows.length) return `<div style="font-size:var(--text-sm);color:var(--c-text-3);padding:var(--s-3);">Tidak ada data pada mode ini.</div>`;
+  if (!rows.length) return `<div style="font-size:var(--text-sm);color:var(--c-text-3);padding:var(--s-3);">No data in this mode.</div>`;
   return `<div style="overflow-x:auto;">
     <table class="table">
-      <thead><tr><th>Periode</th><th>Pendapatan</th><th>Laba Kotor</th><th>Laba Bersih</th><th>EPS</th></tr></thead>
+      <thead><tr><th>Period</th><th>Revenue</th><th>Gross Profit</th><th>Net Profit</th><th>EPS</th></tr></thead>
       <tbody>
         ${rows.map(p => `<tr>
-          <td style="font-size:var(--text-xs);white-space:nowrap;">${finPeriodLabel(p.period_end)}${p.period_type === 'TTM' ? ' (TTM)' : ''}${p.incomplete_flag ? ' <span style="color:var(--c-text-3);">· parsial</span>' : ''}${p.usd_flag ? ' <span style="color:var(--c-text-3);">· USD→IDR</span>' : ''}</td>
+          <td style="font-size:var(--text-xs);white-space:nowrap;">${finPeriodLabel(p.period_end)}${p.period_type === 'TTM' ? ' (TTM)' : ''}${p.incomplete_flag ? ' <span style="color:var(--c-text-3);">· partial</span>' : ''}${p.usd_flag ? ' <span style="color:var(--c-text-3);">· USD→IDR</span>' : ''}</td>
           <td style="font-size:var(--text-xs);">${fmtMoney(p.revenue)}</td>
           <td style="font-size:var(--text-xs);">${fmtMoney(p.gross_profit)}</td>
           <td style="font-size:var(--text-xs);font-weight:600;color:${p.net_income != null && p.net_income < 0 ? 'var(--c-danger)' : 'inherit'};">${fmtMoney(p.net_income)}</td>
@@ -1082,8 +1082,8 @@ function buildFinancialSection(fin) {
   const v = fin.valuation || {};
   const sm = fin.sector_medians;
   const med = (sm && sm.medians) || {};
-  const basisTxt = rl ? `${rl.period_type === 'Q' ? 'TTM' : 'Tahunan'} s.d. ${finPeriodLabel(rl.period_end)}` : '-';
-  const medNote = sm ? `Median sektor = ${sm.group} (${sm.level === 'sub_sector' ? 'Sub-sektor' : sm.level === 'primary_sector' ? 'Sektor primer' : 'Sektor'}, ${sm.peer_count} emiten pembanding).` : 'Median sektor tidak tersedia (anggota pembanding < 3).';
+  const basisTxt = rl ? `${rl.period_type === 'Q' ? 'TTM' : 'Annual'} through ${finPeriodLabel(rl.period_end)}` : '-';
+  const medNote = sm ? `Sector median = ${sm.group} (${sm.level === 'sub_sector' ? 'Sub-sector' : sm.level === 'primary_sector' ? 'Primary sector' : 'Sector'}, ${sm.peer_count} peers).` : 'Sector median unavailable (fewer than 3 peers).';
   const annualRoe = (fin.ratios || []).filter(r => r.period_type === 'A' && r.roe != null)
     .slice().sort((a, b) => a.period_end < b.period_end ? -1 : 1).slice(-6).map(r => r.roe);
   const qCount = (fin.periods || []).filter(p => p.period_type === 'Q').length;
@@ -1091,25 +1091,25 @@ function buildFinancialSection(fin) {
 
   wrap.innerHTML = `
     <div style="font-size:var(--text-md);font-weight:700;margin-bottom:2px;">FUNDAMENTAL — LAPORAN KEUANGAN (XBRL)</div>
-    <div style="font-size:var(--text-xs);color:var(--c-text-3);margin-bottom:var(--s-3);">Basis rasio: ${basisTxt} · PER/PBV live per ${v.price_date ? dateLabel(v.price_date) : '-'} · ${medNote}</div>
+    <div style="font-size:var(--text-xs);color:var(--c-text-3);margin-bottom:var(--s-3);">Ratio basis: ${basisTxt} · live PER/P/B as of ${v.price_date ? dateLabel(v.price_date) : '-'} · ${medNote}</div>
     <div style="display:flex;gap:var(--s-2);flex-wrap:wrap;margin-bottom:var(--s-2);">
       ${ratioCard('ROE', fmtFracPct(rl && rl.roe), med.roe != null ? fmtFracPct(med.roe) : '', '#00A86B', sparklineSvg(annualRoe, '#00A86B'))}
       ${ratioCard('ROA', fmtFracPct(rl && rl.roa), med.roa != null ? fmtFracPct(med.roa) : '', '#5B8FF9')}
-      ${ratioCard('Margin Bersih', fmtFracPct(rl && rl.net_margin), med.net_margin != null ? fmtFracPct(med.net_margin) : '', '#9270CA')}
+      ${ratioCard('Net Margin', fmtFracPct(rl && rl.net_margin), med.net_margin != null ? fmtFracPct(med.net_margin) : '', '#9270CA')}
     </div>
     <div style="display:flex;gap:var(--s-2);flex-wrap:wrap;margin-bottom:var(--s-4);">
       ${ratioCard('DER', fmtMult(rl && rl.der), med.der != null ? fmtMult(med.der) : '', '#F6903D')}
       ${ratioCard('PER', fmtMult(v.per), med.per != null ? fmtMult(med.per) : '', '#F2B705')}
-      ${ratioCard('PBV', fmtMult(v.pbv), med.pbv != null ? fmtMult(med.pbv) : '', '#E8A33D')}
+      ${ratioCard('P/B', fmtMult(v.pbv), med.pbv != null ? fmtMult(med.pbv) : '', '#E8A33D')}
     </div>
     <div class="fin-lk-head" style="display:flex;align-items:center;gap:var(--s-2);flex-wrap:wrap;margin:var(--s-4) 0 var(--s-3);">
-      <div style="font-size:var(--text-sm);font-weight:700;">Laporan Ringkas</div>
+      <div style="font-size:var(--text-sm);font-weight:700;">Summary Statements</div>
       <div class="fin-lk-toggle" style="display:flex;gap:var(--s-1);">
-        <button class="btn btn--sm btn--secondary" data-mode="Q">Kuartal</button>
-        <button class="btn btn--sm btn--secondary" data-mode="A">Tahunan</button>
+        <button class="btn btn--sm btn--secondary" data-mode="Q">Quarterly</button>
+        <button class="btn btn--sm btn--secondary" data-mode="A">Annual</button>
         <button class="btn btn--sm btn--primary" data-mode="TTM">TTM</button>
       </div>
-      <div style="font-size:var(--text-xs);color:var(--c-text-3);">Kuartal = kuartal murni (de-kumulasi YTD) · nilai dalam Rp (M = miliar, T = triliun)</div>
+      <div style="font-size:var(--text-xs);color:var(--c-text-3);">Quarter = pure quarter (YTD de-cumulated) · values in Rp (M = billion, T = trillion)</div>
     </div>
     <div class="fin-lk-body"></div>`;
 
@@ -1122,8 +1122,8 @@ function buildFinancialSection(fin) {
   btns.forEach(b => on(b, 'click', () => setMode(b.dataset.mode)));
   setMode('TTM');
 
-  if (qCount >= 2) wrap.appendChild(chartPanel('Tren Laba & Pendapatan (Kuartal)', 'Kuartal murni, de-kumulasi YTD · 20 kuartal terakhir', [{ label: 'Pendapatan', color: '#5B8FF9' }, { label: 'Laba Bersih', color: '#00A86B' }], 230));
-  if (hasHist) wrap.appendChild(chartPanel('Valuasi Historis (PER & PBV)', 'Basis TTM per akhir kuartal · jalur kapitalisasi · cakupan mengikuti arsip KSEI (Okt-2023+)', [{ label: 'PER', color: '#F6903D' }, { label: 'PBV', color: '#7B61FF' }], 210));
+  if (qCount >= 2) wrap.appendChild(chartPanel('Profit & Revenue Trend (Quarterly)', 'Pure quarters, YTD de-cumulated · last 20 quarters', [{ label: 'Revenue', color: '#5B8FF9' }, { label: 'Net Profit', color: '#00A86B' }], 230));
+  if (hasHist) wrap.appendChild(chartPanel('Historical Valuation (PER & P/B)', 'TTM basis per quarter-end · market-cap path · coverage follows the KSEI archive (Oct-2023+)', [{ label: 'PER', color: '#F6903D' }, { label: 'P/B', color: '#7B61FF' }], 210));
   return wrap;
 }
 
@@ -1135,8 +1135,8 @@ function buildProfitTrendChartApex(container, fin) {
   opts.colors = ['#5B8FF9', '#00A86B'];
   opts.plotOptions = { bar: { columnWidth: '65%', borderRadius: 2, borderRadiusApplication: 'end' } };
   opts.series = [
-    { name: 'Pendapatan', data: q.map(p => ({ x: toTs(p.period_end), y: p.revenue })) },
-    { name: 'Laba Bersih', data: q.map(p => ({ x: toTs(p.period_end), y: p.net_income })) },
+    { name: 'Revenue', data: q.map(p => ({ x: toTs(p.period_end), y: p.revenue })) },
+    { name: 'Net Profit', data: q.map(p => ({ x: toTs(p.period_end), y: p.net_income })) },
   ];
   opts.tooltip.y = { formatter: (val) => formatNilaiSingkat(val) };
   opts.yaxis = { labels: { formatter: (val) => formatNilaiSingkat(val) } };
@@ -1150,7 +1150,7 @@ function buildValuationChartApex(container, fin) {
   opts.stroke.width = [2.5, 2.5];
   opts.series = [
     { name: 'PER', data: h.filter(p => p.per != null).map(p => ({ x: toTs(p.period_end), y: p.per })) },
-    { name: 'PBV', data: h.filter(p => p.pbv != null).map(p => ({ x: toTs(p.period_end), y: p.pbv })) },
+    { name: 'P/B', data: h.filter(p => p.pbv != null).map(p => ({ x: toTs(p.period_end), y: p.pbv })) },
   ];
   opts.tooltip.y = { formatter: (val) => val == null ? '-' : val.toFixed(1) + '×' };
   return renderChart(container, opts);
@@ -1170,11 +1170,11 @@ function buildSummaryTable(rawData) {
   });
   const wrap = createEl('div', { style: { marginTop: 'var(--s-6)' } });
   wrap.innerHTML = `
-    <div style="font-size:var(--text-md);font-weight:700;margin-bottom:2px;">Ringkasan Data</div>
-    <div style="font-size:var(--text-xs);color:var(--c-text-3);margin-bottom:var(--s-3);">${rows.length} hari terakhir</div>
+    <div style="font-size:var(--text-md);font-weight:700;margin-bottom:2px;">Data Summary</div>
+    <div style="font-size:var(--text-xs);color:var(--c-text-3);margin-bottom:var(--s-3);">${rows.length} latest days</div>
     <div style="overflow-x:auto;">
       <table class="table">
-        <thead><tr><th>Tanggal</th><th>Harga</th><th>Chg%</th><th>Net For.</th><th>ATV</th><th>BII</th><th>F:R</th></tr></thead>
+        <thead><tr><th>Date</th><th>Price</th><th>Change %</th><th>Net Foreign</th><th>ATV</th><th>BII</th><th>Foreign %</th></tr></thead>
         <tbody>
           ${rows.slice().reverse().map(r => {
             const close = r.close || 0;
@@ -1231,7 +1231,7 @@ export function render() {
   }
 
   const header = createEl('div', { style: { marginBottom: 'var(--s-5)' } });
-  header.innerHTML = `<h1 style="font-size:var(--text-lg);font-weight:700;margin-bottom:var(--s-1);">Analisis Saham</h1><p style="color:var(--c-text-2);font-size:var(--text-sm);">Analisis teknikal dan fundamental saham IDX.</p>`;
+  header.innerHTML = `<h1 style="font-size:var(--text-lg);font-weight:700;margin-bottom:var(--s-1);">Stock Analysis</h1><p style="color:var(--c-text-2);font-size:var(--text-sm);">Technical and fundamental analysis of IDX stocks.</p>`;
   stockRootEl.appendChild(header);
 
   renderToolbarOnce();

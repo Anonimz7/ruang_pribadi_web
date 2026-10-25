@@ -20,7 +20,7 @@ function hourOptionsHtml(selected) {
 function formatDate(iso) {
   if (!iso) return '-';
   const d = new Date(iso);
-  return d.toLocaleDateString('id-ID') + ' ' + d.toLocaleTimeString('id-ID', { hour: '2-digit', minute: '2-digit' });
+  return d.toLocaleDateString('en-US') + ' ' + d.toLocaleTimeString('en-US', { hour: '2-digit', minute: '2-digit' });
 }
 
 function formatSize(f) {
@@ -49,7 +49,7 @@ function fileRowHtml(f) {
         <div>${formatSize(f)}</div>
       </div>
       <a href="${downloadUrl(f.path)}" class="btn btn--secondary btn--sm" title="Download" aria-label="Download ${name}">${icons['download']}</a>
-      <button type="button" class="btn btn--ghost btn--sm" data-delete="${f.path}" title="Hapus" aria-label="Hapus ${name}" style="color:var(--c-danger);">${icons['trash']}</button>
+      <button type="button" class="btn btn--ghost btn--sm" data-delete="${f.path}" title="Delete" aria-label="Delete ${name}" style="color:var(--c-danger);">${icons['trash']}</button>
     </div>
   `;
 }
@@ -125,7 +125,7 @@ export function render() {
         <span>${title}</span>
       </div>
       <span class="reports-page__toggle-icon" role="button" tabindex="0"
-            aria-expanded="${!isCollapsed}" aria-label="${isCollapsed ? 'Tampilkan' : 'Sembunyikan'} ${title}"
+            aria-expanded="${!isCollapsed}" aria-label="${isCollapsed ? 'Show' : 'Hide'} ${title}"
             style="display:inline-flex;align-items:center;justify-content:center;width:28px;height:28px;border:1px solid var(--c-border);border-radius:var(--radius);background:var(--c-surface-2);color:var(--c-text-2);">
         ${isCollapsed ? icons['chevron-right'] : icons['chevron-down']}
       </span>
@@ -142,7 +142,7 @@ export function render() {
       const btn = head.querySelector('.reports-page__toggle-icon');
       btn.innerHTML = hidden ? icons['chevron-right'] : icons['chevron-down'];
       btn.setAttribute('aria-expanded', String(!hidden));
-      btn.setAttribute('aria-label', (hidden ? 'Tampilkan' : 'Sembunyikan') + ' ' + title);
+      btn.setAttribute('aria-label', (hidden ? 'Show' : 'Hide') + ' ' + title);
     }
     const toggleBtn = head.querySelector('.reports-page__toggle-icon');
     head.addEventListener('click', toggleLipatKartu);
@@ -158,14 +158,14 @@ export function render() {
   function renderLastCard() {
     lastCard.innerHTML = '';
     lastCard.appendChild(createEl('div', { class: 'card__head' }, [], []));
-    lastCard.querySelector('.card__head').innerHTML = '<div class="card__title">Laporan Terakhir</div>';
+    lastCard.querySelector('.card__head').innerHTML = '<div class="card__title">Latest Report</div>';
 
     const hasLast = !!(state.lastReport && state.lastReport.last_report_at);
     const hasAuto = !!(state.lastReport && state.lastReport.last_auto_send_at);
     const body = createEl('div', {}, []);
     const hourSel = state.autoSend ? `
       <div class="reports-page__autosend-hour" style="display:flex;align-items:center;gap:var(--s-3);margin-top:var(--s-3);">
-        <span style="font-size:var(--text-sm);color:var(--c-text-2);">Jam pengiriman</span>
+        <span style="font-size:var(--text-sm);color:var(--c-text-2);">Send hour</span>
         <select id="auto-send-hour" style="flex:1;max-width:140px;padding:var(--s-2) var(--s-3);border:1px solid var(--c-border);border-radius:var(--radius);background:var(--c-surface-2);color:var(--c-text-1);font-size:var(--text-sm);">
           ${hourOptionsHtml(state.sendHour)}
         </select>
@@ -175,16 +175,16 @@ export function render() {
       <div class="reports-page__last-status">
         <span class="reports-page__last-icon">${icons['file-text']}</span>
         <div style="display:flex;flex-direction:column;gap:4px;">
-          <div style="font-weight:600;font-size:var(--text-sm);color:${hasLast ? 'var(--c-accent)' : 'var(--c-text-3)'};">${hasLast ? 'Generate terakhir' : 'Belum ada laporan'}</div>
+          <div style="font-weight:600;font-size:var(--text-sm);color:${hasLast ? 'var(--c-accent)' : 'var(--c-text-3)'};">${hasLast ? 'Last generated' : 'No reports yet'}</div>
           ${hasLast ? `<div style="font-size:var(--text-xs);color:var(--c-text-3);">${formatDate(state.lastReport.last_report_at)}</div>` : ''}
-          <div style="font-weight:600;font-size:var(--text-sm);color:${hasAuto ? 'var(--c-accent)' : 'var(--c-text-3)'};">${hasAuto ? 'Auto-send terakhir' : 'Belum ada auto-send'}</div>
+          <div style="font-weight:600;font-size:var(--text-sm);color:${hasAuto ? 'var(--c-accent)' : 'var(--c-text-3)'};">${hasAuto ? 'Last auto-send' : 'No auto-send yet'}</div>
           ${hasAuto ? `<div style="font-size:var(--text-xs);color:var(--c-text-3);">${formatDate(state.lastReport.last_auto_send_at)}</div>` : ''}
         </div>
       </div>
       <label class="reports-page__autosend">
         <span>
-          <span class="reports-page__autosend-title">Auto-Send Laporan</span>
-          <span class="reports-page__autosend-sub">Kirim laporan otomatis setiap 24 jam</span>
+          <span class="reports-page__autosend-title">Auto-send reports</span>
+          <span class="reports-page__autosend-sub">Send reports automatically every 24 hours</span>
         </span>
         <span class="toggle ${state.autoSend ? 'toggle--on' : ''}" id="auto-send-toggle" role="switch" aria-checked="${state.autoSend}" aria-label="Auto-send"></span>
       </label>
@@ -200,16 +200,16 @@ export function render() {
   function renderGenerateCard() {
     genCard.innerHTML = '';
     genCard.appendChild(createEl('div', { class: 'card__head' }, [], []));
-    genCard.querySelector('.card__head').innerHTML = '<div class="card__title">Generate Laporan</div>';
+    genCard.querySelector('.card__head').innerHTML = '<div class="card__title">Generate Report</div>';
 
     const body = createEl('div', {}, []);
     body.innerHTML = `
-      <div style="font-size:var(--text-sm);font-weight:600;margin-bottom:var(--s-2);">Periode Laporan</div>
+      <div style="font-size:var(--text-sm);font-weight:600;margin-bottom:var(--s-2);">Report period</div>
       <div class="reports-page__periods">
-        ${PERIOD_OPTIONS.map(h => `<button type="button" class="reports-page__chip${state.sinceHours === h ? ' reports-page__chip--active' : ''}" data-hours="${h}">${h}j</button>`).join('')}
+        ${PERIOD_OPTIONS.map(h => `<button type="button" class="reports-page__chip${state.sinceHours === h ? ' reports-page__chip--active' : ''}" data-hours="${h}">${h}h</button>`).join('')}
       </div>
       <button class="btn btn--primary" id="generate-btn" ${state.generating ? 'disabled' : ''} style="width:100%;margin-top:var(--s-4);">
-        ${state.generating ? `<span style="width:18px;height:18px;border:2px solid rgba(255,255,255,0.5);border-top-color:white;border-radius:50%;animation:spin 0.8s linear infinite;"></span> Generating...` : 'Generate Laporan'}
+        ${state.generating ? `<span style="width:18px;height:18px;border:2px solid rgba(255,255,255,0.5);border-top-color:white;border-radius:50%;animation:spin 0.8s linear infinite;"></span> Generating...` : 'Generate Report'}
       </button>
     `;
     genCard.appendChild(body);
@@ -230,19 +230,19 @@ export function render() {
     if (!state.generated) return;
 
     resultCard.appendChild(createEl('div', { class: 'card__head' }, [], []));
-    resultCard.querySelector('.card__head').innerHTML = '<div class="card__title">Hasil</div>';
+    resultCard.querySelector('.card__head').innerHTML = '<div class="card__title">Results</div>';
 
     const body = createEl('div', {}, []);
     const cats = state.generated.reports || [];
     const total = state.generated.total || 0;
 
     if (!cats.length) {
-      body.innerHTML = `<p style="color:var(--c-text-3);font-size:var(--text-sm);">${total ? total + ' artikel dikumpulkan, tanpa laporan.' : 'Tidak ada artikel baru pada periode ini.'}</p>`;
+      body.innerHTML = `<p style="color:var(--c-text-3);font-size:var(--text-sm);">${total ? total + ' articles collected, no reports.' : 'No new articles in this period.'}</p>`;
     } else {
       body.innerHTML = `
         <div class="reports-page__result-head">
           <span style="color:var(--c-accent);">${icons['newspaper']}</span>
-          <span>${total} artikel dikumpulkan</span>
+          <span>${total} articles collected</span>
         </div>
       `;
       cats.forEach(cat => {
@@ -263,7 +263,7 @@ export function render() {
   function renderHistory() {
     const body = createEl('div', {}, []);
     if (!state.reportGroups.length) {
-      body.innerHTML = '<p style="color:var(--c-text-3);font-size:var(--text-sm);">Belum ada laporan manual.</p>';
+      body.innerHTML = '<p style="color:var(--c-text-3);font-size:var(--text-sm);">No manual reports yet.</p>';
     } else {
       state.reportGroups.forEach(g => {
         const files = g.files || [];
@@ -272,14 +272,14 @@ export function render() {
             <div class="reports-page__group-head">
               <span style="color:var(--c-accent);">${icons['file-text']}</span>
               <span>${g.date}</span>
-              <span class="reports-page__group-count">${files.length} file</span>
+              <span class="reports-page__group-count">${files.length} file${files.length === 1 ? '' : 's'}</span>
             </div>
             ${files.map(fileRowHtml).join('')}
           </div>
         `;
       });
     }
-    renderCardHead(historyCard, 'Laporan Sebelumnya (Manual)', body, 'history', icons['file-text']);
+    renderCardHead(historyCard, 'Previous Reports (Manual)', body, 'history', icons['file-text']);
     attachDeleteHandlers(body);
   }
 
@@ -287,7 +287,7 @@ export function render() {
   function renderAutoHistory() {
     const body = createEl('div', {}, []);
     if (!state.autoGroups.length) {
-      body.innerHTML = '<p style="color:var(--c-text-3);font-size:var(--text-sm);">Belum ada auto-send.</p>';
+      body.innerHTML = '<p style="color:var(--c-text-3);font-size:var(--text-sm);">No auto-send yet.</p>';
     } else {
       state.autoGroups.forEach(g => {
         const files = g.files || [];
@@ -296,14 +296,14 @@ export function render() {
             <div class="reports-page__group-head">
               <span style="color:var(--c-accent);">${icons['file-text']}</span>
               <span>${g.date}</span>
-              <span class="reports-page__group-count">${files.length} file</span>
+              <span class="reports-page__group-count">${files.length} file${files.length === 1 ? '' : 's'}</span>
             </div>
             ${files.map(fileRowHtml).join('')}
           </div>
         `;
       });
     }
-    renderCardHead(autoCard, 'Auto-Send Laporan', body, 'auto', icons['refresh']);
+    renderCardHead(autoCard, 'Auto-send reports', body, 'auto', icons['refresh']);
     attachDeleteHandlers(body);
   }
 
@@ -318,11 +318,11 @@ export function render() {
       let url = '/reports/preferences?auto_send=' + val;
       if (val && state.sendHour != null) url += '&report_send_hour=' + state.sendHour;
       await Api.put(url);
-      toast(val ? 'Auto-send aktif' : 'Auto-send dinonaktifkan', { type: 'success' });
+      toast(val ? 'Auto-send enabled' : 'Auto-send disabled', { type: 'success' });
     } catch (e) {
       state.autoSend = !val;
       renderLastCard();
-      toast('Gagal simpan preferensi: ' + (e.message || e), { type: 'error' });
+      toast('Failed to save preferences: ' + (e.message || e), { type: 'error' });
     }
   }
 
@@ -331,9 +331,9 @@ export function render() {
     state.sendHour = val;
     try {
       await Api.put('/reports/preferences?report_send_hour=' + val);
-      toast('Jam pengiriman: ' + String(val).padStart(2, '0') + ':00', { type: 'success' });
+      toast('Send hour: ' + String(val).padStart(2, '0') + ':00', { type: 'success' });
     } catch (e) {
-      toast('Gagal simpan jam: ' + (e.message || e), { type: 'error' });
+      toast('Failed to save hour: ' + (e.message || e), { type: 'error' });
     }
   }
 
@@ -350,11 +350,11 @@ export function render() {
         const fileCount = cats.reduce((n, c) => n + ((c.files || []).length), 0);
         state.generated = res;
         renderResult();
-        toast(`Laporan berhasil digenerate: ${res.total} artikel, ${fileCount} file`, { type: 'success' });
+        toast(`Report generated successfully: ${res.total} articles, ${fileCount} file${fileCount === 1 ? '' : 's'}`, { type: 'success' });
         loadReportFiles();
         loadLastReport();
       } else {
-        toast('Gagal generate laporan', { type: 'error' });
+        toast('Failed to generate report', { type: 'error' });
       }
     } catch (err) {
       toast('Error: ' + (err.message || err), { type: 'error' });
@@ -365,18 +365,18 @@ export function render() {
   }
 
   async function deleteReportFile(path) {
-    if (!confirm('Hapus file laporan ini?')) return;
+    if (!confirm('Delete this report file?')) return;
     try {
       const enc = String(path).split('/').map(encodeURIComponent).join('/');
       const res = await Api.delete('/reports/files/' + enc);
       if (res?.success) {
-        toast('File laporan dihapus', { type: 'success' });
+        toast('Report file deleted', { type: 'success' });
         loadReportFiles();
       } else {
-        toast('Gagal hapus file', { type: 'error' });
+        toast('Failed to delete file', { type: 'error' });
       }
     } catch (e) {
-      toast('Gagal hapus: ' + (e.message || e), { type: 'error' });
+      toast('Failed to delete: ' + (e.message || e), { type: 'error' });
     }
   }
 
@@ -408,7 +408,7 @@ export function render() {
       renderHistory();
       renderAutoHistory();
     } catch (e) {
-      historyCard.innerHTML = '<div class="empty" style="padding:var(--s-4);color:var(--c-danger);"><p>Gagal memuat riwayat: ' + (e.message || e) + '</p></div>';
+      historyCard.innerHTML = '<div class="empty" style="padding:var(--s-4);color:var(--c-danger);"><p>Failed to load history: ' + (e.message || e) + '</p></div>';
       autoCard.innerHTML = '';
     }
   }

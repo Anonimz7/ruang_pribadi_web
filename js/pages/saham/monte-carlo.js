@@ -14,32 +14,32 @@ import { toast } from '../../ui/toast.js';
 import { navigate } from '../../core/router.js';
 import { formatNilaiSingkat } from '../../utils/format.js';
 
-const HORIZONS = [[21, '1 bln'], [63, '3 bln'], [126, '6 bln'], [252, '1 thn']];
-const WINDOWS = [['1y', '1 thn'], ['2y', '2 thn'], ['3y', '3 thn'], ['5y', '5 thn'], ['all', 'Semua']];
-const NSIMS = [[2000, '2.000'], [5000, '5.000'], [10000, '10.000']];
-const METHODS = [['level', 'Level (harga)'], ['fundamental', 'Fundamental (laba × kelipatan)']];
-const MODES = [['semua', 'Semua blok'], ['rezim', 'Ikuti rezim terkini'], ['tekanan', 'Skenario tekanan']];
-const STATE_LABEL = { masuk: 'Arus masuk', netral: 'Netral', keluar: 'Arus keluar' };
-const MODE_LABEL = { semua: 'Semua blok', rezim: 'Ikuti rezim terkini', tekanan: 'Skenario tekanan' };
-const WIN_LABEL = { '1y': '1 tahun terakhir', '2y': '2 tahun terakhir', '3y': '3 tahun terakhir', '5y': '5 tahun terakhir', all: 'seluruh seri' };
+const HORIZONS = [[21, '1 mo'], [63, '3 mo'], [126, '6 mo'], [252, '1 yr']];
+const WINDOWS = [['1y', '1 yr'], ['2y', '2 yr'], ['3y', '3 yr'], ['5y', '5 yr'], ['all', 'All']];
+const NSIMS = [[2000, '2,000'], [5000, '5,000'], [10000, '10,000']];
+const METHODS = [['level', 'Level (price)'], ['fundamental', 'Fundamental (earnings × multiple)']];
+const MODES = [['semua', 'All blocks'], ['rezim', 'Follow current regime'], ['tekanan', 'Stress scenario']];
+const STATE_LABEL = { masuk: 'Inflow', netral: 'Neutral', keluar: 'Outflow' };
+const MODE_LABEL = { semua: 'All blocks', rezim: 'Follow current regime', tekanan: 'Stress scenario' };
+const WIN_LABEL = { '1y': 'Last 1 year', '2y': 'Last 2 years', '3y': 'Last 3 years', '5y': 'Last 5 years', all: 'full series' };
 
 function fmtPct(v) {
   if (v == null || isNaN(v)) return '-';
   const n = Number(v) * 100;
-  return (n > 0 ? '+' : '') + n.toFixed(1).replace('.', ',') + '%';
+  return (n > 0 ? '+' : '') + n.toFixed(1) + '%';
 }
 function fmtProb(v) {
   if (v == null || isNaN(v)) return '-';
-  return (Number(v) * 100).toFixed(1).replace('.', ',') + '%';
+  return (Number(v) * 100).toFixed(1) + '%';
 }
 function fmtRp(v) {
   if (v == null || isNaN(v)) return '-';
-  return 'Rp ' + Math.round(Number(v)).toLocaleString('id-ID');
+  return 'Rp ' + Math.round(Number(v)).toLocaleString('en-US');
 }
 function fmtDate(s) {
   if (!s) return '-';
   const d = new Date(s + 'T00:00:00');
-  return isNaN(d) ? s : d.toLocaleDateString('id-ID', { day: 'numeric', month: 'short', year: 'numeric' });
+  return isNaN(d) ? s : d.toLocaleDateString('en-US', { day: 'numeric', month: 'short', year: 'numeric' });
 }
 
 function makeSeg(options, initial, onPick) {
@@ -112,7 +112,7 @@ function fanSvg(fan, horizon) {
   let xl = '';
   fan.forEach((f) => {
     if (f.h % 21 === 0 || f.h === horizon) {
-      xl += `<text x="${X(f.h)}" y="${H - 6}" fill="var(--c-text-3)" font-size="11" text-anchor="middle">${f.h} hr</text>`;
+      xl += `<text x="${X(f.h)}" y="${H - 6}" fill="var(--c-text-3)" font-size="11" text-anchor="middle">${f.h} d</text>`;
     }
   });
   return `<svg viewBox="0 0 ${W} ${H}" style="width:100%;height:auto;display:block;">
@@ -151,7 +151,7 @@ function fanSvgRealized(fan, horizon, points) {
   let xl = '';
   fan.forEach((f) => {
     if (f.h % 21 === 0 || f.h === horizon) {
-      xl += `<text x="${X(f.h)}" y="${H - 6}" fill="var(--c-text-3)" font-size="11" text-anchor="middle">${f.h} hr</text>`;
+      xl += `<text x="${X(f.h)}" y="${H - 6}" fill="var(--c-text-3)" font-size="11" text-anchor="middle">${f.h} d</text>`;
     }
   });
   let realized = '';
@@ -193,7 +193,7 @@ function fanSvgQ(fan, quarters) {
   }
   let xl = '';
   fan.forEach((f) => {
-    xl += `<text x="${X(f.q)}" y="${H - 6}" fill="var(--c-text-3)" font-size="11" text-anchor="middle">K${f.q}</text>`;
+    xl += `<text x="${X(f.q)}" y="${H - 6}" fill="var(--c-text-3)" font-size="11" text-anchor="middle">Q${f.q}</text>`;
   });
   return `<svg viewBox="0 0 ${W} ${H}" style="width:100%;height:auto;display:block;">
     ${grid}${band('p5', 'p95', 0.13)}${band('p25', 'p75', 0.28)}
@@ -223,17 +223,17 @@ export function render() {
   const hinfo = createEl('div', { style: { flex: '1', minWidth: '220px' } });
   hinfo.appendChild(createEl('h2', { style: { fontSize: 'var(--text-lg)', fontWeight: 700 } }, ['Monte Carlo']));
   hinfo.appendChild(createEl('div', { style: { fontSize: 'var(--text-sm)', color: 'var(--c-text-2)' } },
-    ['Penilai probabilistik susunan Index Saham: sebaran hasil, peluang positif, dan risiko drawdown — bukan ramalan arah.']));
+    ['Probabilistic appraisal of an index basket: outcome spread, chance of a positive result, and drawdown risk — not a direction forecast.']));
   head.appendChild(hinfo);
   const toIdx = createEl('button', { class: 'btn btn--secondary btn--sm' });
-  toIdx.innerHTML = `${icons['layers']} Buka Index Saham`;
+  toIdx.innerHTML = `${icons['layers']} Open Stock Indexes`;
   toIdx.addEventListener('click', () => navigate('/saham/index'));
   head.appendChild(toIdx);
   container.appendChild(head);
 
   // ── Pengaturan ──
   const ctl = createEl('div', { class: 'card', style: { marginBottom: 'var(--s-3)' } });
-  ctl.appendChild(createEl('h3', { class: 'card__title', style: { marginBottom: 'var(--s-3)' } }, ['Pengaturan Simulasi']));
+  ctl.appendChild(createEl('h3', { class: 'card__title', style: { marginBottom: 'var(--s-3)' } }, ['Simulation Settings']));
   const grid = createEl('div', {
     style: { display: 'flex', gap: 'var(--s-4)', flexWrap: 'wrap', alignItems: 'flex-end' },
   });
@@ -247,29 +247,29 @@ export function render() {
   };
   const idxSel = createEl('select', { class: 'field__select', style: { minWidth: '220px' } });
   idxSel.addEventListener('change', (e) => { state.indexId = e.target.value; });
-  const modeField = field('MODE REZIM ARUS', makeSeg(MODES, state.mode, (v) => { state.mode = v; }));
+  const modeField = field('FLOW REGIME MODE', makeSeg(MODES, state.mode, (v) => { state.mode = v; }));
   const methodNote = createEl('p', {
     style: { fontSize: 'var(--text-xs)', color: 'var(--c-text-3)', marginTop: 'var(--s-3)' },
-  }, ['Metode: bootstrap blok 20 hari atas log-return level indeks (return hari stale dibuang). Seed tetap — masukan yang sama menghasilkan angka yang sama. Mode rezim mengondisikan blok pada keadaan arus asing indeks (tersil jendela: masuk / netral / keluar). Hasil selalu dibaca bersama jendela sumbernya: keluaran mewarisi rezim jendela itu.']);
-  const methodField = field('METODE', makeSeg(METHODS, state.method, (v) => {
+  }, ['Method: 20-day block bootstrap over log returns of the index level (stale (no-trade) days skipped). Fixed seed — same input gives the same result. Regime mode conditions blocks on the index foreign-flow state (window state: inflow / neutral / outflow). Results always read together with their source window: output inherits the regime of that window.']);
+  const methodField = field('METHOD', makeSeg(METHODS, state.method, (v) => {
     state.method = v;
     modeField.style.display = v === 'fundamental' ? 'none' : '';
     methodNote.textContent = v === 'fundamental'
-      ? 'Metode: uraian fundamental laba × kelipatan + dividen per kuartal (anggota yang tak memenuhi syarat uraian dinilai jalur harga cadangannya). Seed tetap — masukan yang sama menghasilkan angka yang sama. Parameter jendela hanya mengatur jalur cadangan; kolam laba & PER memakai seluruh riwayat. Tanpa statistik drawdown — simpul kuartalan terlalu kasar.'
-      : 'Metode: bootstrap blok 20 hari atas log-return level indeks (return hari stale dibuang). Seed tetap — masukan yang sama menghasilkan angka yang sama. Mode rezim mengondisikan blok pada keadaan arus asing indeks (tersil jendela: masuk / netral / keluar). Hasil selalu dibaca bersama jendela sumbernya: keluaran mewarisi rezim jendela itu.';
+      ? 'Method: fundamental attribution — earnings × multiple + dividends per quarter (constituents not eligible for attribution are valued on their fallback price path). Fixed seed — same input gives the same result. The window parameter only governs the fallback path; profit & PER history pools use the full history. No drawdown statistics — quarterly points too coarse.'
+      : 'Method: 20-day block bootstrap over log returns of the index level (stale (no-trade) days skipped). Fixed seed — same input gives the same result. Regime mode conditions blocks on the index foreign-flow state (window state: inflow / neutral / outflow). Results always read together with their source window: output inherits the regime of that window.';
   }));
   grid.appendChild(methodField);
-  grid.appendChild(field('INDEKS', idxSel));
+  grid.appendChild(field('INDEX', idxSel));
   grid.appendChild(field('HORIZON', makeSeg(HORIZONS, state.horizon, (v) => { state.horizon = v; })));
-  grid.appendChild(field('JENDELA SUMBER RETURN', makeSeg(WINDOWS, state.window, (v) => { state.window = v; })));
-  grid.appendChild(field('JUMLAH SIMULASI', makeSeg(NSIMS, state.nSims, (v) => { state.nSims = v; })));
+  grid.appendChild(field('RETURN SOURCE WINDOW', makeSeg(WINDOWS, state.window, (v) => { state.window = v; })));
+  grid.appendChild(field('NUMBER OF SIMULATIONS', makeSeg(NSIMS, state.nSims, (v) => { state.nSims = v; })));
   grid.appendChild(modeField);
   const capInput = createEl('input', {
     class: 'field__input', type: 'number', min: '0', step: '100000',
-    placeholder: 'cth. 25000000', style: { width: '170px' },
+    placeholder: 'e.g. 25000000', style: { width: '170px' },
   });
-  grid.appendChild(field('MODAL (OPSIONAL, RP)', capInput));
-  const runBtn = createEl('button', { class: 'btn btn--primary' }, ['Jalankan Simulasi']);
+  grid.appendChild(field('CAPITAL (OPTIONAL, RP)', capInput));
+  const runBtn = createEl('button', { class: 'btn btn--primary' }, ['Run Simulation']);
   grid.appendChild(runBtn);
   ctl.appendChild(grid);
   ctl.appendChild(methodNote);
@@ -281,9 +281,9 @@ export function render() {
 
   // ── Riwayat Simulasi (rujukan; tanpa penilaian/kalibrasi) ──
   const ledgerCard = createEl('div', { class: 'card', style: { marginTop: 'var(--s-3)' } });
-  ledgerCard.appendChild(createEl('h3', { class: 'card__title', style: { marginBottom: 'var(--s-2)' } }, ['Riwayat Simulasi']));
+  ledgerCard.appendChild(createEl('h3', { class: 'card__title', style: { marginBottom: 'var(--s-2)' } }, ['Simulation History']));
   ledgerCard.appendChild(createEl('p', { style: { fontSize: 'var(--text-sm)', color: 'var(--c-text-2)', margin: '0 0 var(--s-3)' } },
-    ['Setiap simulasi — Level (MC-1/MC-2) maupun Fundamental (MC-3) — tersimpan otomatis — lengkap dengan parameter, hasil, kipas, snapshot anggota & sidik jari datanya — supaya tidak perlu diulang dan bisa dibuka lagi sebagai bahan rujukan. Riwayat ini hanya mencatat; ia tidak menilai dan tidak memutuskan.']));
+    ['Every simulation — Level (MC-1/MC-2) and Fundamental (MC-3) — is saved automatically — complete with parameters, results, fan, constituent snapshot & its data fingerprint — so it need not be repeated and can be reopened as reference material. This history only records; it does not judge and does not decide.']));
   const ledgerListWrap = createEl('div', {});
   ledgerCard.appendChild(ledgerListWrap);
   container.appendChild(ledgerCard);
@@ -299,93 +299,93 @@ export function render() {
       class: 'card',
       style: { borderLeft: '3px solid var(--c-warning, #f0a840)', marginBottom: 'var(--s-3)', fontSize: 'var(--text-sm)' },
     });
-    strip.innerHTML = `<b>Metode Fundamental:</b> horizon ${r.horizon_days} hari dibulatkan ke <b>${r.quarters} kuartal</b> simulasi · ` +
-      `${Number(r.n_sims).toLocaleString('id-ID')} simulasi · bobot tercakup uraian laba × kelipatan: <b>${(mt.covered_weight * 100).toFixed(1).replace('.', ',')}%</b> ` +
-      `(${mt.n_covered} dari ${mt.n_members} anggota; ${mt.n_fallback} anggota dinilai jalur harga cadangan). ` +
-      `Parameter jendela hanya mengatur jalur cadangan; kolam laba & PER memakai seluruh riwayat. Tanpa statistik drawdown — simpul kuartalan terlalu kasar.`;
+    strip.innerHTML = `<b>Fundamental method:</b> horizon ${r.horizon_days} days rounded to <b>${r.quarters} quarters</b> of simulation · ` +
+      `${Number(r.n_sims).toLocaleString('en-US')} simulations · weight covered by earnings × multiple attribution: <b>${(mt.covered_weight * 100).toFixed(1)}%</b> ` +
+      `(${mt.n_covered} of ${mt.n_members} constituents; ${mt.n_fallback} constituents valued on fallback price paths). ` +
+      `The window parameter only governs the fallback path; profit & PER history pools use the full history. No drawdown statistics — quarterly points too coarse.`;
     resultWrap.appendChild(strip);
 
     const fanCard = createEl('div', { class: 'card', style: { marginBottom: 'var(--s-3)' } });
     fanCard.appendChild(createEl('h3', { class: 'card__title', style: { marginBottom: 'var(--s-2)' } },
-      [`Grafik Kipas — ${idx ? idx.name : 'Indeks'} (return kumulatif per kuartal)`]));
+      [`Outcome fan chart — ${idx ? idx.name : 'Index'} (cumulative return per quarter)`]));
     const svgWrap = createEl('div', {});
     svgWrap.innerHTML = fanSvgQ(r.fan, r.quarters);
     fanCard.appendChild(svgWrap);
     fanCard.appendChild(createEl('div', {
       style: { fontSize: 'var(--text-xs)', color: 'var(--c-text-3)', marginTop: 'var(--s-2)' },
-    }, ['Pita luar p5–p95 · pita dalam p25–p75 · garis tengah median · K = kuartal.']));
+    }, ['Outer band = 90% of paths · inner band = middle 50% of paths · middle line = median · Q = quarter.']));
     resultWrap.appendChild(fanCard);
 
     const stats = createEl('div', {
       style: { display: 'grid', gridTemplateColumns: 'repeat(auto-fit,minmax(150px,1fr))', gap: 'var(--s-3)', marginBottom: 'var(--s-3)' },
     });
     stats.append(
-      statCard('PELUANG BERAKHIR POSITIF', fmtProb(r.p_end_positive)),
-      statCard('RETURN MEDIAN (p50)', fmtPct(r.end_ret.p50)),
-      statCard('RETURN p5 (BURUK)', fmtPct(r.end_ret.p5), 'var(--c-danger)'),
-      statCard('RETURN p95 (BAIK)', fmtPct(r.end_ret.p95), 'var(--c-accent)'),
+      statCard('CHANCE OF ENDING POSITIVE', fmtProb(r.p_end_positive)),
+      statCard('MEDIAN RETURN (middle outcome)', fmtPct(r.end_ret.p50)),
+      statCard('WORST 5% RETURN (5th percentile)', fmtPct(r.end_ret.p5), 'var(--c-danger)'),
+      statCard('BEST 5% RETURN (95th percentile)', fmtPct(r.end_ret.p95), 'var(--c-accent)'),
     );
     resultWrap.appendChild(stats);
 
     const at = r.attribution || {};
     const ac = createEl('div', { class: 'card', style: { marginBottom: 'var(--s-3)' } });
-    ac.appendChild(createEl('h3', { class: 'card__title', style: { marginBottom: 'var(--s-2)' } }, ['Atribusi Return (median per komponen)']));
+    ac.appendChild(createEl('h3', { class: 'card__title', style: { marginBottom: 'var(--s-2)' } }, ['Return attribution (median per component)']));
     const arows = [
-      ['Pertumbuhan laba', at.earnings], ['Perubahan kelipatan (PER)', at.multiple],
-      ['Interaksi laba × kelipatan', at.interaction], ['Dividen (kas)', at.dividend],
-      ['Jalur harga cadangan', at.fallback],
+      ['Earnings growth', at.earnings], ['Multiple change (PER)', at.multiple],
+      ['Earnings × multiple interaction', at.interaction], ['Dividends (cash)', at.dividend],
+      ['Fallback price path', at.fallback],
     ];
     const ap = createEl('p', { style: { fontSize: 'var(--text-sm)', margin: '0' } });
     ap.innerHTML = arows.map(([k, v]) => `${k}: <b>${fmtPct(v || 0)}</b>`).join(' · ');
     ac.appendChild(ap);
     ac.appendChild(createEl('p', {
       style: { fontSize: 'var(--text-xs)', color: 'var(--c-text-3)', marginTop: 'var(--s-2)' },
-    }, ['Pada tiap simulasi, kelima komponen berjumlah persis ke return totalnya. Yang ditampilkan adalah median tiap komponen, jadi jumlah kelimanya tidak harus sama persis dengan return median.']));
+    }, ['In each simulation, the five components sum exactly to its total return. What is shown is the median of each component, so the five medians need not sum exactly to the median return.']));
     resultWrap.appendChild(ac);
 
     if (r.capital) {
       const cc = createEl('div', { class: 'card', style: { marginBottom: 'var(--s-3)' } });
-      cc.appendChild(createEl('h3', { class: 'card__title', style: { marginBottom: 'var(--s-2)' } }, ['Nilai Akhir dalam Rupiah']));
+      cc.appendChild(createEl('h3', { class: 'card__title', style: { marginBottom: 'var(--s-2)' } }, ['Final Value in Rupiah']));
       const ev = r.capital.end_value;
       cc.appendChild(createEl('p', { style: { fontSize: 'var(--text-sm)', marginBottom: 'var(--s-3)' } },
-        [`Modal ${fmtRp(r.capital.amount)} → kelas modal ${r.capital.class} (Proposal B). Nilai akhir pada horizon ${r.quarters} kuartal:`]));
+        [`Capital ${fmtRp(r.capital.amount)} → capital class ${r.capital.class} (Proposal B). Final value at the ${r.quarters}-quarter horizon:`]));
       const cg = createEl('div', {
         style: { display: 'grid', gridTemplateColumns: 'repeat(auto-fit,minmax(150px,1fr))', gap: 'var(--s-3)' },
       });
       cg.append(
-        statCard('p5 (BURUK)', fmtRp(ev.p5)),
-        statCard('MEDIAN', fmtRp(ev.p50)),
-        statCard('p95 (BAIK)', fmtRp(ev.p95)),
-        statCard('PELUANG AKHIR DI BAWAH MODAL', fmtProb(r.capital.p_end_below_capital)),
+        statCard('WORST 5% (5th percentile)', fmtRp(ev.p5)),
+        statCard('MEDIAN (middle outcome)', fmtRp(ev.p50)),
+        statCard('BEST 5% (95th percentile)', fmtRp(ev.p95)),
+        statCard('CHANCE OF ENDING BELOW CAPITAL', fmtProb(r.capital.p_end_below_capital)),
       );
       cc.appendChild(cg);
       resultWrap.appendChild(cc);
     }
 
     const mc = createEl('div', { class: 'card', style: { marginBottom: 'var(--s-3)' } });
-    mc.appendChild(createEl('h3', { class: 'card__title', style: { marginBottom: 'var(--s-2)' } }, ['Bahan per Anggota']));
+    mc.appendChild(createEl('h3', { class: 'card__title', style: { marginBottom: 'var(--s-2)' } }, ['Data per Constituent']));
     const tbl = createEl('table', { style: { width: '100%', borderCollapse: 'collapse', fontSize: 'var(--text-sm)' } });
     tbl.innerHTML = `<thead><tr style="border-bottom:1px solid var(--c-border);color:var(--c-text-3);font-size:var(--text-xs);">
-      <th style="text-align:left;padding:6px 8px;">EMITEN</th><th style="text-align:left;padding:6px 8px;">SEKTOR</th>
-      <th style="text-align:right;padding:6px 8px;">BOBOT</th><th style="text-align:left;padding:6px 8px;">STATUS</th>
-      <th style="text-align:right;padding:6px 8px;">PER KINI / MEDIAN</th><th style="text-align:right;padding:6px 8px;">YIELD DIV</th></tr></thead>
+      <th style="text-align:left;padding:6px 8px;">ISSUER</th><th style="text-align:left;padding:6px 8px;">SECTOR</th>
+      <th style="text-align:right;padding:6px 8px;">WEIGHT</th><th style="text-align:left;padding:6px 8px;">STATUS</th>
+      <th style="text-align:right;padding:6px 8px;">CURRENT / MEDIAN PER</th><th style="text-align:right;padding:6px 8px;">DIV YIELD</th></tr></thead>
       <tbody>${(r.members || []).map((m) => `<tr style="border-bottom:1px solid var(--c-border);">
         <td style="padding:6px 8px;font-weight:600;">${m.ticker}</td>
         <td style="padding:6px 8px;">${m.sector || '-'}</td>
-        <td style="padding:6px 8px;text-align:right;">${(m.weight * 100).toFixed(1).replace('.', ',')}%</td>
-        <td style="padding:6px 8px;">${m.status === 'covered' ? 'Tercakup' : 'Cadangan — ' + (m.reason || '')}${m.n_recovered ? ` · ${m.n_recovered} kuartal pulih terpakai` : ''}</td>
-        <td style="padding:6px 8px;text-align:right;">${m.per0 ? m.per0.toLocaleString('id-ID') + ' / ' + m.per_median.toLocaleString('id-ID') : '-'}</td>
-        <td style="padding:6px 8px;text-align:right;">${m.div_yield != null ? (m.div_yield * 100).toFixed(2).replace('.', ',') + '%' : '-'}</td></tr>`).join('')}</tbody>`;
+        <td style="padding:6px 8px;text-align:right;">${(m.weight * 100).toFixed(1)}%</td>
+        <td style="padding:6px 8px;">${m.status === 'covered' ? 'Covered' : 'Fallback — ' + (m.reason || '')}${m.n_recovered ? ` · ${m.n_recovered} recovered quarters used` : ''}</td>
+        <td style="padding:6px 8px;text-align:right;">${m.per0 ? m.per0.toLocaleString('en-US') + ' / ' + m.per_median.toLocaleString('en-US') : '-'}</td>
+        <td style="padding:6px 8px;text-align:right;">${m.div_yield != null ? (m.div_yield * 100).toFixed(2) + '%' : '-'}</td></tr>`).join('')}</tbody>`;
     mc.appendChild(tbl);
     resultWrap.appendChild(mc);
 
     const as = createEl('div', { class: 'card' });
-    as.appendChild(createEl('h3', { class: 'card__title', style: { marginBottom: 'var(--s-2)' } }, ['Asumsi yang Dipakai']));
+    as.appendChild(createEl('h3', { class: 'card__title', style: { marginBottom: 'var(--s-2)' } }, ['Assumptions Used']));
     as.appendChild(createEl('p', {
       style: { fontSize: 'var(--text-sm)', color: 'var(--c-text-2)', margin: '0' },
-    }, [`Guncangan tiga lapis: pasar (bersama) → deviasi sektor → sisa khas emiten. Kecepatan reversi PER φ = ${asm.phi} (${asm.phi_basis}). ` +
-      `Pertumbuhan laba dipangkas pada [${fmtPct(asm.winsor_growth ? asm.winsor_growth[0] : 0)}, ${fmtPct(asm.winsor_growth ? asm.winsor_growth[1] : 0)}] (persentil 5/95 pooled). ` +
-      `PER berlantai ${asm.per_floor} dan berplafon ${asm.per_cap}×. Dividen: ${asm.dividend}. Mode rezim arus (MC-2) tidak berlaku untuk metode ini.`]));
+    }, [`Three-layer shocks: market (shared) → sector deviation → issuer-specific residual. PER mean-reversion speed φ = ${asm.phi} (${asm.phi_basis}). ` +
+      `Earnings growth winsorized to [${fmtPct(asm.winsor_growth ? asm.winsor_growth[0] : 0)}, ${fmtPct(asm.winsor_growth ? asm.winsor_growth[1] : 0)}] (pooled 5th/95th percentiles). ` +
+      `PER floored at ${asm.per_floor} and capped at ${asm.per_cap}×. Dividends: ${asm.dividend}. Flow-regime mode (MC-2) does not apply to this method.`]));
     resultWrap.appendChild(as);
   }
 
@@ -400,28 +400,28 @@ export function render() {
       class: 'card',
       style: { borderLeft: '3px solid var(--c-warning, #f0a840)', marginBottom: 'var(--s-3)', fontSize: 'var(--text-sm)' },
     });
-    wl.innerHTML = `<b>Jendela sumber:</b> ${WIN_LABEL[r.window.label] || r.window.label} — ` +
-      `${Number(r.window.n_returns).toLocaleString('id-ID')} return harian, ${fmtDate(r.window.from)} s.d. ${fmtDate(r.window.to)} · ` +
-      `${Number(r.n_sims).toLocaleString('id-ID')} simulasi · horizon ${r.horizon_days} hari bursa. Hasil mewarisi rezim jendela ini.` +
+    wl.innerHTML = `<b>Source window:</b> ${WIN_LABEL[r.window.label] || r.window.label} — ` +
+      `${Number(r.window.n_returns).toLocaleString('en-US')} daily returns, ${fmtDate(r.window.from)} to ${fmtDate(r.window.to)} · ` +
+      `${Number(r.n_sims).toLocaleString('en-US')} simulations · horizon ${r.horizon_days} trading days. Results inherit this window's regime.` +
       (r.mode === 'tekanan'
-        ? `<br><b>SKENARIO TEKANAN:</b> hasil di bawah hanya memakai blok yang mulai pada hari arus-keluar — ini skenario "seolah rezim keluar berlanjut", bukan keadaan rata-rata.`
+        ? `<br><b>STRESS SCENARIO:</b> results below use only blocks starting on outflow days — this is an "as if the outflow regime continued" scenario, not the average state.`
         : r.mode === 'rezim'
-          ? `<br><b>Terkondisi rezim terkini:</b> hasil di bawah hanya memakai blok yang mulai pada keadaan arus terkini (${STATE_LABEL[(r.regime.current || {}).state] || '-'}).`
+          ? `<br><b>Conditioned on the current flow regime:</b> results below use only blocks starting in the current flow state (${STATE_LABEL[(r.regime.current || {}).state] || '-'}).`
           : '');
     resultWrap.appendChild(wl);
 
     if (r.comparison) {
       const rc = createEl('div', { class: 'card', style: { marginBottom: 'var(--s-3)' } });
-      rc.appendChild(createEl('h3', { class: 'card__title', style: { marginBottom: 'var(--s-2)' } }, ['Rezim Arus & Perbandingan Mode']));
+      rc.appendChild(createEl('h3', { class: 'card__title', style: { marginBottom: 'var(--s-2)' } }, ['Flow Regime & Mode Comparison']));
       const rg = r.regime || {};
       const info = createEl('p', { style: { fontSize: 'var(--text-sm)', color: 'var(--c-text-2)', margin: '0 0 var(--s-3)' } });
       if (rg.available && rg.current) {
-        info.textContent = `Keadaan terkini: ${STATE_LABEL[rg.current.state] || rg.current.state} ` +
-          `(${fmtDate(rg.current.date)}, arus bersih asing indeks ${formatNilaiSingkat(rg.current.flow)}). ` +
-          `Blok tersedia — masuk: ${rg.blocks.masuk}, netral: ${rg.blocks.netral}, keluar: ${rg.blocks.keluar} ` +
-          `dari ${Number(rg.flow_days).toLocaleString('id-ID')} hari berarus terbaca.`;
+        info.textContent = `Current state: ${STATE_LABEL[rg.current.state] || rg.current.state} ` +
+          `(${fmtDate(rg.current.date)}, index net foreign flow ${formatNilaiSingkat(rg.current.flow)}). ` +
+          `Blocks available — inflow: ${rg.blocks.masuk}, neutral: ${rg.blocks.netral}, outflow: ${rg.blocks.keluar} ` +
+          `dari ${Number(rg.flow_days).toLocaleString('en-US')} flow days read.`;
       } else {
-        info.textContent = 'Arus asing indeks tidak cukup terbaca atau seragam pada jendela ini — mode terkondisi tidak tersedia; hanya mode Semua blok yang dapat dipakai.';
+        info.textContent = 'Index foreign flow is not read sufficiently or uniformly in this window — conditioned modes are unavailable; only All blocks mode can be used.';
       }
       rc.appendChild(info);
       const tbl = createEl('table', { style: { width: '100%', borderCollapse: 'collapse', fontSize: 'var(--text-sm)' } });
@@ -430,18 +430,18 @@ export function render() {
         if (c.unavailable) {
           return `<td style="padding:6px 8px;">${name}</td><td colspan="4" style="padding:6px 8px;color:var(--c-text-3);">${c.unavailable}</td>`;
         }
-        const thin = c.thin ? ' <span style="color:var(--c-warning, #f0a840);font-weight:600;">· bahan tipis</span>' : '';
+        const thin = c.thin ? ' <span style="color:var(--c-warning, #f0a840);font-weight:600;">· thin data</span>' : '';
         const sel = c.mode === r.mode ? ' style="font-weight:700;"' : '';
         return `<td style="padding:6px 8px;"${sel}>${name}${thin}</td>` +
           `<td style="padding:6px 8px;text-align:right;">${fmtProb(c.p_end_positive)}</td>` +
           `<td style="padding:6px 8px;text-align:right;">${fmtPct(c.end_ret_p50)}</td>` +
           `<td style="padding:6px 8px;text-align:right;">${fmtPct(c.end_ret_p5)}</td>` +
-          `<td style="padding:6px 8px;text-align:right;">${Number(c.blocks).toLocaleString('id-ID')}</td>`;
+          `<td style="padding:6px 8px;text-align:right;">${Number(c.blocks).toLocaleString('en-US')}</td>`;
       };
       tbl.innerHTML = `<thead><tr style="border-bottom:1px solid var(--c-border);color:var(--c-text-3);font-size:var(--text-xs);">` +
-        `<th style="text-align:left;padding:6px 8px;">MODE</th><th style="text-align:right;padding:6px 8px;">P(positif)</th>` +
-        `<th style="text-align:right;padding:6px 8px;">MEDIAN</th><th style="text-align:right;padding:6px 8px;">p5</th>` +
-        `<th style="text-align:right;padding:6px 8px;">BLOK</th></tr></thead>` +
+        `<th style="text-align:left;padding:6px 8px;">MODE</th><th style="text-align:right;padding:6px 8px;">P(positive)</th>` +
+        `<th style="text-align:right;padding:6px 8px;">MEDIAN</th><th style="text-align:right;padding:6px 8px;">WORST 5%</th>` +
+        `<th style="text-align:right;padding:6px 8px;">BLOCKS</th></tr></thead>` +
         `<tbody>${r.comparison.map((c) => `<tr style="border-bottom:1px solid var(--c-border);">${rowHtml(c)}</tr>`).join('')}</tbody>`;
       rc.appendChild(tbl);
       if (r.composition) {
@@ -449,8 +449,8 @@ export function render() {
         const line = createEl('p', {
           style: { fontSize: 'var(--text-sm)', margin: 'var(--s-3) 0 0', color: cp.warning ? 'var(--c-warning, #f0a840)' : 'var(--c-text-2)' },
         }, [cp.warning
-          ? `⚠ ${cp.warning} — berdasarkan ${cp.basis} (${cp.n_members} anggota). Peringatan lunak; halaman ini hanya menilai, tidak menegakkan.`
-          : `Konsentrasi komposisi: Sektor terbesar ${cp.top_sector} mencakup ${(cp.top_share * 100).toFixed(0).replace('.', ',')}% dari ${cp.n_members} anggota (berdasarkan ${cp.basis}).`]);
+          ? `⚠ ${cp.warning} — based on ${cp.basis} (${cp.n_members} constituents). Soft warning; this page only appraises, it does not enforce.`
+          : `Composition concentration: largest sector ${cp.top_sector} covers ${(cp.top_share * 100).toFixed(0)}% of ${cp.n_members} constituents (based on ${cp.basis}).`]);
         rc.appendChild(line);
       }
       resultWrap.appendChild(rc);
@@ -458,56 +458,56 @@ export function render() {
 
     const fanCard = createEl('div', { class: 'card', style: { marginBottom: 'var(--s-3)' } });
     fanCard.appendChild(createEl('h3', { class: 'card__title', style: { marginBottom: 'var(--s-2)' } },
-      [`Grafik Kipas — ${idx ? idx.name : 'Indeks'} (return kumulatif)`]));
+      [`Outcome fan chart — ${idx ? idx.name : 'Index'} (cumulative return)`]));
     const svgWrap = createEl('div', {});
     svgWrap.innerHTML = fanSvg(r.fan, r.horizon_days);
     fanCard.appendChild(svgWrap);
     fanCard.appendChild(createEl('div', {
       style: { fontSize: 'var(--text-xs)', color: 'var(--c-text-3)', marginTop: 'var(--s-2)' },
-    }, ['Pita luar p5–p95 (90% jalur) · pita dalam p25–p75 (50% jalur) · garis tengah median (p50) · garis merah 0%.']));
+    }, ['Outer band = 90% of paths · inner band = middle 50% of paths · middle line = median · red line = 0%.']));
     resultWrap.appendChild(fanCard);
 
     const stats = createEl('div', {
       style: { display: 'grid', gridTemplateColumns: 'repeat(auto-fit,minmax(150px,1fr))', gap: 'var(--s-3)', marginBottom: 'var(--s-3)' },
     });
     stats.append(
-      statCard('PELUANG BERAKHIR POSITIF', fmtProb(r.p_end_positive)),
-      statCard('RETURN MEDIAN (p50)', fmtPct(r.end_ret.p50)),
-      statCard('RETURN p5 (BURUK)', fmtPct(r.end_ret.p5), 'var(--c-danger)'),
-      statCard('RETURN p95 (BAIK)', fmtPct(r.end_ret.p95), 'var(--c-accent)'),
-      statCard('PELUANG DRAWDOWN >10%', fmtProb(r.p_dd_gt_10)),
-      statCard('PELUANG DRAWDOWN >20%', fmtProb(r.p_dd_gt_20)),
-      statCard('DRAWDOWN MEDIAN', fmtPct(-Math.abs(r.dd_median)), 'var(--c-danger)'),
+      statCard('CHANCE OF ENDING POSITIVE', fmtProb(r.p_end_positive)),
+      statCard('MEDIAN RETURN (middle outcome)', fmtPct(r.end_ret.p50)),
+      statCard('WORST 5% RETURN (5th percentile)', fmtPct(r.end_ret.p5), 'var(--c-danger)'),
+      statCard('BEST 5% RETURN (95th percentile)', fmtPct(r.end_ret.p95), 'var(--c-accent)'),
+      statCard('CHANCE OF DRAWDOWN >10%', fmtProb(r.p_dd_gt_10)),
+      statCard('CHANCE OF DRAWDOWN >20%', fmtProb(r.p_dd_gt_20)),
+      statCard('MEDIAN DRAWDOWN', fmtPct(-Math.abs(r.dd_median)), 'var(--c-danger)'),
     );
     resultWrap.appendChild(stats);
 
     if (r.capital) {
       const cc = createEl('div', { class: 'card', style: { marginBottom: 'var(--s-3)' } });
-      cc.appendChild(createEl('h3', { class: 'card__title', style: { marginBottom: 'var(--s-2)' } }, ['Nilai Akhir dalam Rupiah']));
+      cc.appendChild(createEl('h3', { class: 'card__title', style: { marginBottom: 'var(--s-2)' } }, ['Final Value in Rupiah']));
       const ev = r.capital.end_value;
       cc.appendChild(createEl('p', { style: { fontSize: 'var(--text-sm)', marginBottom: 'var(--s-3)' } },
-        [`Modal ${fmtRp(r.capital.amount)} → kelas modal ${r.capital.class} (Proposal B). Nilai akhir pada horizon ${r.horizon_days} hari bursa:`]));
+        [`Capital ${fmtRp(r.capital.amount)} → capital class ${r.capital.class} (Proposal B). Final value at the ${r.horizon_days}-trading-day horizon:`]));
       const cg = createEl('div', {
         style: { display: 'grid', gridTemplateColumns: 'repeat(auto-fit,minmax(150px,1fr))', gap: 'var(--s-3)' },
       });
       cg.append(
-        statCard('p5 (BURUK)', fmtRp(ev.p5)),
-        statCard('MEDIAN', fmtRp(ev.p50)),
-        statCard('p95 (BAIK)', fmtRp(ev.p95)),
-        statCard('PELUANG AKHIR DI BAWAH MODAL', fmtProb(r.capital.p_end_below_capital)),
+        statCard('WORST 5% (5th percentile)', fmtRp(ev.p5)),
+        statCard('MEDIAN (middle outcome)', fmtRp(ev.p50)),
+        statCard('BEST 5% (95th percentile)', fmtRp(ev.p95)),
+        statCard('CHANCE OF ENDING BELOW CAPITAL', fmtProb(r.capital.p_end_below_capital)),
       );
       cc.appendChild(cg);
       cc.appendChild(createEl('p', {
         style: { fontSize: 'var(--text-xs)', color: 'var(--c-text-3)', marginTop: 'var(--s-3)' },
-      }, ['Dihitung dari bobot kontinu sebelum pembulatan lot — menilai keranjangnya, bukan janji eksekusi.']));
+      }, ['Computed from continuous weights before lot rounding — it appraises the basket, not an execution promise.']));
       resultWrap.appendChild(cc);
     }
 
     const note = createEl('div', { class: 'card' });
-    note.appendChild(createEl('h3', { class: 'card__title', style: { marginBottom: 'var(--s-2)' } }, ['Cara Membaca']));
+    note.appendChild(createEl('h3', { class: 'card__title', style: { marginBottom: 'var(--s-2)' } }, ['How to Read']));
     note.appendChild(createEl('p', {
       style: { fontSize: 'var(--text-sm)', color: 'var(--c-text-2)', margin: '0' },
-    }, ['Monte Carlo menyusun ulang blok-blok return masa lalu menjadi ribuan jalur masa depan yang tidak pernah terjadi, lalu melaporkan distribusinya. Ia mengurangi bias urutan, bukan bias sejarah — bahan bakunya tetap masa lalu. Mengubah komposisi indeks dilakukan di Index Saham; halaman ini hanya menilainya.']));
+    }, ['Monte Carlo rearranges blocks of past returns into thousands of future paths that never happened, then reports their distribution. It reduces sequence bias, not history bias — its raw material is still the past. Changing the composition of an index is done in Stock Indexes; this page only appraises it.']));
     resultWrap.appendChild(note);
   }
 
@@ -517,24 +517,24 @@ export function render() {
       class: 'card',
       style: { borderLeft: '3px solid var(--c-danger)', fontSize: 'var(--text-sm)' },
     });
-    box.innerHTML = `<b>Simulasi tidak dapat dijalankan.</b> ${msg}`;
+    box.innerHTML = `<b>The simulation could not be run.</b> ${msg}`;
     resultWrap.appendChild(box);
   }
 
   async function run() {
     if (state.running) return;
     if (!state.indexId) {
-      toast('Pilih indeks dulu', { type: 'error' });
+      toast('Choose an index first', { type: 'error' });
       return;
     }
     const capRaw = String(capInput.value || '').trim();
     const capital = capRaw === '' ? null : Number(capRaw);
     if (capital !== null && !(capital > 0)) {
-      toast('Modal harus lebih dari 0', { type: 'error' });
+      toast('Capital must be greater than 0', { type: 'error' });
       return;
     }
     state.running = true;
-    runBtn.textContent = 'Menghitung…';
+    runBtn.textContent = 'Calculating…';
     runBtn.disabled = true;
     try {
       if (state.method === 'fundamental') {
@@ -560,25 +560,25 @@ export function render() {
       renderError(e.message || String(e));
     }
     state.running = false;
-    runBtn.textContent = 'Jalankan Simulasi';
+    runBtn.textContent = 'Run Simulation';
     runBtn.disabled = false;
   }
   runBtn.addEventListener('click', run);
 
   function evalRows(ev) {
-    return [['Peluang berakhir positif', fmtProb(ev.p_end_positive)],
-      ['Return p25', fmtPct(ev.end_ret.p25)],
-      ['Return median', fmtPct(ev.end_ret.p50)],
-      ['Return p5', fmtPct(ev.end_ret.p5)],
-      ['Peluang drawdown >20%', fmtProb(ev.p_dd_gt_20)],
-      ['Drawdown median', fmtPct(-Math.abs(ev.dd_median))]];
+    return [['Chance of ending positive', fmtProb(ev.p_end_positive)],
+      ['25th percentile return', fmtPct(ev.end_ret.p25)],
+      ['Median return', fmtPct(ev.end_ret.p50)],
+      ['Worst 5% return', fmtPct(ev.end_ret.p5)],
+      ['Chance of drawdown >20%', fmtProb(ev.p_dd_gt_20)],
+      ['Median drawdown', fmtPct(-Math.abs(ev.dd_median))]];
   }
 
 
   // ── Buku besar: daftar, detail, kalibrasi ──
   const idxName = (id) => {
     const hit = state.indices.find((i) => String(i.id) === String(id));
-    return hit ? `${hit.name} (${hit.code})` : `Indeks #${id}`;
+    return hit ? `${hit.name} (${hit.code})` : `Index #${id}`;
   };
 
   async function loadLedger() {
@@ -588,25 +588,25 @@ export function render() {
       ledgerListWrap.innerHTML = '';
       if (!runs.length) {
         ledgerListWrap.appendChild(createEl('div', { style: { fontSize: 'var(--text-sm)', color: 'var(--c-text-3)' } },
-          ['Belum ada simulasi tersimpan. Jalankan simulasi di atas — Level maupun Fundamental tersimpan otomatis.']));
+          ['No saved simulations yet. Run a simulation above — Level and Fundamental are both saved automatically.']));
         return;
       }
       const tbl = createEl('table', { style: { width: '100%', borderCollapse: 'collapse', fontSize: 'var(--text-sm)' } });
       tbl.innerHTML = `<thead><tr style="text-align:left;color:var(--c-text-3);">
-        <th style="padding:4px 6px;">Simulasi</th><th style="padding:4px 6px;">Indeks</th>
-        <th style="padding:4px 6px;">Mesin</th><th style="padding:4px 6px;">Horizon</th>
-        <th style="padding:4px 6px;">Median akhir</th></tr></thead>`;
+        <th style="padding:4px 6px;">Simulation</th><th style="padding:4px 6px;">Index</th>
+        <th style="padding:4px 6px;">Engine</th><th style="padding:4px 6px;">Horizon</th>
+        <th style="padding:4px 6px;">Final median</th></tr></thead>`;
       const tb = createEl('tbody', {});
       runs.forEach((run) => {
         const tr = createEl('tr', { style: { borderTop: '1px solid var(--c-border)', cursor: 'pointer' } });
         const modeTxt = run.engine === 'mc2'
-          ? `Rezim (${MODE_LABEL[run.params?.mode] || run.params?.mode || '-'})`
+          ? `Regime (${MODE_LABEL[run.params?.mode] || run.params?.mode || '-'})`
           : run.engine === 'mc3' ? 'Fundamental' : 'Level';
         tr.innerHTML = `
           <td style="padding:5px 6px;">${run.pinned ? '📌 ' : ''}${run.name ? run.name : fmtDate((run.created_at || '').slice(0, 10))}</td>
           <td style="padding:5px 6px;">${idxName(run.index_id)}</td>
           <td style="padding:5px 6px;">${modeTxt}</td>
-          <td style="padding:5px 6px;">${run.params?.horizon_days ?? '-'} hr</td>
+          <td style="padding:5px 6px;">${run.params?.horizon_days ?? '-'} d</td>
           <td style="padding:5px 6px;">${fmtPct(run.summary?.end_ret?.p50)}</td>`;
         tr.addEventListener('click', () => openLedgerDetail(run.id));
         tb.appendChild(tr);
@@ -616,40 +616,40 @@ export function render() {
     } catch (e) {
       ledgerListWrap.innerHTML = '';
       ledgerListWrap.appendChild(createEl('div', { style: { fontSize: 'var(--text-sm)', color: 'var(--c-danger)' } },
-        [`Gagal memuat riwayat: ${e.message || e}`]));
+        [`Failed to load history: ${e.message || e}`]));
     }
   }
 
   async function openLedgerDetail(runId) {
     ledgerDetailWrap.innerHTML = '';
-    const loading = createEl('div', { class: 'card', style: { fontSize: 'var(--text-sm)', color: 'var(--c-text-2)' } }, ['Memuat detail larian…']);
+    const loading = createEl('div', { class: 'card', style: { fontSize: 'var(--text-sm)', color: 'var(--c-text-2)' } }, ['Loading run details…']);
     ledgerDetailWrap.appendChild(loading);
     let d = null;
     try {
       d = await Api.get(`/index-saham/monte-carlo-runs/${runId}`);
     } catch (e) {
-      loading.textContent = `Gagal memuat detail: ${e.message || e}`;
+      loading.textContent = `Failed to load details: ${e.message || e}`;
       return;
     }
     ledgerDetailWrap.innerHTML = '';
     const card = createEl('div', { class: 'card' });
-    const title = d.name || `Simulasi ${fmtDate((d.created_at || '').slice(0, 10))}`;
+    const title = d.name || `Simulation ${fmtDate((d.created_at || '').slice(0, 10))}`;
     card.appendChild(createEl('h3', { class: 'card__title', style: { marginBottom: 'var(--s-2)' } }, [`${d.pinned ? '📌 ' : ''}${title} — ${idxName(d.index_id)}`]));
     const fp = d.fingerprint || {};
-    const engineTxt = d.engine === 'mc2' ? 'MC-2 (rezim)' : d.engine === 'mc3' ? 'MC-3 (fundamental)' : 'MC-1 (level)';
-    const qTxt = d.engine === 'mc3' ? ` · ${d.params?.quarters ?? '-'} kuartal` : '';
+    const engineTxt = d.engine === 'mc2' ? 'MC-2 (regime)' : d.engine === 'mc3' ? 'MC-3 (fundamental)' : 'MC-1 (level)';
+    const qTxt = d.engine === 'mc3' ? ` · ${d.params?.quarters ?? '-'} quarters` : '';
     card.appendChild(createEl('p', { style: { fontSize: 'var(--text-sm)', color: 'var(--c-text-2)', margin: '0 0 var(--s-2)' } },
-      [`Mesin ${engineTxt} v${d.engine_version} · data s.d. ${fmtDate(d.as_of_date)} · horizon ${d.params?.horizon_days ?? '-'} hari${qTxt} · ${d.params?.n_sims ?? '-'} simulasi · jendela ${WIN_LABEL[d.params?.window] || d.params?.window || '-'} · anggota saat simulasi: ${(d.members_snapshot || []).length} emiten.`]));
+      [`Engine ${engineTxt} v${d.engine_version} · data up to ${fmtDate(d.as_of_date)} · horizon ${d.params?.horizon_days ?? '-'} days${qTxt} · ${d.params?.n_sims ?? '-'} simulations · window ${WIN_LABEL[d.params?.window] || d.params?.window || '-'} · constituents at simulation time: ${(d.members_snapshot || []).length} issuers.`]));
     card.appendChild(createEl('p', { style: { fontSize: 'var(--text-sm)', color: 'var(--c-text-3)', margin: '0 0 var(--s-3)' } },
-      [`Sidik jari data: pasar s.d. ${fp.market_max || '-'} · fundamental s.d. ${fp.fundamentals_max || '-'} · rasio ${fp.ratios_count ?? '-'} baris · KSEI ${fp.ksei_latest || '-'}.`]));
+      [`Data fingerprint: market up to ${fp.market_max || '-'} · fundamentals up to ${fp.fundamentals_max || '-'} · ratios ${fp.ratios_count ?? '-'} rows · KSEI ${fp.ksei_latest || '-'}.`]));
     const snap = d.members_snapshot || [];
     if (snap.length) {
       const parts = snap.map((m) => {
-        const base = m.weight_pct != null ? `${m.ticker || '-'} ${m.weight_pct.toLocaleString('id-ID') + '%'}` : (m.ticker || '-');
-        return (d.engine === 'mc3' && m.status === 'fallback') ? `${base} (cadangan)` : base;
+        const base = m.weight_pct != null ? `${m.ticker || '-'} ${m.weight_pct.toLocaleString('en-US') + '%'}` : (m.ticker || '-');
+        return (d.engine === 'mc3' && m.status === 'fallback') ? `${base} (fallback)` : base;
       }).join(' · ');
       card.appendChild(createEl('p', { style: { fontSize: 'var(--text-sm)', color: 'var(--c-text-2)', margin: '0 0 var(--s-3)' } },
-        [`Daftar anggota (${snap.length}): ${parts}.`]));
+        [`Constituent list (${snap.length}): ${parts}.`]));
     }
     const fan = (d.summary && d.summary.fan) || [];
     if (fan.length) {
@@ -658,43 +658,43 @@ export function render() {
         fc.innerHTML = fanSvgQ(fan, d.params?.quarters || 1);
         card.appendChild(fc);
         card.appendChild(createEl('div', { style: { fontSize: 'var(--text-xs)', color: 'var(--c-text-3)', marginBottom: 'var(--s-3)' } },
-          ['Pita = sebaran kuartalan tersimpan pada tanggal simulasi. Tanpa statistik drawdown — simpul kuartalan terlalu kasar.']));
+          ['Bands = quarterly spread saved on the simulation date. No drawdown statistics — quarterly points too coarse.']));
       } else {
         fc.innerHTML = fanSvgRealized(fan, d.params?.horizon_days || 63, []);
         card.appendChild(fc);
         card.appendChild(createEl('div', { style: { fontSize: 'var(--text-xs)', color: 'var(--c-text-3)', marginBottom: 'var(--s-3)' } },
-          ['Pita = sebaran jalur tersimpan pada tanggal simulasi.']));
+          ['Bands = path spread saved on the simulation date.']));
       }
     }
     if (d.engine === 'mc3' && d.summary) {
       const at = d.summary.attribution || {};
       const mat = d.summary.materials || {};
       const ac = createEl('p', { style: { fontSize: 'var(--text-sm)', color: 'var(--c-text-2)', margin: '0 0 var(--s-3)' } });
-      ac.innerHTML = `Atribusi (median): pertumbuhan laba <b>${fmtPct(at.earnings || 0)}</b> · perubahan kelipatan (PER) <b>${fmtPct(at.multiple || 0)}</b> · interaksi <b>${fmtPct(at.interaction || 0)}</b> · dividen <b>${fmtPct(at.dividend || 0)}</b> · jalur cadangan <b>${fmtPct(at.fallback || 0)}</b>. (Median tiap komponen tidak harus berjumlah ke return median.)`;
+      ac.innerHTML = `Attribution (median): earnings growth <b>${fmtPct(at.earnings || 0)}</b> · multiple change (PER) <b>${fmtPct(at.multiple || 0)}</b> · interaction <b>${fmtPct(at.interaction || 0)}</b> · dividends <b>${fmtPct(at.dividend || 0)}</b> · fallback path <b>${fmtPct(at.fallback || 0)}</b>. (Component medians need not sum to the median return.)`;
       card.appendChild(ac);
       card.appendChild(createEl('p', { style: { fontSize: 'var(--text-sm)', color: 'var(--c-text-2)', margin: '0 0 var(--s-3)' } },
-        [`Bahan: ${mat.n_covered ?? '-'} dari ${mat.n_members ?? '-'} anggota tercakup uraian (bobot ${mat.covered_weight != null ? (mat.covered_weight * 100).toLocaleString('id-ID', { maximumFractionDigits: 1 }) + '%' : '-'}); sisanya dinilai jalur harga cadangan.`]));
+        [`Data: ${mat.n_covered ?? '-'} of ${mat.n_members ?? '-'} constituents covered by attribution (weight ${mat.covered_weight != null ? (mat.covered_weight * 100).toLocaleString('en-US', { maximumFractionDigits: 1 }) + '%' : '-'}); the rest are valued on fallback price paths.`]));
     }
     const acts = createEl('div', { style: { display: 'flex', gap: 'var(--s-2)', flexWrap: 'wrap' } });
-    const pinBtn = createEl('button', { class: 'btn btn--secondary btn--sm' }, [d.pinned ? 'Lepas pin' : 'Pin']);
+    const pinBtn = createEl('button', { class: 'btn btn--secondary btn--sm' }, [d.pinned ? 'Unpin' : 'Pin']);
     pinBtn.addEventListener('click', async () => {
       try {
         await Api.patch(`/index-saham/monte-carlo-runs/${runId}`, { pinned: !d.pinned });
         loadLedger(); openLedgerDetail(runId);
       } catch (e) { toast(e.message || String(e), { type: 'error' }); }
     });
-    const nameBtn = createEl('button', { class: 'btn btn--secondary btn--sm' }, ['Beri nama']);
+    const nameBtn = createEl('button', { class: 'btn btn--secondary btn--sm' }, ['Name']);
     nameBtn.addEventListener('click', async () => {
-      const nm = window.prompt('Nama larian:', d.name || '');
+      const nm = window.prompt('Run name:', d.name || '');
       if (nm == null) return;
       try {
         await Api.patch(`/index-saham/monte-carlo-runs/${runId}`, { name: nm });
         loadLedger(); openLedgerDetail(runId);
       } catch (e) { toast(e.message || String(e), { type: 'error' }); }
     });
-    const delBtn = createEl('button', { class: 'btn btn--secondary btn--sm' }, ['Hapus']);
+    const delBtn = createEl('button', { class: 'btn btn--secondary btn--sm' }, ['Delete']);
     delBtn.addEventListener('click', async () => {
-      if (!window.confirm('Hapus larian simulasi ini permanen?')) return;
+      if (!window.confirm('Delete this simulation run permanently?')) return;
       try {
         await Api.delete(`/index-saham/monte-carlo-runs/${runId}`);
         ledgerDetailWrap.innerHTML = '';
@@ -712,11 +712,11 @@ export function render() {
       state.indices = (await Api.get('/index-saham')) || [];
     } catch (e) {
       state.indices = [];
-      toast('Gagal memuat daftar indeks: ' + (e.message || e), { type: 'error' });
+      toast('Failed to load the index list: ' + (e.message || e), { type: 'error' });
     }
     idxSel.innerHTML = '';
     if (!state.indices.length) {
-      idxSel.appendChild(createEl('option', { value: '' }, ['— belum ada indeks —']));
+      idxSel.appendChild(createEl('option', { value: '' }, ['— no index yet —']));
       runBtn.disabled = true;
       return;
     }

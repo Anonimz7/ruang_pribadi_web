@@ -62,7 +62,7 @@ async function _request(method, path, { params, body, isMultipart = false, file,
   } catch (e) {
     clearTimeout(id);
     if (e.name === 'AbortError') {
-      throw new ApiError('Tidak dapat terhubung ke server. Silakan coba lagi.', 408);
+      throw new ApiError('Cannot connect to the server. Please try again.', 408);
     }
     throw new ApiError('Tidak dapat terhubung ke server. Cek koneksi internet.', 0);
   }

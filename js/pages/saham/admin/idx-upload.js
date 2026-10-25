@@ -33,7 +33,7 @@ export function render() {
   fileInput.addEventListener('change', () => {
     const f = fileInput.files?.[0];
     if (f && !f.name.toLowerCase().endsWith('.xlsx')) {
-      toast('File harus berformat .xlsx', { type: 'error' });
+      toast('File must be in .xlsx format', { type: 'error' });
       fileInput.value = '';
       return;
     }
@@ -61,12 +61,12 @@ export function render() {
     statusCard.appendChild(createEl('div', { class: 'card__head' }, [], []));
     statusCard.querySelector('.card__head').innerHTML = `
       <div>
-        <div class="card__title">Status Database IDX</div>
-        <div class="card__subtitle">Kondisi data &amp; database saham IDX.</div>
+        <div class="card__title">IDX Database Status</div>
+        <div class="card__subtitle">IDX stock data &amp; database condition.</div>
       </div>
     `;
 
-    const refreshBtn = createEl('button', { class: 'btn btn--ghost btn--sm', title: 'Muat ulang status' }, []);
+    const refreshBtn = createEl('button', { class: 'btn btn--ghost btn--sm', title: 'Reload status' }, []);
     refreshBtn.innerHTML = icons['refresh'];
     refreshBtn.addEventListener('click', loadStatus);
     statusCard.querySelector('.card__head').appendChild(refreshBtn);
@@ -76,17 +76,17 @@ export function render() {
     if (state.statusLoading) {
       body.innerHTML = `
         <div class="idx-upload__loading">
-          <span class="idx-upload__spinner"></span> Memuat status...
+          <span class="idx-upload__spinner"></span> Loading status...
         </div>`;
     } else if (!state.status) {
-      body.innerHTML = '<p style="color:var(--c-text-3);font-size:var(--text-sm);">Gagal memuat status IDX.</p>';
+      body.innerHTML = '<p style="color:var(--c-text-3);font-size:var(--text-sm);">Failed to load IDX status.</p>';
     } else {
       const s = state.status;
       const items = [
-        { icon: 'grid', label: 'Update Terakhir', value: s.last_update || 'N/A' },
-        { icon: 'trending-up', label: 'Saham', value: String(s.stock_count ?? 0) },
-        { icon: 'list', label: 'Hari Perdagangan', value: String(s.trade_days ?? 0) },
-        { icon: 'database', label: 'Ukuran DB', value: s.db_size_mb ? `${s.db_size_mb} MB` : '—' },
+        { icon: 'grid', label: 'Last Update', value: s.last_update || 'N/A' },
+        { icon: 'trending-up', label: 'Stocks', value: String(s.stock_count ?? 0) },
+        { icon: 'list', label: 'Trading Days', value: String(s.trade_days ?? 0) },
+        { icon: 'database', label: 'DB Size', value: s.db_size_mb ? `${s.db_size_mb} MB` : '—' },
       ];
       const grid = createEl('div', { class: 'idx-upload__status-grid' }, []);
       items.forEach(it => {
@@ -110,13 +110,13 @@ export function render() {
     infoCard.innerHTML = '';
     infoCard.appendChild(createEl('div', { class: 'card__head' }, [], []));
     infoCard.querySelector('.card__head').innerHTML = `
-      <div class="card__title">Format File</div>
+      <div class="card__title">File Format</div>
     `;
     const list = createEl('ul', { class: 'idx-upload__format-list' }, []);
     [
-      'File harus berformat .xlsx (Excel)',
-      'Nama file harus mengandung tanggal YYYYMMDD',
-      'Contoh: 20240115_idx_data.xlsx',
+      'File must be in .xlsx (Excel) format',
+      'File name must contain a YYYYMMDD date',
+      'Example: 20240115_idx_data.xlsx',
     ].forEach(t => list.appendChild(createEl('li', {}, [t])));
     infoCard.appendChild(list);
   }
@@ -136,7 +136,7 @@ export function render() {
       class: 'btn btn--accent idx-upload__btn-block',
       ...(state.uploading ? { disabled: true } : {}),
     }, []);
-    pickBtn.innerHTML = `${icons['upload']} Pilih File Excel`;
+    pickBtn.innerHTML = `${icons['upload']} Choose Excel File`;
     pickBtn.addEventListener('click', () => fileInput.click());
     body.appendChild(pickBtn);
 
@@ -146,7 +146,7 @@ export function render() {
       fileRow.innerHTML = `
         <span class="idx-upload__file-icon">${icons['file-text']}</span>
         <span class="idx-upload__file-name">${state.file.name}</span>`;
-      const clearBtn = createEl('button', { class: 'btn btn--ghost btn--sm', title: 'Hapus file' }, []);
+      const clearBtn = createEl('button', { class: 'btn btn--ghost btn--sm', title: 'Remove file' }, []);
       clearBtn.innerHTML = icons['x'];
       clearBtn.addEventListener('click', () => {
         state.file = null;
@@ -165,8 +165,8 @@ export function render() {
       ...(!state.file || state.uploading ? { disabled: true } : {}),
     }, []);
     uploadBtn.innerHTML = state.uploading
-      ? '<span class="idx-upload__spinner idx-upload__spinner--light"></span> Mengunggah...'
-      : `${icons['upload']} Upload ke Server`;
+      ? '<span class="idx-upload__spinner idx-upload__spinner--light"></span> Uploading...'
+      : `${icons['upload']} Upload to Server`;
     uploadBtn.addEventListener('click', uploadFile);
     body.appendChild(uploadBtn);
 
@@ -185,7 +185,7 @@ export function render() {
       const res = await Api.multipartPost('/idx/upload', state.file, { fieldName: 'file' });
 
       if (res == null) {
-        state.uploadResult = { success: false, message: 'Sesi berakhir. Silakan login ulang.' };
+        state.uploadResult = { success: false, message: 'Session expired. Please log in again.' };
       } else if (res?.success) {
         state.uploadResult = {
           success: true,
@@ -193,11 +193,11 @@ export function render() {
           trade_date: res.trade_date,
           is_new: res.is_new,
         };
-        toast('✅ Upload berhasil!', { type: 'success' });
+        toast('✅ Upload successful!', { type: 'success' });
         loadStatus(); // refresh status setelah upload (parity Flutter)
       } else {
-        state.uploadResult = { success: false, message: res?.message || 'Upload gagal' };
-        toast('Upload gagal', { type: 'error' });
+        state.uploadResult = { success: false, message: res?.message || 'Upload failed' };
+        toast('Upload failed', { type: 'error' });
       }
     } catch (e) {
       state.uploadResult = { success: false, message: e.message || String(e) };
@@ -220,7 +220,7 @@ export function render() {
     const body = createEl('div', {}, []);
 
     if (!state.uploadResult) {
-      body.innerHTML = '<p style="color:var(--c-text-3);font-size:var(--text-sm);">Belum ada upload.</p>';
+      body.innerHTML = '<p style="color:var(--c-text-3);font-size:var(--text-sm);">No uploads yet.</p>';
     } else {
       const r = state.uploadResult;
       const ok = r.success === true;
@@ -230,10 +230,10 @@ export function render() {
       box.innerHTML = `
         <span class="idx-upload__result-icon">${ok ? icons['check'] : icons['alert-circle']}</span>
         <div class="idx-upload__result-body">
-          <div class="idx-upload__result-title">${ok ? 'Berhasil' : 'Gagal'}</div>
+          <div class="idx-upload__result-title">${ok ? 'Successful' : 'Failed'}</div>
           ${r.message ? `<div>${r.message}</div>` : ''}
-          ${r.trade_date ? `<div class="idx-upload__result-meta">📅 Tanggal: ${r.trade_date}</div>` : ''}
-          ${r.is_new !== undefined ? `<div class="idx-upload__result-meta">${r.is_new ? '✨ Data baru ditambahkan' : 'ℹ️ Data sudah ada (konsisten)'}</div>` : ''}
+          ${r.trade_date ? `<div class="idx-upload__result-meta">📅 Date: ${r.trade_date}</div>` : ''}
+          ${r.is_new !== undefined ? `<div class="idx-upload__result-meta">${r.is_new ? '✨ New data added' : 'ℹ️ Data already exists (consistent)'}</div>` : ''}
         </div>`;
       body.appendChild(box);
     }

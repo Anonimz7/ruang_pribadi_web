@@ -4,7 +4,7 @@
    menggulung salinannya sendiri. */
 export function fmtPrice(v) {
   if (v == null) return '-';
-  return new Intl.NumberFormat('id-ID', { maximumFractionDigits: 0 }).format(v);
+  return new Intl.NumberFormat('en-US', { maximumFractionDigits: 0 }).format(v);
 }
 
 export function formatNilaiSingkat(v) {
@@ -27,13 +27,13 @@ export function formatBytes(bytes) {
 export function dateLabel(dateStr) {
   const d = new Date(dateStr);
   if (isNaN(d)) return dateStr;
-  const months = ['Jan', 'Feb', 'Mar', 'Apr', 'Mei', 'Jun', 'Jul', 'Agu', 'Sep', 'Okt', 'Nov', 'Des'];
+  const months = ['Jan', 'Feb', 'Mar', 'Apr', 'May', 'Jun', 'Jul', 'Aug', 'Sep', 'Oct', 'Nov', 'Dec'];
   return `${d.getDate()} ${months[d.getMonth()]}`;
 }
 
 export function dateLabelYear(dateStr) {
   const d = new Date(dateStr);
   if (isNaN(d)) return dateStr;
-  const months = ['Jan', 'Feb', 'Mar', 'Apr', 'Mei', 'Jun', 'Jul', 'Agu', 'Sep', 'Okt', 'Nov', 'Des'];
+  const months = ['Jan', 'Feb', 'Mar', 'Apr', 'May', 'Jun', 'Jul', 'Aug', 'Sep', 'Oct', 'Nov', 'Dec'];
   return `${d.getDate()} ${months[d.getMonth()]} ${d.getFullYear()}`;
 }

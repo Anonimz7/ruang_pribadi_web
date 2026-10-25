@@ -84,7 +84,7 @@
     {
       "key": "ihsg_radar",
       "icon": "Icons.radar",
-      "label": "Radar Pasar",
+      "label": "Market Radar",
       "section": "market",
       "portal": "saham",
       "minTier": 2
@@ -92,7 +92,7 @@
     {
       "key": "kepemilikan_asing",
       "icon": "Icons.hub",
-      "label": "Kepemilikan Asing",
+      "label": "Foreign Ownership",
       "section": "market",
       "portal": "saham",
       "minTier": 2
@@ -108,7 +108,7 @@
     {
       "key": "index_saham",
       "icon": "Icons.layers",
-      "label": "Index Saham",
+      "label": "Stock Indices",
       "section": "market",
       "portal": "saham",
       "minTier": 2
@@ -124,7 +124,7 @@
     {
       "key": "simulasi_iseng",
       "icon": "Icons.dice",
-      "label": "Simulasi Iseng",
+      "label": "Playful Simulation",
       "section": "market",
       "portal": "saham",
       "minTier": 2
@@ -132,7 +132,7 @@
     {
       "key": "pemantauan",
       "icon": "Icons.visibility",
-      "label": "Pemantauan",
+      "label": "Monitoring",
       "section": "market",
       "portal": "saham",
       "minTier": 2

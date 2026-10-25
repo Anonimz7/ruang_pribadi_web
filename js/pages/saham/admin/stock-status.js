@@ -9,8 +9,8 @@ import { renderSkeletonRows } from '../../../ui/loading.js';
 import { pageInfo, pageInfoText } from '../../../ui/pagination.js';
 
 const FILTERS = [
-  { value: '', label: 'Semua' },
-  { value: 'unset', label: 'Belum di-set' },
+  { value: '', label: 'All' },
+  { value: 'unset', label: 'Not set' },
   { value: 'whitelist', label: 'Whitelist' },
   { value: 'blacklist', label: 'Blacklist' },
 ];
@@ -40,8 +40,8 @@ export function render() {
   toolbar.innerHTML = `
     <div class="search" style="flex:1;min-width:220px;">
       <span class="search__icon">${icons['search']}</span>
-      <input type="text" class="search__input" placeholder="Cari ticker / nama...">
-      <button type="button" class="search__clear" aria-label="Bersihkan pencarian">${icons['x']}</button>
+      <input type="text" class="search__input" placeholder="Search ticker / name...">
+      <button type="button" class="search__clear" aria-label="Clear search">${icons['x']}</button>
     </div>
     <button class="btn btn--secondary" id="refresh-btn">${icons['refresh']} Refresh</button>
   `;
@@ -126,7 +126,7 @@ export function render() {
     } catch (e) {
       state.stocks = [];
       state.total = 0;
-      toast('Gagal memuat: ' + (e.message || e), { type: 'error' });
+      toast('Failed to load: ' + (e.message || e), { type: 'error' });
     }
 
     state.loading = false;
@@ -144,7 +144,7 @@ export function render() {
       const empty = createEl('div', { class: 'admin-stock-status__empty' }, []);
       empty.innerHTML = `
         <div class="admin-stock-status__empty-icon">${icons['shield']}</div>
-        <p style="color:var(--c-text-2);font-size:var(--text-sm);">Tidak ada saham ditemukan.</p>
+        <p style="color:var(--c-text-2);font-size:var(--text-sm);">No stocks found.</p>
       `;
       tableWrap.appendChild(empty);
       return;
@@ -153,7 +153,7 @@ export function render() {
     const table = createEl('table', { class: 'table' });
     table.innerHTML = `
       <thead><tr>
-        <th>Ticker</th><th>Company</th><th>Sektor</th><th>Status</th><th>Alasan</th><th>Set By</th><th>Set At</th><th></th>
+        <th>Ticker</th><th>Company</th><th>Sector</th><th>Status</th><th>Reason</th><th>Set By</th><th>Set At</th><th></th>
       </tr></thead>
     `;
     const tbody = createEl('tbody');
@@ -254,7 +254,7 @@ export function render() {
     if (delisted) {
       const lock = createEl('span', {
         class: 'btn btn--ghost btn--sm',
-        title: 'Saham delisted',
+        title: 'Delisted stock',
         style: { color: 'var(--c-text-3)', opacity: 0.45, pointerEvents: 'none' },
       }, []);
       lock.innerHTML = icons['lock'];
@@ -274,7 +274,7 @@ export function render() {
   // ---- Status editor modal (parity Flutter bottom sheet) ----
   function openStatusModal(stock) {
     if (stock.label_delisted === 1) {
-      toast('Saham delisted tidak bisa di-set status', { type: 'error' });
+      toast('Delisted stocks cannot have their status set', { type: 'error' });
       return;
     }
 
@@ -287,7 +287,7 @@ export function render() {
     const reasonInput = createEl('textarea', {
       class: 'field__textarea',
       rows: 4,
-      placeholder: 'Masukkan alasan perubahan status...',
+      placeholder: 'Enter the reason for the status change...',
     }, []);
     reasonInput.value = stock.status_reason || '';
     reasonInput.style.resize = 'vertical';
@@ -301,7 +301,7 @@ export function render() {
     statusWrap.appendChild(select);
 
     const reasonWrap = createEl('div');
-    reasonWrap.innerHTML = '<label class="field__label">Alasan *</label>';
+    reasonWrap.innerHTML = '<label class="field__label">Reason *</label>';
     reasonWrap.appendChild(reasonInput);
 
     content.append(statusWrap, reasonWrap);
@@ -318,10 +318,10 @@ export function render() {
     }
     footer.appendChild(createEl('span', { style: { flex: '1' } }, []));
 
-    const cancelBtn = createEl('button', { class: 'btn btn--secondary' }, ['Batal']);
+    const cancelBtn = createEl('button', { class: 'btn btn--secondary' }, ['Cancel']);
     cancelBtn.addEventListener('click', () => modal.close());
 
-    const saveBtn = createEl('button', { class: 'btn btn--primary' }, ['Simpan']);
+    const saveBtn = createEl('button', { class: 'btn btn--primary' }, ['Save']);
     saveBtn.addEventListener('click', () => handleSave(stock, modal, select, reasonInput));
 
     footer.append(cancelBtn, saveBtn);
@@ -331,7 +331,7 @@ export function render() {
   async function handleSave(stock, modal, select, reasonInput) {
     const reason = reasonInput.value.trim();
     if (!reason) {
-      toast('Alasan harus diisi', { type: 'error' });
+      toast('Reason is required', { type: 'error' });
       return;
     }
     try {
@@ -340,7 +340,7 @@ export function render() {
         status: select.value,
         reason,
       });
-      toast(`Status ${stock.ticker} berhasil di-set`, { type: 'success' });
+      toast(`Status for ${stock.ticker} set successfully`, { type: 'success' });
       modal.close();
       loadStocks();
     } catch (e) {
@@ -351,7 +351,7 @@ export function render() {
   async function handleReset(stock, modal) {
     try {
       await Api.delete(`/admin/stocks/status/${stock.ticker}`);
-      toast(`Status ${stock.ticker} berhasil di-reset`, { type: 'success' });
+      toast(`Status for ${stock.ticker} reset successfully`, { type: 'success' });
       modal.close();
       loadStocks();
     } catch (e) {
@@ -367,7 +367,7 @@ export function render() {
         const filterActive = state.searchTerm || state.statusFilter;
 
     const info = createEl('span', { class: 'admin-stock-status__page-info' }, []);
-    info.textContent = pageInfoText(state.page, state.perPage, state.total, 'saham', filterActive ? ' (filter aktif)' : '');
+    info.textContent = pageInfoText(state.page, state.perPage, state.total, 'stocks', filterActive ? ' (filter active)' : '');
 
     const controls = createEl('div', { class: 'admin-stock-status__page-controls' }, []);
 

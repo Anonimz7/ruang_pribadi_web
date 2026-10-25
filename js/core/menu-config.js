@@ -42,7 +42,7 @@ const iconMap = {
 export const PORTALS = {
   saham: {
     id: 'saham',
-    label: 'Saham',
+    label: 'Stocks',
     icon: 'trending-up',
     route: '/saham',
     defaultPage: '/saham',

@@ -899,7 +899,7 @@ const CSS = `
     `;
 
 const BODY = `<div id="chat-container">
-        <h2>Pengetik Kode Alami - Ditingkatkan (Highlight.js)</h2> <div id="progress-bar-container">
+        <h2>Natural Code Typer - Enhanced (Highlight.js)</h2> <div id="progress-bar-container">
             <div id="progress-bar"></div>
         </div>
 
@@ -908,22 +908,22 @@ const BODY = `<div id="chat-container">
 
         <div class="controls-container">
             <div class="selection-group">
-                <label for="language-select">Pilih Jenis Kode:</label> <select id="language-select"></select> </div>
+                <label for="language-select">Choose Code Type:</label> <select id="language-select"></select> </div>
             <div class="selection-group">
-                <label for="theme-select">Pilih Tema:</label> <select id="theme-select"></select> </div>
+                <label for="theme-select">Choose Theme:</label> <select id="theme-select"></select> </div>
         </div>
-         <div id="typing-status" class="typing-indicator">Mengetik kode...</div> <textarea id="user-input" placeholder="Tempel kode Anda di sini... (Mendukung berbagai bahasa pemrograman)" spellcheck="false"></textarea> <div class="button-group">
-             <button id="cmd-startTypingCode">Mulai Mengetik Kode</button> <button id="pause-resume-button" id="cmd-togglePauseResumeCode" disabled>Jeda Pengetikan</button> <button id="stop-button" id="cmd-stopTypingCode" disabled>Hentikan Pengetikan</button> </div>
+         <div id="typing-status" class="typing-indicator">Typing code...</div> <textarea id="user-input" placeholder="Paste your code here... (Supports various programming languages)" spellcheck="false"></textarea> <div class="button-group">
+             <button id="cmd-startTypingCode">Start Typing Code</button> <button id="pause-resume-button" id="cmd-togglePauseResumeCode" disabled>Pause Typing</button> <button id="stop-button" id="cmd-stopTypingCode" disabled>Stop Typing</button> </div>
 
         <button id="config-toggle-button" id="cmd-toggleConfigPopup">
             <i class="fas fa-cog"></i> </button> <div id="modal-backdrop"></div>
 
         <div id="config-popup">
              <button class="close-button" id="cmd-toggleConfigPopup">
-                <i class="fas fa-times"></i> </button> <h3>Pengaturan</h3> <h4>Kecepatan Pengetikan (ms)</h4> <div id="code-element-configs"> </div>
-            <p style="font-size: 12px; color: #6c757d; margin-top: 0; margin-bottom: 15px; line-height: 1.4;">Sesuaikan nilai-nilai ini untuk mengubah kecepatan pengetikan per jenis elemen kode. Kecepatan Dasar adalah jeda per karakter. Pengali Jeda memengaruhi jeda setelah elemen.</p> <h4>Tampilan Website</h4> <div class="dark-mode-toggle">
-                <button id="cmd-toggleDarkMode"><i class="fas fa-moon"></i> Mode Gelap</button> </div>
-             <p style="font-size: 12px; color: #6c757d; margin-top: 10px; line-height: 1.4;">Mengubah tema gelap/terang untuk elemen website, tidak memengaruhi warna syntax kode.</p> </div>
+                <i class="fas fa-times"></i> </button> <h3>Settings</h3> <h4>Typing Speed (ms)</h4> <div id="code-element-configs"> </div>
+            <p style="font-size: 12px; color: #6c757d; margin-top: 0; margin-bottom: 15px; line-height: 1.4;">Adjust these values to change typing speed per code element type. Base Speed is the delay per character. Pause Multiplier affects the pause after an element.</p> <h4>Website Appearance</h4> <div class="dark-mode-toggle">
+                <button id="cmd-toggleDarkMode"><i class="fas fa-moon"></i> Dark Mode</button> </div>
+             <p style="font-size: 12px; color: #6c757d; margin-top: 10px; line-height: 1.4;">Switches the dark/light theme for website elements; does not affect code syntax colors.</p> </div>
 
     </div>`;
 
@@ -947,18 +947,18 @@ function initMode(page) {
         // Kecepatan pengetikan konfigurasi untuk elemen kode yang berbeda (Mudah disesuaikan di sini)
         // Catatan: Dengan pendekatan Highlight Sekali, logika delay akan menggunakan karakter dari teks asli.
         const CODE_ELEMENT_CONFIGS = {
-            KEYWORD: { name: 'Kata Kunci', baseSpeed: 40, pauseMultiplier: 1.0 }, // Indonesian
+            KEYWORD: { name: 'Keyword', baseSpeed: 40, pauseMultiplier: 1.0 }, // Indonesian
             OPERATOR: { name: 'Operator', baseSpeed: 60, pauseMultiplier: 1.0 },
             STRING: { name: 'String', baseSpeed: 20, pauseMultiplier: 1.2 }, // Ketik karakter dalam string relatif cepat, jeda kecil setelah
-            COMMENT: { name: 'Komentar', baseSpeed: 15, pauseMultiplier: 1.1 }, // Indonesian
-            NUMBER: { name: 'Angka', baseSpeed: 35, pauseMultiplier: 1.0 }, // Indonesian
-            PUNCTUATION: { name: 'Tanda Baca', baseSpeed: 70, pauseMultiplier: 1.3 }, // Indonesian // Jeda lebih lama setelah tanda baca
-            WHITESPACE: { name: 'Spasi', baseSpeed: 10, pauseMultiplier: 0.5 }, // Indonesian // Spasi/tab cepat, jeda minimal setelah
-            NEWLINE: { name: 'Baris Baru', baseSpeed: 0, pauseMultiplier: 1.5 }, // Indonesian // Jeda setelah baris baru, tanpa kecepatan ketik
-            INDENTATION: { name: 'Inden', baseSpeed: 5, pauseMultiplier: 0.1 }, // Indonesian // Mengetik spasi/tab untuk indentasi, hampir tanpa jeda
-            VARIABLE: { name: 'Variabel/Nama', baseSpeed: 30, pauseMultiplier: 1.0 }, // Indonesian // Default untuk kata yang tidak cocok
+            COMMENT: { name: 'Comment', baseSpeed: 15, pauseMultiplier: 1.1 }, // Indonesian
+            NUMBER: { name: 'Number', baseSpeed: 35, pauseMultiplier: 1.0 }, // Indonesian
+            PUNCTUATION: { name: 'Punctuation', baseSpeed: 70, pauseMultiplier: 1.3 }, // Indonesian // Jeda lebih lama setelah tanda baca
+            WHITESPACE: { name: 'Space', baseSpeed: 10, pauseMultiplier: 0.5 }, // Indonesian // Spasi/tab cepat, jeda minimal setelah
+            NEWLINE: { name: 'New Line', baseSpeed: 0, pauseMultiplier: 1.5 }, // Indonesian // Jeda setelah baris baru, tanpa kecepatan ketik
+            INDENTATION: { name: 'Indent', baseSpeed: 5, pauseMultiplier: 0.1 }, // Indonesian // Mengetik spasi/tab untuk indentasi, hampir tanpa jeda
+            VARIABLE: { name: 'Variable/Name', baseSpeed: 30, pauseMultiplier: 1.0 }, // Indonesian // Default untuk kata yang tidak cocok
             LITERAL: { name: 'Literal', baseSpeed: 35, pauseMultiplier: 1.0 }, // true, false, null, undefined
-            OTHER: { name: 'Lainnya', baseSpeed: 30, pauseMultiplier: 1.0 } // Indonesian // Karakter tunggal lainnya
+            OTHER: { name: 'Other', baseSpeed: 30, pauseMultiplier: 1.0 } // Indonesian // Karakter tunggal lainnya
         };
 
         // Mapping Highlight.js classes to internal CODE_ELEMENT_CONFIGS types
@@ -1118,10 +1118,10 @@ function initMode(page) {
                 div.innerHTML = `
                     <label>${config.name}:</label>
                     <div class="speed-input-group">
-                         <label for="${elementType}-baseSpeed">Kecepatan Dasar:</label> <input type="number" id="${elementType}-baseSpeed" value="${config.baseSpeed}" min="0" step="1">
+                         <label for="${elementType}-baseSpeed">Base Speed:</label> <input type="number" id="${elementType}-baseSpeed" value="${config.baseSpeed}" min="0" step="1">
                     </div>
                     <div class="pause-input-group">
-                         <label for="${elementType}-pauseMultiplier">Pengali Jeda:</label> <input type="number" id="${elementType}-pauseMultiplier" value="${config.pauseMultiplier}" step="0.1" min="0.1">
+                         <label for="${elementType}-pauseMultiplier">Pause Multiplier:</label> <input type="number" id="${elementType}-pauseMultiplier" value="${config.pauseMultiplier}" step="0.1" min="0.1">
                     </div>
                 `;
                 codeElementConfigsDiv.appendChild(div);
@@ -1160,10 +1160,10 @@ function initMode(page) {
 
             progressBar.style.width = '0%';
             typingIndicator.classList.remove('visible');
-            typingIndicator.textContent = 'Mengetik kode...'; // Indonesian
+            typingIndicator.textContent = 'Typing code...'; // Indonesian
             stopButton.disabled = true;
             pauseResumeButton.disabled = true;
-            pauseResumeButton.textContent = 'Jeda Pengetikan'; // Indonesian
+            pauseResumeButton.textContent = 'Pause Typing'; // Indonesian
             sendButton.disabled = false; // Aktifkan kembali tombol Mulai
             userInputElement.value = ''; // Bersihkan input setelah mendapatkan kode
         }
@@ -1217,7 +1217,7 @@ function initMode(page) {
             isPaused = false;
             stopButton.disabled = false;
             pauseResumeButton.disabled = false;
-            pauseResumeButton.textContent = 'Jeda Pengetikan'; // Indonesian
+            pauseResumeButton.textContent = 'Pause Typing'; // Indonesian
             sendButton.disabled = true; // Nonaktifkan tombol Mulai saat mengetik
             userInputElement.value = ''; // Bersihkan input setelah mendapatkan kode
 
@@ -1248,15 +1248,15 @@ function initMode(page) {
                 currentTypingTimeout = null;
             }
             isPaused = true;
-            typingIndicator.textContent = 'Pengetikan Dijeda...'; // Indonesian
-            pauseResumeButton.textContent = 'Lanjutkan Pengetikan'; // Indonesian
+            typingIndicator.textContent = 'Typing Paused...'; // Indonesian
+            pauseResumeButton.textContent = 'Resume Typing'; // Indonesian
             // currentHtmlIndex dan currentCharIndex sudah diperbarui oleh typeCodeCharacter
         }
 
         function resumeTypingCode() {
              isPaused = false;
-            typingIndicator.textContent = 'Mengetik kode...'; // Indonesian
-            pauseResumeButton.textContent = 'Jeda Pengetikan'; // Indonesian
+            typingIndicator.textContent = 'Typing code...'; // Indonesian
+            pauseResumeButton.textContent = 'Pause Typing'; // Indonesian
 
              // Lanjutkan mengetik dari indeks HTML dan Plain Text yang disimpan
             typeCodeCharacter();
@@ -1516,9 +1516,9 @@ function initMode(page) {
             const darkModeButton = page.querySelector('#config-popup .dark-mode-toggle button');
             if (darkModeButton) { /* Pastikan tombol ada sebelum memperbarui */
                 if (page.classList.contains('dark-mode')) {
-                    darkModeButton.innerHTML = '<i class="fas fa-sun"></i> Mode Terang'; // Indonesian
+                    darkModeButton.innerHTML = '<i class="fas fa-sun"></i> Light Mode'; // Indonesian
                 } else {
-                    darkModeButton.innerHTML = '<i class="fas fa-moon"></i> Mode Gelap'; // Indonesian
+                    darkModeButton.innerHTML = '<i class="fas fa-moon"></i> Dark Mode'; // Indonesian
                 }
             }
         }

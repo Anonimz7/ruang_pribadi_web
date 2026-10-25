@@ -12,7 +12,7 @@ function formatDate(iso) {
   if (!iso) return '-';
   const d = new Date(iso);
   if (isNaN(d.getTime())) return '-';
-  return d.toLocaleDateString('id-ID');
+  return d.toLocaleDateString('en-US');
 }
 
 export function render() {
@@ -27,15 +27,15 @@ export function render() {
 
   container.appendChild(createEl('h1', {}, ['User Permissions']));
   container.appendChild(createEl('p', { style: { color: 'var(--c-text-2)', marginBottom: 'var(--s-5)' } },
-    ['Manage users and tiers. Akses tiap user mengikuti tier (rank &le; minTier).']));
+    ['Manage users and tiers. Access for each user follows their tier (rank \u2264 minTier).']));
 
   // Toolbar
   const toolbar = createEl('div', { style: { display: 'flex', gap: 'var(--s-3)', marginBottom: 'var(--s-4)', flexWrap: 'wrap' } });
   toolbar.innerHTML = `
     <div class="search" style="flex:1;min-width:200px;">
       <span class="search__icon">${icons['search']}</span>
-      <input type="text" class="search__input" placeholder="Cari username...">
-      <button type="button" class="search__clear" aria-label="Bersihkan pencarian">${icons['x']}</button>
+      <input type="text" class="search__input" placeholder="Search username...">
+      <button type="button" class="search__clear" aria-label="Clear search">${icons['x']}</button>
     </div>
     <button class="btn btn--primary" id="create-user">${icons['plus']} Create User</button>
   `;
@@ -78,7 +78,7 @@ export function render() {
       state.users = Array.isArray(data) ? data : [];
     } catch (e) {
       state.users = [];
-      toast('Gagal memuat users: ' + (e.message || e), { type: 'error' });
+      toast('Failed to load users: ' + (e.message || e), { type: 'error' });
     }
 
     state.loading = false;
@@ -94,7 +94,7 @@ export function render() {
       const empty = createEl('div', { class: 'admin-users__empty' }, []);
       empty.innerHTML = `
         <div class="admin-users__empty-icon">${icons['users']}</div>
-        <p style="color:var(--c-text-2);font-size:var(--text-sm);">Tidak ada pengguna ditemukan.</p>
+        <p style="color:var(--c-text-2);font-size:var(--text-sm);">No users found.</p>
       `;
       tableWrap.appendChild(empty);
       return;
@@ -140,7 +140,7 @@ export function render() {
 
     const deleteBtn = createEl('button', {
       class: 'btn btn--ghost btn--sm',
-      title: isMain ? 'Main admin tidak bisa dihapus' : 'Delete',
+      title: isMain ? 'Main admin cannot be deleted' : 'Delete',
     }, []);
     deleteBtn.innerHTML = icons['trash'];
     deleteBtn.style.color = 'var(--c-danger)';
@@ -168,7 +168,7 @@ export function render() {
       </div>
       <div class="field">
         <label class="field__label">Password</label>
-        <input type="password" name="password" class="field__input" placeholder="Minimal 4 karakter" required>
+        <input type="password" name="password" class="field__input" placeholder="Minimum 4 characters" required>
       </div>
       <div class="field">
         <label class="field__label">Tier</label>
@@ -179,10 +179,10 @@ export function render() {
           <option value="admin">Admin (0)</option>
         </select>
       </div>
-      <p class="admin-users__hint">Seluruh akses mengikuti tier yang dipilih (rank &le; minTier). Tingkatkan/ubah tier kapan pun lewat Edit.</p>
+      <p class="admin-users__hint">All access follows the selected tier (rank \u2264 minTier). Raise/change the tier any time via Edit.</p>
       <div class="field field--inline" style="justify-content:space-between;margin-top:var(--s-2);">
-        <button type="button" class="btn btn--secondary" id="cancel">Batal</button>
-        <button type="submit" class="btn btn--primary">${icons['plus']} Buat</button>
+        <button type="button" class="btn btn--secondary" id="cancel">Cancel</button>
+        <button type="submit" class="btn btn--primary">${icons['plus']} Create</button>
       </div>
     `;
 
@@ -199,7 +199,7 @@ export function render() {
       };
       try {
         await Api.post('/admin/users', data);
-        toast(`User ${data.username} berhasil dibuat`, { type: 'success' });
+        toast(`User ${data.username} created successfully`, { type: 'success' });
         modal.close();
         loadUsers();
       } catch (err) {
@@ -214,7 +214,7 @@ export function render() {
     try {
       user = await Api.get(`/admin/users/${userId}`);
     } catch (e) {
-      toast('Gagal memuat user: ' + (e.message || e), { type: 'error' });
+      toast('Failed to load user: ' + (e.message || e), { type: 'error' });
       return;
     }
 
@@ -229,17 +229,17 @@ export function render() {
       </div>
       <div class="field">
         <label class="field__label">Tier</label>
-        <select class="field__select" id="edit-tier" ${isMain ? 'disabled title="Main admin tidak bisa diubah tier-nya"' : ''}>
+        <select class="field__select" id="edit-tier" ${isMain ? 'disabled title="Main admin tier cannot be changed"' : ''}>
           <option value="guest" ${tierVal === 'guest' ? 'selected' : ''}>Guest (3)</option>
           <option value="member" ${tierVal === 'member' ? 'selected' : ''}>Member (2)</option>
           <option value="premium" ${tierVal === 'premium' ? 'selected' : ''}>Premium (1)</option>
           <option value="admin" ${tierVal === 'admin' ? 'selected' : ''}>Admin (0)</option>
         </select>
       </div>
-      <p class="admin-users__hint">Akses berubah otomatis mengikuti tier baru (rank &le; minTier).</p>
+      <p class="admin-users__hint">Access changes automatically to follow the new tier (rank \u2264 minTier).</p>
       <div class="field field--inline" style="justify-content:space-between;margin-top:var(--s-2);">
-        <button type="button" class="btn btn--secondary" id="cancel">Batal</button>
-        <button type="submit" class="btn btn--primary">${icons['check']} Simpan</button>
+        <button type="button" class="btn btn--secondary" id="cancel">Cancel</button>
+        <button type="submit" class="btn btn--primary">${icons['check']} Save</button>
       </div>
     `;
 
@@ -257,7 +257,7 @@ export function render() {
         if (tier !== user.tier) {
           await Api.put(`/admin/users/${userId}/tier`, { tier });
         }
-        toast('User berhasil diupdate', { type: 'success' });
+        toast('User updated successfully', { type: 'success' });
         modal.close();
         loadUsers();
       } catch (err) {
@@ -270,19 +270,19 @@ export function render() {
   function openDeleteConfirm(user) {
     const content = createEl('div', { style: { display: 'flex', flexDirection: 'column', gap: 'var(--s-3)' } });
     content.appendChild(createEl('p', { style: { color: 'var(--c-text-2)', fontSize: 'var(--text-sm)' } },
-      [`Yakin ingin menghapus user "${user.username}"? Tindakan ini tidak bisa dibatalkan.`]));
+      [`Are you sure you want to delete user "${user.username}"? This action cannot be undone.`]));
 
     const footer = createEl('div', { style: { display: 'flex', justifyContent: 'flex-end', gap: 'var(--s-2)', marginTop: 'var(--s-2)' } });
-    const modal = createModal({ title: 'Hapus User', content, width: '400px' });
+    const modal = createModal({ title: 'Delete User', content, width: '400px' });
 
-    const cancelBtn = createEl('button', { class: 'btn btn--secondary' }, ['Batal']);
+    const cancelBtn = createEl('button', { class: 'btn btn--secondary' }, ['Cancel']);
     cancelBtn.addEventListener('click', () => modal.close());
 
-    const delBtn = createEl('button', { class: 'btn btn--danger' }, ['Hapus']);
+    const delBtn = createEl('button', { class: 'btn btn--danger' }, ['Delete']);
     delBtn.addEventListener('click', async () => {
       try {
         await Api.delete(`/admin/users/${user.id}`);
-        toast(`User ${user.username} berhasil dihapus`, { type: 'success' });
+        toast(`User ${user.username} deleted successfully`, { type: 'success' });
         modal.close();
         loadUsers();
       } catch (e) {

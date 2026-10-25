@@ -49,8 +49,8 @@ export function render() {
         <div class="toggle ${state.prefs.auto_send ? 'toggle--on' : 'toggle--off'}" id="auto-send-toggle"></div>
       </div>
       <div style="font-size:var(--text-sm);color:var(--c-text-3);">
-        Generate terakhir: ${state.prefs.last_report_at ? new Date(state.prefs.last_report_at).toLocaleString('id-ID') : '-'}<br>
-        Auto-send terakhir: ${state.prefs.last_auto_send_at ? new Date(state.prefs.last_auto_send_at).toLocaleString('id-ID') : '-'}
+        Last generated: ${state.prefs.last_report_at ? new Date(state.prefs.last_report_at).toLocaleString('en-US') : '-'}<br>
+        Last auto-send: ${state.prefs.last_auto_send_at ? new Date(state.prefs.last_auto_send_at).toLocaleString('en-US') : '-'}
       </div>
       <div style="display:flex;gap:var(--s-3);">
         <button class="btn btn--primary" id="save-prefs" ${state.saving ? 'disabled' : ''}>
@@ -73,11 +73,11 @@ export function render() {
       try {
         const res = await Api.put('/reports/preferences', { auto_send: state.prefs.auto_send });
         if (res?.success) {
-          toast('Preferensi berhasil disimpan', { type: 'success' });
+          toast('Preferences saved successfully', { type: 'success' });
           loadPrefs();
         }
       } catch (e) {
-        toast('Gagal menyimpan: ' + (e.message || e), { type: 'error' });
+        toast('Failed to save: ' + (e.message || e), { type: 'error' });
         state.saving = false;
         renderPrefs();
       }
@@ -92,7 +92,7 @@ export function render() {
       const files = res?.files || [];
       renderHistory(files);
     } catch (e) {
-      historyCard.innerHTML = '<div class="empty" style="padding:var(--s-4);color:var(--c-danger);"><p>Gagal memuat riwayat: ' + (e.message || e) + '</p></div>';
+      historyCard.innerHTML = '<div class="empty" style="padding:var(--s-4);color:var(--c-danger);"><p>Failed to load history: ' + (e.message || e) + '</p></div>';
     }
   }
 
@@ -104,7 +104,7 @@ export function render() {
     const body = createEl('div', { style: { display: 'flex', flexDirection: 'column', gap: 'var(--s-3)' } });
 
     if (files.length === 0) {
-      body.innerHTML = '<p style="color:var(--c-text-3);font-size:var(--text-sm);">Belum ada file laporan.</p>';
+      body.innerHTML = '<p style="color:var(--c-text-3);font-size:var(--text-sm);">No report files yet.</p>';
     } else {
       files.forEach(f => {
         const row = createEl('div', {
@@ -114,7 +114,7 @@ export function render() {
         row.innerHTML = `
           <div>
             <div style="font-weight:500;font-size:var(--text-sm);">${fname}</div>
-            <div style="font-size:var(--text-xs);color:var(--c-text-3);">${new Date(f.generated_at || f.created_at).toLocaleString('id-ID')}</div>
+            <div style="font-size:var(--text-xs);color:var(--c-text-3);">${new Date(f.generated_at || f.created_at).toLocaleString('en-US')}</div>
           </div>
           <a href="${Api.getDownloadUrl('/reports/download/' + encodeURIComponent(fname))}" class="btn btn--ghost btn--sm" title="Download">${icons['download']}</a>
         `;

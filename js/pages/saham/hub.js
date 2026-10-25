@@ -12,8 +12,8 @@ export function render() {
   const page = createEl('div', { class: 'saham-hub' });
 
   const header = createEl('div', { class: 'page-head' });
-  header.appendChild(createEl('h1', {}, ['Saham']));
-  header.appendChild(createEl('p', { class: 'page-head__sub' }, ['Portal pasar IDX — pilih fitur untuk memulai.']));
+  header.appendChild(createEl('h1', {}, ['Stocks']));
+  header.appendChild(createEl('p', { class: 'page-head__sub' }, ['IDX market portal — pick a feature to get started.']));
   page.appendChild(header);
 
   const content = createEl('div', { class: 'saham-hub__content' });
@@ -39,7 +39,7 @@ export function render() {
 
     if (groups.length === 0) {
       content.appendChild(createEl('p', { class: 'empty' },
-        ['Tidak ada fitur Saham yang dapat diakses untuk tier Anda.']));
+        ['No Stock features are accessible for your tier.']));
       return;
     }
 

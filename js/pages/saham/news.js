@@ -21,7 +21,7 @@ function formatTimeAgo(iso) {
   if (diffH < 48) return `${diffH} hour${diffH > 1 ? 's' : ''} ago`;
   const diffD = Math.floor(diffH / 24);
   if (diffD < 7) return `${diffD} day${diffD > 1 ? 's' : ''} ago`;
-  return d.toLocaleDateString();
+  return d.toLocaleDateString('en-US');
 }
 
 export function render() {
@@ -202,7 +202,7 @@ export function render() {
     } catch (e) {
       state.articles = [];
       state.total = 0;
-      toast('Gagal memuat berita: ' + (e.message || e), { type: 'error' });
+      toast('Failed to load news: ' + (e.message || e), { type: 'error' });
     }
 
     renderArticles();
@@ -216,7 +216,7 @@ export function render() {
       listContainer.innerHTML = `
         <div class="empty-state" style="text-align:center;padding:var(--s-8);">
           <div style="font-size:48px;margin-bottom:var(--s-4);opacity:0.3;">${icons['newspaper']}</div>
-          <p style="color:var(--c-text-2);">Tidak ada artikel ditemukan.</p>
+          <p style="color:var(--c-text-2);">No articles found.</p>
         </div>
       `;
       return;
@@ -257,8 +257,8 @@ export function render() {
     const loading = createEl('div', { class: 'card', style: { padding: 'var(--s-8)', textAlign: 'center', color: 'var(--c-text-2)' } });
     loading.innerHTML = `
       <div style="font-size:36px;margin-bottom:var(--s-3);opacity:0.4;">${icons['layers']}</div>
-      <div style="font-size:var(--text-sm);">Mengelompokkan artikel berdasarkan topik...</div>
-      <div style="font-size:var(--text-xs);color:var(--c-text-3);margin-top:var(--s-1);">Bisa butuh beberapa detik</div>
+      <div style="font-size:var(--text-sm);">Clustering articles by topic...</div>
+      <div style="font-size:var(--text-xs);color:var(--c-text-3);margin-top:var(--s-1);">This may take a few seconds</div>
     `;
     listContainer.appendChild(loading);
 
@@ -273,7 +273,7 @@ export function render() {
     } catch (e) {
       listContainer.innerHTML = `
         <div class="empty-state" style="text-align:center;padding:var(--s-8);">
-          <p style="color:var(--c-danger);">Gagal memuat: ${e.message || e}</p>
+          <p style="color:var(--c-danger);">Failed to load: ${e.message || e}</p>
         </div>
       `;
     }
@@ -294,7 +294,7 @@ const AVATAR_COLORS = ['#5B8DEF', '#E07B54', '#4CAF7D', '#9B6FE0', '#D9A13B', '#
     if (!groups.length) {
       listContainer.innerHTML = `
         <div class="empty-state" style="text-align:center;padding:var(--s-8);">
-          <p style="color:var(--c-text-3);">Tidak ada artikel untuk dikelompokkan.</p>
+          <p style="color:var(--c-text-3);">No articles to cluster.</p>
         </div>
       `;
       return;
@@ -365,7 +365,7 @@ const AVATAR_COLORS = ['#5B8DEF', '#E07B54', '#4CAF7D', '#9B6FE0', '#D9A13B', '#
       const summary = createEl('summary');
       summary.style.cssText = 'display:flex;align-items:center;gap:var(--s-2);padding:var(--s-2);border-radius:var(--radius);cursor:pointer;user-select:none;font-size:var(--text-xs);color:var(--c-text-3);text-transform:uppercase;letter-spacing:0.05em;';
       summary.innerHTML = `
-        <span>Berita unik lainnya · ${state.singlesTotal}</span>
+        <span>Other standalone articles · ${state.singlesTotal}</span>
         <span class="news-topic__chevron">
           <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><polyline points="6 9 12 15 18 9"/></svg>
         </span>
@@ -428,7 +428,7 @@ const AVATAR_COLORS = ['#5B8DEF', '#E07B54', '#4CAF7D', '#9B6FE0', '#D9A13B', '#
       const pager = createEl('div');
       pager.style.cssText = 'display:flex;align-items:center;justify-content:space-between;gap:var(--s-2);padding:var(--s-3) var(--s-2);';
       pager.innerHTML = `
-        <span style="font-size:var(--text-xs);color:var(--c-text-3);">${start + 1}-${Math.min(start + perPage, total)} dari ${total}</span>
+        <span style="font-size:var(--text-xs);color:var(--c-text-3);">${start + 1}-${Math.min(start + perPage, total)} of ${total}</span>
         <div style="display:flex;gap:var(--s-2);">
           <button class="btn btn--ghost btn--sm" ${page <= 1 ? 'disabled' : ''}>Prev</button>
           <button class="btn btn--primary btn--sm">${page}</button>
@@ -449,7 +449,7 @@ const AVATAR_COLORS = ['#5B8DEF', '#E07B54', '#4CAF7D', '#9B6FE0', '#D9A13B', '#
 
   async function loadSinglesPage(body, page) {
     state.singlesPage = page;
-    body.innerHTML = '<div style="padding:var(--s-4);text-align:center;color:var(--c-text-3);font-size:var(--text-xs);">Memuat...</div>';
+    body.innerHTML = '<div style="padding:var(--s-4);text-align:center;color:var(--c-text-3);font-size:var(--text-xs);">Loading...</div>';
     try {
       const data = await Api.get('/news/articles/grouped', {
         since_hours: state.sinceHours,
@@ -461,7 +461,7 @@ const AVATAR_COLORS = ['#5B8DEF', '#E07B54', '#4CAF7D', '#9B6FE0', '#D9A13B', '#
       state.singlesPerPage = data.singles_per_page || state.singlesPerPage;
       renderSinglesPage(body);
     } catch (e) {
-      body.innerHTML = `<div style="padding:var(--s-4);text-align:center;color:var(--c-danger);font-size:var(--text-xs);">Gagal memuat: ${e.message || e}</div>`;
+      body.innerHTML = `<div style="padding:var(--s-4);text-align:center;color:var(--c-danger);font-size:var(--text-xs);">Failed to load: ${e.message || e}</div>`;
     }
   }
 

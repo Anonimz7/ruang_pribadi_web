@@ -26,7 +26,7 @@ export function render() {
   const container = createEl('div', { class: 'admin-proxies' }, []);
   container.appendChild(createEl('h1', {}, ['Proxy Scraper']));
   container.appendChild(createEl('p', { style: { color: 'var(--c-text-2)', marginBottom: 'var(--s-5)' } },
-    ['Konfigurasi rotasi proxy untuk scraper.']));
+    ['Proxy rotation configuration for the scraper.']));
 
   // ── Tabs ──
   const tabs = createEl('div', { class: 'tabs' });
@@ -70,16 +70,16 @@ export function render() {
       statusIcon.innerHTML = icons['key'];
       if (state.keyConfigured) {
         statusIcon.style.color = 'var(--c-success)';
-        statusText.textContent = 'API Key Terkonfigurasi';
+        statusText.textContent = 'API Key Configured';
         statusText.style.color = 'var(--c-success)';
         statusBadge.className = 'badge badge--success';
-        statusBadge.textContent = 'Aktif';
+        statusBadge.textContent = 'Active';
       } else {
         statusIcon.style.color = 'var(--c-warn)';
-        statusText.textContent = 'Belum Ada API Key';
+        statusText.textContent = 'No API Key Yet';
         statusText.style.color = 'var(--c-warn)';
         statusBadge.className = 'badge badge--warn';
-        statusBadge.textContent = 'Belum';
+        statusBadge.textContent = 'Not yet';
       }
     }
     statusRow.append(statusIcon, statusText, statusBadge);
@@ -96,7 +96,7 @@ export function render() {
     const keyInput = createEl('input', {
       type: 'password',
       class: 'field__input',
-      placeholder: 'Tempel API key Webshare (ws_xxxx)',
+      placeholder: 'Paste Webshare API key (ws_xxxx)',
       autocomplete: 'off',
       style: { marginTop: 'var(--s-4)', fontFamily: 'var(--font-mono)', fontSize: 'var(--text-sm)' },
     });
@@ -111,8 +111,8 @@ export function render() {
     const syncBtn = createEl('button', { type: 'button', class: 'btn btn--accent' }, []);
 
     function renderButtons() {
-      testKeyBtn.innerHTML = `${icons['key']} Uji Koneksi`;
-      syncBtn.innerHTML = `${icons['download']} Sinkronkan`;
+      testKeyBtn.innerHTML = `${icons['key']} Test Connection`;
+      syncBtn.innerHTML = `${icons['download']} Sync`;
       syncBtn.disabled = !state.keyConfigured;
       testKeyBtn.disabled = state.saving || testKeyBtn._busy;
       syncBtn.disabled = state.saving || !state.keyConfigured || syncBtn._busy;
@@ -124,10 +124,10 @@ export function render() {
         const res = await Api.post('/admin/proxies/webshare/test');
         state.keyTestResult = res;
         if (res?.success) toast(res.message || 'API key valid', { type: 'success' });
-        else toast(res?.message || 'Test gagal', { type: 'error' });
+        else toast(res?.message || 'Test failed', { type: 'error' });
       } catch (e) {
         state.keyTestResult = { success: false, message: e.message || String(e) };
-        toast('Gagal uji koneksi: ' + (e.message || e), { type: 'error' });
+        toast('Failed to test connection: ' + (e.message || e), { type: 'error' });
       } finally {
         testKeyBtn._busy = false;
         renderButtons();
@@ -140,10 +140,10 @@ export function render() {
       renderButtons();
       try {
         const res = await Api.post('/admin/proxies/webshare/sync');
-        toast(res?.message || 'Proxy Webshare disinkronkan', { type: 'success' });
+        toast(res?.message || 'Webshare proxies synced', { type: 'success' });
         await loadProxySettings();
       } catch (e) {
-        toast('Gagal sinkron: ' + (e.message || e), { type: 'error' });
+        toast('Failed to sync: ' + (e.message || e), { type: 'error' });
       } finally {
         syncBtn._busy = false;
         renderButtons();
@@ -169,17 +169,17 @@ export function render() {
       keyResultBox.style.display = '';
       keyResultBox.className = 'admin-proxies__result ' + (ok ? 'admin-proxies__result--ok' : 'admin-proxies__result--err');
       keyResultIcon.innerHTML = ok ? icons['check'] : icons['alert-circle'];
-      keyResultMsg.textContent = state.keyTestResult.message || (ok ? 'API key valid' : 'API key tidak valid');
+      keyResultMsg.textContent = state.keyTestResult.message || (ok ? 'API key valid' : 'API key invalid');
     }
 
     function renderWebshare() {
       renderStatus();
       maskBox.style.display = state.keyConfigured && state.keyMasked ? '' : 'none';
       maskText.textContent = state.keyMasked || '';
-      keyInput.placeholder = state.keyConfigured ? 'Ketik key baru untuk mengganti' : 'Tempel API key Webshare (ws_xxxx)';
+      keyInput.placeholder = state.keyConfigured ? 'Type a new key to replace it' : 'Paste Webshare API key (ws_xxxx)';
       keyHint.textContent = state.keyConfigured
-        ? 'Key tersimpan di backend. Ketik key baru lalu tekan Simpan di tab Proxy untuk mengganti, atau langsung sinkronkan.'
-        : 'Simpan API key terlebih dahulu sebelum sinkronisasi (tab Proxy → Simpan).';
+        ? 'Key is stored in the backend. Type a new key, then press Save in the Proxy tab to replace it, or sync directly.'
+        : 'Save the API key first before syncing (Proxy tab → Save).';
       renderButtons();
       renderKeyTestResult();
     }
@@ -201,7 +201,7 @@ export function render() {
     });
     textarea.value = state.proxies;
     card.appendChild(textarea);
-    card.appendChild(createEl('p', { class: 'field__hint' }, ['Satu proxy per baris: IP:PORT atau IP:PORT:USERNAME:PASSWORD']));
+    card.appendChild(createEl('p', { class: 'field__hint' }, ['One proxy per line: IP:PORT or IP:PORT:USERNAME:PASSWORD']));
 
     // Actions
     const actions = createEl('div', { style: { display: 'flex', gap: 'var(--s-3)', marginTop: 'var(--s-3)' } });
@@ -209,14 +209,14 @@ export function render() {
     const testBtn = createEl('button', { type: 'button', class: 'btn btn--secondary' }, []);
 
     function renderButtons() {
-      saveBtn.innerHTML = `${icons['check']} Simpan`;
-      testBtn.innerHTML = `${icons['refresh']} Tes Semua`;
+      saveBtn.innerHTML = `${icons['check']} Save`;
+      testBtn.innerHTML = `${icons['refresh']} Test All`;
       saveBtn.disabled = state.saving;
       testBtn.disabled = state.saving;
       progress.style.display = state.saving ? '' : 'none';
       if (state.saving) {
-        saveBtn.innerHTML = '<span class="admin-proxies__spin"></span> Menyimpan...';
-        testBtn.innerHTML = '<span class="admin-proxies__spin"></span> Menguji...';
+        saveBtn.innerHTML = '<span class="admin-proxies__spin"></span> Saving...';
+        testBtn.innerHTML = '<span class="admin-proxies__spin"></span> Testing...';
       }
     }
 
@@ -233,10 +233,10 @@ export function render() {
         });
         state.keyConfigured = !!res?.webshare_key_configured;
         card._keyInput.value = '';
-        toast(`${res?.proxy_count ?? 0} proxy disimpan`, { type: 'success' });
+        toast(`${res?.proxy_count ?? 0} proxies saved`, { type: 'success' });
         card._render();
       } catch (e) {
-        toast('Gagal menyimpan: ' + (e.message || e), { type: 'error' });
+        toast('Failed to save: ' + (e.message || e), { type: 'error' });
       } finally {
         state.saving = false;
         renderButtons();
@@ -252,7 +252,7 @@ export function render() {
         renderTestResults();
         await state.loadLogs?.();
       } catch (e) {
-        toast('Gagal menguji proxy: ' + (e.message || e), { type: 'error' });
+        toast('Failed to test proxies: ' + (e.message || e), { type: 'error' });
       } finally {
         state.saving = false;
         renderButtons();
@@ -283,14 +283,14 @@ export function render() {
       const failed = Math.max(0, total - working);
 
       // Summary section label
-      resultWrap.appendChild(createEl('div', { class: 'admin-proxies__section' }, ['HASIL PENGUJIAN']));
+      resultWrap.appendChild(createEl('div', { class: 'admin-proxies__section' }, ['TEST RESULTS']));
 
       // Summary chips row
       const chips = createEl('div', { style: { display: 'flex', gap: 'var(--s-2)', marginTop: 'var(--s-2)' } });
       chips.append(
         resultChip(`${total} Total`, 'info'),
-        resultChip(`${working} Aktif`, 'success'),
-        resultChip(`${failed} Gagal`, 'danger'),
+        resultChip(`${working} Active`, 'success'),
+        resultChip(`${failed} Failed`, 'danger'),
       );
       resultWrap.appendChild(chips);
 
@@ -304,7 +304,7 @@ export function render() {
         row.innerHTML = `
           <span style="display:inline-flex;flex-shrink:0;color:${ok ? 'var(--c-success)' : 'var(--c-danger)'};">${ok ? icons['check'] : icons['alert-circle']}</span>
           <span class="admin-proxies__proxy">${item.proxy}</span>
-          <span class="admin-proxies__latency" style="color:${ok ? 'var(--c-success)' : 'var(--c-danger)'};">${ok ? (item.latency_ms != null ? formatLatency(item.latency_ms) : 'Aktif') : 'Gagal'}</span>
+          <span class="admin-proxies__latency" style="color:${ok ? 'var(--c-success)' : 'var(--c-danger)'};">${ok ? (item.latency_ms != null ? formatLatency(item.latency_ms) : 'Active') : 'Failed'}</span>
         `;
         resultWrap.appendChild(row);
       });
@@ -325,10 +325,10 @@ export function render() {
     const wrap = createEl('div', {}, []);
 
     const header = createEl('div', { class: 'admin-proxies__logheader' });
-    const fileEl = createEl('span', { class: 'admin-proxies__logfile' }, ['Belum ada log']);
-    const countEl = createEl('span', { class: 'admin-proxies__logcount' }, ['0 baris']);
+    const fileEl = createEl('span', { class: 'admin-proxies__logfile' }, ['No logs yet']);
+    const countEl = createEl('span', { class: 'admin-proxies__logcount' }, ['0 lines']);
     const spinner = createEl('span', { class: 'admin-proxies__spin', style: { display: 'none' } });
-    const refreshBtn = createEl('button', { class: 'btn btn--ghost btn--sm', title: 'Muat ulang log', type: 'button' }, []);
+    const refreshBtn = createEl('button', { class: 'btn btn--ghost btn--sm', title: 'Reload log', type: 'button' }, []);
     refreshBtn.innerHTML = icons['refresh'];
     refreshBtn.addEventListener('click', loadLogs);
     const headerRight = createEl('div', { style: { display: 'flex', gap: 'var(--s-2)', alignItems: 'center', flexShrink: 0 } });
@@ -340,14 +340,14 @@ export function render() {
     wrap.appendChild(logBody);
 
     function renderIsiLog() {
-      fileEl.textContent = state.logFile ? `${state.logFile} (${state.logLines.length} baris)` : 'Belum ada log';
-      countEl.textContent = `${state.logLines.length} baris`;
+      fileEl.textContent = state.logFile ? `${state.logFile} (${state.logLines.length} lines)` : 'No logs yet';
+      countEl.textContent = `${state.logLines.length} lines`;
       spinner.style.display = state.logsLoading ? '' : 'none';
       refreshBtn.disabled = state.logsLoading;
 
       logBody.innerHTML = '';
       if (!state.logLines.length) {
-        logBody.appendChild(createEl('div', { class: 'admin-proxies__log-empty' }, ['Belum ada log pengujian proxy.\nJalankan "Tes Semua" untuk melihat hasilnya.']));
+        logBody.appendChild(createEl('div', { class: 'admin-proxies__log-empty' }, ['No proxy test logs yet.\nRun "Test All" to see results.']));
         return;
       }
       state.logLines.forEach(line => {

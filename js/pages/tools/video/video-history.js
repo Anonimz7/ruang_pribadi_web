@@ -66,21 +66,21 @@ async function loadHistory() {
     renderList();
   } catch (e) {
     state.loading = false;
-    toast('Gagal memuat riwayat: ' + (e.message || e), 'danger');
+    toast('Failed to load history: ' + (e.message || e), 'danger');
     renderList();
   }
 }
 
 async function deleteRecord(record) {
   if (!record.fileName) return;
-  if (!confirm(`Hapus "${record.fileName}" dari perangkat?`)) return;
+  if (!confirm(`Delete "${record.fileName}" from device?`)) return;
   try {
     await Api.delete('/video/' + encodeURIComponent(record.fileName));
     state.records = state.records.filter(r => r.fileName !== record.fileName);
     renderList();
     toast(`${record.fileName} dihapus`, 'success');
   } catch (e) {
-    toast('Gagal menghapus: ' + (e.message || e), 'danger');
+    toast('Failed to delete: ' + (e.message || e), 'danger');
   }
 }
 
@@ -139,8 +139,8 @@ function renderHeader() {
   const header = createEl('div', { style: { marginBottom: 'var(--s-5)', display: 'flex', alignItems: 'center', justifyContent: 'space-between', flexWrap: 'wrap', gap: 'var(--s-3)' } });
   header.innerHTML = `
     <div>
-      <h1 style="font-size:var(--text-lg);font-weight:700;margin-bottom:var(--s-1);">Riwayat Download</h1>
-      <p style="color:var(--c-text-2);font-size:var(--text-sm);">Daftar video yang telah diunduh.</p>
+      <h1 style="font-size:var(--text-lg);font-weight:700;margin-bottom:var(--s-1);">Download History</h1>
+      <p style="color:var(--c-text-2);font-size:var(--text-sm);">List of videos already downloaded.</p>
     </div>
     <div style="display:flex;gap:var(--s-2);">
       <button class="btn btn--secondary" id="vh-refresh" aria-label="Refresh">
@@ -165,7 +165,7 @@ function renderList() {
     listEl.innerHTML = `
       <div class="card" style="padding:var(--s-6);text-align:center;">
         <div class="spinner" style="width:32px;height:32px;border:3px solid var(--c-border);border-top-color:var(--c-primary);border-radius:50%;animation:spin 1s linear infinite;margin:0 auto var(--s-3);"></div>
-        <div style="font-size:var(--text-sm);color:var(--c-text-2);">Memuat riwayat...</div>
+        <div style="font-size:var(--text-sm);color:var(--c-text-2);">Loading history...</div>
       </div>
     `;
     return;
@@ -175,9 +175,9 @@ function renderList() {
     listEl.innerHTML = `
       <div class="empty">
         <div class="empty__icon">${icons.download}</div>
-        <div class="empty__title">Belum ada download</div>
-        <div class="empty__desc">Video yang berhasil diunduh akan muncul di sini.</div>
-        <a href="#/video" class="btn btn--primary">Mulai Download</a>
+        <div class="empty__title">No downloads yet</div>
+        <div class="empty__desc">Successfully downloaded videos will appear here.</div>
+        <a href="#/video" class="btn btn--primary">Start Download</a>
       </div>
     `;
     return;
@@ -219,10 +219,10 @@ function renderList() {
           <button class="btn btn--ghost btn--sm" style="padding:var(--s-2);width:36px;height:36px;min-width:36px;min-height:36px;color:var(--c-success);" aria-label="Putar video" data-play="${record.fileName || ''}">
             ${icons.play}
           </button>
-          <button class="btn btn--ghost btn--sm" style="padding:var(--s-2);width:36px;height:36px;min-width:36px;min-height:36px;color:var(--c-primary);" aria-label="Unduh video" data-download="${record.fileName || ''}">
+          <button class="btn btn--ghost btn--sm" style="padding:var(--s-2);width:36px;height:36px;min-width:36px;min-height:36px;color:var(--c-primary);" aria-label="Download video" data-download="${record.fileName || ''}">
             ${icons.download}
           </button>
-          <button class="btn btn--ghost btn--sm" style="padding:var(--s-2);width:36px;height:36px;min-width:36px;min-height:36px;color:var(--c-danger);" aria-label="Hapus video" data-delete="${record.fileName || ''}">
+          <button class="btn btn--ghost btn--sm" style="padding:var(--s-2);width:36px;height:36px;min-width:36px;min-height:36px;color:var(--c-danger);" aria-label="Delete video" data-delete="${record.fileName || ''}">
             ${icons.trash}
           </button>
         </div>

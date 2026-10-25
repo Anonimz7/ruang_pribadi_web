@@ -64,7 +64,7 @@ export function render() {
   const header = createEl('div', { class: 'gacha-header' }, [
     createEl('h1', { class: 'gacha-title' }, ['Render Diagram']),
     createEl('p', { class: 'gacha-subtitle' }, [
-      'Tulis kode PlantUML di samping, klik Render untuk melihat diagram secara lokal (offline).'
+      'Write PlantUML code on the side, click Render to view the diagram locally (offline).'
     ]),
   ]);
   container.appendChild(header);
@@ -122,7 +122,7 @@ export function render() {
   const saveSvgBtn = createEl('button', {
     class: 'btn btn--secondary',
     style: { flex: '1', display: 'none' }
-  }, ['💾 Simpan SVG']);
+  }, ['💾 Save SVG']);
 
   btnRow.appendChild(renderBtn);
   btnRow.appendChild(clearBtn);
@@ -130,7 +130,7 @@ export function render() {
 
   const hint = createEl('div', {
     style: { fontSize: 'var(--text-xs)', color: 'var(--c-text-3)', marginTop: 'var(--s-1)' }
-  }, ['Render lokal (offline, tanpa server).']);
+  }, ['Local render (offline, no server).']);
   btnRow.appendChild(hint);
 
   inputCard.appendChild(textarea);
@@ -167,7 +167,7 @@ export function render() {
   const placeholder = createEl('div', {
     class: 'diagram-placeholder',
     style: { textAlign: 'center', color: 'var(--c-text-3)', fontSize: 'var(--text-sm)' }
-  }, ['Tekan Render untuk melihat hasil diagram']);
+  }, ['Press Render to see the diagram result']);
   previewWrap.appendChild(placeholder);
 
   outputCard.appendChild(previewWrap);
@@ -236,7 +236,7 @@ export function render() {
       }
 
       showResult(data.svg);
-      toast('Diagram berhasil dirender!', 'success');
+      toast('Diagram rendered successfully!', 'success');
     } else if (data.ok === false) {
       isLoading = false;
       if (renderResolver) {
@@ -258,18 +258,18 @@ export function render() {
   // ═══════════════════════════════════════════════════════
   function doRender() {
     if (isLoading) {
-      toast('Render masih berjalan, tunggu...', 'warn');
+      toast('Render still running, please wait...', 'warn');
       return;
     }
 
     const source = textarea.value.trim();
     if (!source) {
-      toast('Tulis kode PlantUML terlebih dahulu', 'warn');
+      toast('Write PlantUML code first', 'warn');
       return;
     }
 
     if (!source.includes('@startuml') || !source.includes('@enduml')) {
-      toast('Kode harus dimulai dengan @startuml dan diakhiri @enduml', 'warn');
+      toast('Code must start with @startuml and end with @enduml', 'warn');
       return;
     }
 
@@ -281,7 +281,7 @@ export function render() {
     placeholder.style.display = 'none';
     const loadingEl = createEl('div', {
       style: { textAlign: 'center', color: 'var(--c-text-3)', fontSize: 'var(--text-sm)' }
-    }, ['⏳ Merender diagram...']);
+    }, ['⏳ Rendering diagram...']);
     previewWrap.innerHTML = '';
     previewWrap.appendChild(loadingEl);
     previewWrap.style.cursor = 'wait';
@@ -297,10 +297,10 @@ export function render() {
       }
     } else if (!iframeLoaded && iframe.contentWindow) {
       // Iframe HTML loaded but JS engine not ready yet
-      showError('Engine PlantUML belum siap. Tunggu beberapa detik, lalu coba lagi.');
+      showError('PlantUML engine is not ready yet. Wait a few seconds, then try again.');
       isLoading = false;
     } else {
-      showError('Gagal mengakses renderer. Pastikan file assets tersedia.');
+      showError('Failed to access renderer. Make sure the asset files are available.');
       isLoading = false;
     }
   }
@@ -336,7 +336,7 @@ export function render() {
       saveSvgBtn.style.display = 'inline-flex';
       saveSvgBtn.onclick = () => {
         downloadSvg(currentSvg);
-        toast('SVG berhasil disimpan!', 'success');
+        toast('SVG saved successfully!', 'success');
       };
     } else {
       // Fallback: raw HTML
@@ -366,7 +366,7 @@ export function render() {
   }
 
   function clearAll() {
-    if (confirm('Hapus semua kode?')) {
+    if (confirm('Delete all code?')) {
       textarea.value = '';
       saveSource('');
       saveSvgBtn.style.display = 'none';
@@ -375,7 +375,7 @@ export function render() {
       placeholder.style.display = 'block';
       previewWrap.appendChild(placeholder);
       currentSvg = null;
-      toast('Kode dihapus', 'info');
+      toast('Code deleted', 'info');
     }
   }
 

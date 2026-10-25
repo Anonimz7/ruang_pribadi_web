@@ -5,7 +5,7 @@ import { createEl } from '../../../utils/dom.js';
 // [nama, hexa] — diekstrak langsung dari index.html asli (3 section x 24 warna)
 const SECTIONS = [
   {
-    title: 'Warna Inti (Kemungkinan Set 12/18/24 Warna & ke bawah)',
+    title: 'Core Colors (Likely 12/18/24-Color Sets & below)',
     colors: [
       ['White', '#FFFFFF'], ['Lemon Yellow', '#FFF700'], ['Light Yellow', '#FFF978'], ['Orange Yellow', '#FFDC00'],
       ['Cream', '#FFF2CC'], ['Yellow Ochre', '#C8A02F'], ['Orange', '#FF8A00'], ['Light Orange', '#FFBB6B'],
@@ -16,7 +16,7 @@ const SECTIONS = [
     ],
   },
   {
-    title: 'Tambahan untuk Set 36/48 Warna',
+    title: 'Additions for 36/48-Color Sets',
     colors: [
       ['Prussian Blue', '#000080'], ['Turquoise', '#00D0D0'], ['Emerald Green', '#00B000'], ['Light Green', '#80FF80'],
       ['Grass Green', '#008000'], ['Dark Green', '#004000'], ['Olive Green', '#6B8E23'], ['Yellow Green', '#9ACD32'],
@@ -27,7 +27,7 @@ const SECTIONS = [
     ],
   },
   {
-    title: 'Tambahan untuk Set 60/72 Warna',
+    title: 'Additions for 60/72-Color Sets',
     colors: [
       ['Pale Yellow', '#FFFEC6'], ['Deep Yellow', '#FFCC00'], ['Naples Yellow', '#FFDA80'], ['Apricot', '#FBCEB1'],
       ['Light Peach', '#FFDAB9'], ['Salmon Pink', '#FA8072'], ['Scarlet', '#FF2400'], ['Crimson', '#DC143C'],
@@ -62,9 +62,9 @@ export function render() {
   `;
   page.appendChild(style);
 
-  page.appendChild(createEl('h1', { class: 'cp-page__title' }, ['Daftar 72 Warna Faber-Castell Oil Pastel']));
+  page.appendChild(createEl('h1', { class: 'cp-page__title' }, ['Faber-Castell Oil Pastel 72-Color List']));
   page.appendChild(createEl('div', { class: 'cp-note' }, [
-    'Catatan: Representasi warna dalam kode heksadesimal ini adalah perkiraan digital yang mendekati warna asli krayon. Warna mungkin sedikit bervariasi tergantung pada layar monitor. Pembagian ke dalam set adalah asumsi umum penambahan warna oleh produsen.',
+    'Note: The hex-code color representations here are digital approximations close to the actual crayon colors. Colors may vary slightly depending on your monitor. The division into sets is a general assumption of how the manufacturer adds colors.',
   ]));
 
   for (const sec of SECTIONS) {

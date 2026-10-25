@@ -58,7 +58,7 @@ export function openProfileModal() {
     return;
   }
   refreshAccessData().then(() => {
-    const modal = createModal({ title: 'Profil', content: createProfileBody(), width: '480px' });
+    const modal = createModal({ title: 'Profile', content: createProfileBody(), width: '480px' });
     // Tombol login dari buildLoggedOut tidak dipakai di modal (sudah login).
     return modal;
   });
@@ -70,8 +70,8 @@ function buildLoggedOut() {
   const icon = createEl('div', { class: 'profile-empty__icon' });
   icon.innerHTML = icons['user'];
   card.appendChild(icon);
-  card.appendChild(createEl('h2', { style: { margin: 'var(--s-3) 0 var(--s-1)', fontSize: 'var(--text-lg)' } }, ['Belum Login']));
-  card.appendChild(createEl('p', { class: 'profile-empty__desc' }, ['Silakan login untuk melihat profil dan mengatur akun Anda.']));
+  card.appendChild(createEl('h2', { style: { margin: 'var(--s-3) 0 var(--s-1)', fontSize: 'var(--text-lg)' } }, ['Not Logged In']));
+  card.appendChild(createEl('p', { class: 'profile-empty__desc' }, ['Please log in to view your profile and manage your account.']));
 
   const btn = createEl('button', { class: 'btn btn--primary' }, ['Login']);
   btn.addEventListener('click', () => showLogin());
@@ -115,14 +115,14 @@ function buildHero() {
 // ═══ AKSES (murni tier) ═══════════════════════════
 function buildAccessCard() {
   const card = createEl('div', { class: 'card' }, []);
-  card.appendChild(createEl('div', { class: 'card__title', style: { marginBottom: 'var(--s-3)' } }, ['Akses Anda']));
+  card.appendChild(createEl('div', { class: 'card__title', style: { marginBottom: 'var(--s-3)' } }, ['Your Access']));
 
   if (Auth.isAdmin()) {
-    const badge = createEl('span', { class: 'badge badge--success' }, ['Akses penuh ke semua fitur']);
+    const badge = createEl('span', { class: 'badge badge--success' }, ['Full access to all features']);
     card.appendChild(badge);
   } else {
     card.appendChild(createEl('p', { class: 'profile-muted' },
-      [`Tier ${(store.tier || 'guest').toUpperCase()} (rank ${store.rank}) membuka ${accessCount} dari ${accessTotal || '?'} fitur.`]));
+      [`Tier ${(store.tier || 'guest').toUpperCase()} (rank ${store.rank}) unlocks ${accessCount} of ${accessTotal || '?'} features.`]));
   }
   return card;
 }
@@ -130,17 +130,17 @@ function buildAccessCard() {
 // ═══ CHANGE PASSWORD ═══════════════════════════════
 function buildPasswordCard() {
   const card = createEl('div', { class: 'card' }, []);
-  card.appendChild(createEl('div', { class: 'card__title', style: { marginBottom: 'var(--s-4)' } }, ['Ubah Password']));
+  card.appendChild(createEl('div', { class: 'card__title', style: { marginBottom: 'var(--s-4)' } }, ['Change Password']));
 
-  const { wrap: oldWrap, input: oldInput } = pwInput('Password Lama', 'old');
-  const { wrap: newWrap, input: newInput } = pwInput('Password Baru', 'new');
-  const { wrap: confirmWrap, input: confirmInput } = pwInput('Konfirmasi Password', 'confirm');
+  const { wrap: oldWrap, input: oldInput } = pwInput('Old Password', 'old');
+  const { wrap: newWrap, input: newInput } = pwInput('New Password', 'new');
+  const { wrap: confirmWrap, input: confirmInput } = pwInput('Confirm Password', 'confirm');
 
   // Strength meter (reuse shared util + pw-strength CSS)
   const strengthWrap = createEl('div', { class: 'pw-strength', style: { marginBottom: 'var(--s-4)', marginTop: 'var(--s-2)' } });
   const strengthLabel = createEl('div', { class: 'pw-strength__label' });
   const strengthText = createEl('span', { class: 'pw-strength__text pw-strength__text--fair' }, ['—']);
-  strengthLabel.append(createEl('span', {}, ['Kekuatan password']), strengthText);
+  strengthLabel.append(createEl('span', {}, ['Password strength']), strengthText);
   strengthWrap.appendChild(strengthLabel);
 
   const strengthBar = createEl('div', { class: 'progress' });
@@ -161,8 +161,8 @@ function buildPasswordCard() {
   const renderBtn = () => {
     saveBtn.disabled = changing;
     saveBtn.innerHTML = changing
-      ? '<span class="profile-pw__spin"></span> Menyimpan...'
-      : `${icons['edit']} Simpan Password Baru`;
+      ? '<span class="profile-pw__spin"></span> Saving...'
+      : `${icons['edit']} Save New Password`;
   };
 
   const onSave = async () => {
@@ -171,22 +171,22 @@ function buildPasswordCard() {
     const np = newInput.value.trim();
     const cp = confirmInput.value.trim();
 
-    if (!op || !np || !cp) { toast('Semua field harus diisi', { type: 'error' }); return; }
-    if (np !== cp) { toast('Password baru tidak cocok', { type: 'error' }); return; }
-    if (np.length < 4) { toast('Password minimal 4 karakter', { type: 'error' }); return; }
+    if (!op || !np || !cp) { toast('All fields are required', { type: 'error' }); return; }
+    if (np !== cp) { toast('New passwords do not match', { type: 'error' }); return; }
+    if (np.length < 4) { toast('Password must be at least 4 characters', { type: 'error' }); return; }
 
     changing = true;
     renderBtn();
     try {
       await Auth.changePassword(op, np);
-      toast('Password berhasil diubah', { type: 'success' });
+      toast('Password changed successfully', { type: 'success' });
       oldInput.value = ''; newInput.value = ''; confirmInput.value = '';
       strengthText.textContent = '—';
       strengthText.className = 'pw-strength__text pw-strength__text--fair';
       strengthBarFill.style.width = '0%';
       strengthBarFill.style.background = 'var(--c-text-3)';
     } catch (e) {
-      toast(e?.message || 'Gagal mengubah password', { type: 'error' });
+      toast(e?.message || 'Failed to change password', { type: 'error' });
     } finally {
       changing = false;
       renderBtn();
@@ -211,8 +211,8 @@ function pwInput(placeholder, name) {
   const toggle = createEl('button', {
     type: 'button',
     class: 'profile-pw__toggle',
-    title: 'Tampilkan/sembunyikan',
-    'aria-label': 'Tampilkan/sembunyikan',
+    title: 'Show/hide',
+    'aria-label': 'Show/hide',
   }, []);
   toggle.innerHTML = icons['eye'];
   toggle.addEventListener('click', () => {

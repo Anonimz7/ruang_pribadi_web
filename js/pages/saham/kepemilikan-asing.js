@@ -43,7 +43,7 @@ async function loadPage() {
     renderPage();
   } catch (e) {
     pageState.loading = false;
-    toast('Gagal memuat data kepemilikan asing: ' + (e.message || e), 'danger');
+    toast('Failed to load foreign ownership data: ' + (e.message || e), 'danger');
     renderLoading();
   }
 }
@@ -63,8 +63,8 @@ function renderHeader() {
   header.innerHTML = `
     <div style="display:flex;align-items:center;justify-content:space-between;flex-wrap:wrap;gap:var(--s-3);">
       <div>
-        <h1 style="font-size:var(--text-lg);font-weight:700;margin-bottom:var(--s-1);">Kepemilikan Asing</h1>
-        <p style="color:var(--c-text-2);font-size:var(--text-sm);">Posisi asing kumulatif, kepemilikan resmi KSEI, dan bedah golongan investor.</p>
+        <h1 style="font-size:var(--text-lg);font-weight:700;margin-bottom:var(--s-1);">Foreign Ownership</h1>
+        <p style="color:var(--c-text-2);font-size:var(--text-sm);">Cumulative foreign position, official KSEI ownership, and investor-group breakdown.</p>
       </div>
       <div style="display:flex;gap:var(--s-2);">
         <button class="btn btn--secondary btn--sm" id="kepemilikan-refresh" aria-label="Refresh">${icons['refresh']} <span>Refresh</span></button>
@@ -82,7 +82,7 @@ function renderLoading() {
     pageRefs.content = el;
     pageRootEl.appendChild(el);
   }
-  el.innerHTML = spinnerCardHtml('Memuat data kepemilikan asing...');
+  el.innerHTML = spinnerCardHtml('Loading foreign ownership data...');
   clearCharts();
 }
 
@@ -102,20 +102,20 @@ function renderPage() {
 
   if (!fp && !fo && !d.structure && !decState.data && !typeState.data) {
     el.innerHTML = `<div class="card" style="padding:var(--s-6);text-align:center;">
-      <div style="font-size:var(--text-sm);color:var(--c-text-3);">Data kepemilikan asing tidak tersedia</div>
+      <div style="font-size:var(--text-sm);color:var(--c-text-3);">Foreign ownership data unavailable</div>
     </div>`;
     return;
   }
 
   // ── Posisi Asing Kumulatif (insight jangka panjang, jendela tetap server-side) ──
   if (fp && fp.series && fp.series.length) {
-    el.appendChild(chartPanel('Posisi Asing Kumulatif Pasar', `Net foreign kumulatif sejak ${dateLabelYear(fp.data_start)} · per titik = akumulasi ${fp.bucket_days} hari`, [{ label: 'Posisi', color: '#0EA5A4' }], 230));
+    el.appendChild(chartPanel('Cumulative Market Foreign Position', `Cumulative net foreign since ${dateLabelYear(fp.data_start)} · per point = ${fp.bucket_days}-day accumulation`, [{ label: 'Position', color: '#0EA5A4' }], 230));
     el.appendChild(buildForeignPositionSection(fp));
   }
 
   // ── Kepemilikan Asing resmi KSEI (absolut, snapshot bulanan) ──
   if (fo && fo.series && fo.series.length) {
-    el.appendChild(chartPanel('Kepemilikan Asing Pasar (KSEI)', `Nilai kepemilikan asing resmi KSEI sejak ${dateLabelYear(fo.data_start)} · snapshot bulanan`, [{ label: 'Nilai asing', color: '#E8A33D' }], 230));
+    el.appendChild(chartPanel('Market Foreign Ownership (KSEI)', `Official KSEI foreign ownership value since ${dateLabelYear(fo.data_start)} · monthly snapshots`, [{ label: 'Foreign value', color: '#E8A33D' }], 230));
     el.appendChild(buildMarketOwnershipSection(fo));
   }
 
@@ -149,8 +149,8 @@ async function mountPageCharts() {
     const type = container.dataset.chartType;
     let chart;
     try {
-      if (type === 'Posisi Asing Kumulatif Pasar') { const fp = d.foreign_pos; chart = fp && fp.series ? buildPositionChartApex(container, fp.series) : null; }
-      else if (type === 'Kepemilikan Asing Pasar (KSEI)') { const fo = d.foreign_own; chart = fo && fo.series ? buildMarketOwnershipChartApex(container, fo.series) : null; }
+      if (type === 'Cumulative Market Foreign Position') { const fp = d.foreign_pos; chart = fp && fp.series ? buildPositionChartApex(container, fp.series) : null; }
+      else if (type === 'Market Foreign Ownership (KSEI)') { const fo = d.foreign_own; chart = fo && fo.series ? buildMarketOwnershipChartApex(container, fo.series) : null; }
       if (chart) pageState.charts.push(chart);
     } catch (e) {
       console.error(`[Kepemilikan] Chart "${type}" failed:`, e);
@@ -163,7 +163,7 @@ function buildMarketOwnershipChartApex(container, series) {
   opts.colors = ['#E8A33D'];
   opts.stroke.width = 2.5;
   opts.series = [{
-    name: 'Nilai kepemilikan asing',
+    name: 'Foreign ownership value',
     data: series.filter(d => d.date && d.foreign_value != null).map(d => ({ x: toTs(d.date), y: d.foreign_value })),
   }];
   opts.tooltip.y = { formatter: (v) => formatNilaiSingkat(v) };
@@ -186,22 +186,28 @@ function buildForeignPositionSection(fp) {
   const wrap = createEl('div', { style: { marginBottom: 'var(--s-6)' } });
   wrap.innerHTML = `
     <div style="display:flex;gap:var(--s-2);flex-wrap:wrap;">
-      ${selKpiHtml('Posisi Tertinggi', formatNilaiSingkat(fp.peak), dateLabelYear(fp.peak_date), '#00A86B')}
-      ${selKpiHtml('Posisi Terendah', formatNilaiSingkat(fp.trough), dateLabelYear(fp.trough_date), '#D94B4B')}
-      ${selKpiHtml('Posisi Sekarang', formatNilaiSingkat(fp.current), 'kumulatif terakhir', fp.current >= 0 ? '#00A86B' : '#D94B4B')}
-      ${selKpiHtml('Posisi dalam Rentang', rangePct, '0% = terendah · 100% = tertinggi', rangeColor)}
-      ${selKpiHtml('Keluar Sejak Puncak', formatNilaiSingkat(fp.distance_from_peak), 'total net sell asing dari puncak ke sekarang')}
-      ${selKpiHtml('Net Asing 30 / 90 hari', netHtml, 'arus terbaru')}
+      ${selKpiHtml('Highest Position', formatNilaiSingkat(fp.peak), dateLabelYear(fp.peak_date), '#00A86B')}
+      ${selKpiHtml('Lowest Position', formatNilaiSingkat(fp.trough), dateLabelYear(fp.trough_date), '#D94B4B')}
+      ${selKpiHtml('Current Position', formatNilaiSingkat(fp.current), 'latest cumulative', fp.current >= 0 ? '#00A86B' : '#D94B4B')}
+      ${selKpiHtml('Position in Range', rangePct, '0% = lowest · 100% = highest', rangeColor)}
+      ${selKpiHtml('Outflow Since Peak', formatNilaiSingkat(fp.distance_from_peak), 'total foreign net sell from peak to now')}
+      ${selKpiHtml('Net Foreign 30 / 90 days', netHtml, 'latest flows')}
     </div>`;
   return wrap;
 }
 
-const DEC_MODES = [['peak', 'Dari Puncak'], ['ytd', 'Tahun Ini'], ['12m', '12 Bulan'], ['all', 'Semua Arsip']];
+const DEC_MODES = [['peak', 'From Peak'], ['ytd', 'This Year'], ['12m', '12 Months'], ['all', 'Full Archive']];
+const PATTERN_LABEL = {
+  'AKUMULASI': 'Accumulation',
+  'ROTASI': 'Rotation',
+  'KELUAR': 'Exit',
+  'PENGURANGAN BERTAHAP': 'Gradual reduction',
+};
 const DEC_PATTERN_INFO = {
-  'AKUMULASI': 'Beli asing lebih besar daripada jual — asing menambah posisi bersih pada periode ini.',
-  'ROTASI': 'Beli dan jual hampir seimbang dengan netto kecil — asing memutar posisi antar emiten, bukan keluar dari pasar.',
-  'KELUAR': 'Jual dominan, beli menyusut di bawah separuh jual, dan penjualan tersebar di banyak emiten — pola keluar pasar.',
-  'PENGURANGAN BERTAHAP': 'Jual lebih besar daripada beli, tetapi beli masih berjalan substansial atau jual bersih terkonsentrasi di sedikit emiten — pengurangan posisi bertahap, bukan eksodus.',
+  'AKUMULASI': 'Foreign buying exceeds selling — foreigners added net position in this period.',
+  'ROTASI': 'Buying and selling nearly balanced with a small net — foreigners rotated positions across issuers rather than exiting the market.',
+  'KELUAR': 'Selling dominant, buying shrunk below half of selling, and sales spread across many issuers — a market-exit pattern.',
+  'PENGURANGAN BERTAHAP': 'Selling exceeds buying, but buying remains substantial or net selling is concentrated in few issuers — a gradual reduction, not an exodus.',
 };
 async function loadDecomposition(mode) {
   const [r, rt] = await Promise.all([
@@ -224,7 +230,7 @@ function buildDecompositionSection() {
 function fillDecomposition(wrap) {
   const d = decState.data;
   if (decState.loading) {
-    wrap.innerHTML = '<div style="padding:var(--s-4);color:var(--c-text-3);font-size:var(--text-sm);">Memuat bedah nilai asing…</div>';
+    wrap.innerHTML = '<div style="padding:var(--s-4);color:var(--c-text-3);font-size:var(--text-sm);">Loading foreign value breakdown…</div>';
     return;
   }
   if (!d) { wrap.innerHTML = ''; return; }
@@ -246,7 +252,7 @@ function fillDecomposition(wrap) {
   }).join('');
   const maxEff = Math.max(Math.abs(d.effect_price), Math.abs(d.effect_shares), Math.abs(d.effect_events), 1);
   const evTags = (d.events || []).map(e =>
-    `<span style="display:inline-block;background:var(--c-surface-2);border:1px solid var(--c-border);border-radius:6px;padding:2px 8px;margin:2px 3px 0 0;font-size:var(--text-xs);"><b>${e.ticker}</b> ${formatBertanda(e.delta_value)} · saham ${e.total_change_pct >= 0 ? '+' : ''}${e.total_change_pct.toFixed(0)}%</span>`
+    `<span style="display:inline-block;background:var(--c-surface-2);border:1px solid var(--c-border);border-radius:6px;padding:2px 8px;margin:2px 3px 0 0;font-size:var(--text-xs);"><b>${e.ticker}</b> ${formatBertanda(e.delta_value)} · shares ${e.total_change_pct >= 0 ? '+' : ''}${e.total_change_pct.toFixed(0)}%</span>`
   ).join('');
   const recon = d.effect_price + d.effect_shares + d.effect_events;
 
@@ -258,36 +264,36 @@ function fillDecomposition(wrap) {
 
   wrap.innerHTML = `
   <div style="background:var(--c-surface);border:1px solid var(--c-border);border-radius:var(--radius);padding:var(--s-4);margin-bottom:var(--s-4);">
-    <div style="font-size:var(--text-md);font-weight:700;">● Bedah Perubahan Nilai Asing</div>
+    <div style="font-size:var(--text-md);font-weight:700;">● Foreign Value Change Breakdown</div>
     <div style="display:flex;gap:var(--s-2);flex-wrap:wrap;margin:var(--s-3) 0 var(--s-2);">${chips}</div>
-    <div style="font-size:var(--text-xs);color:var(--c-text-3);margin-bottom:var(--s-3);">${dateLabelYear(d.from_date)} → ${dateLabelYear(d.to_date)} · ${d.emiten_analyzed} emiten dibedah · ${d.emiten_events} emiten aksi korporasi dipisah</div>
+    <div style="font-size:var(--text-xs);color:var(--c-text-3);margin-bottom:var(--s-3);">${dateLabelYear(d.from_date)} → ${dateLabelYear(d.to_date)} · ${d.emiten_analyzed} issuers analyzed · ${d.emiten_events} corporate-action issuers separated</div>
     <div style="display:flex;align-items:baseline;gap:var(--s-3);flex-wrap:wrap;background:var(--c-warn-bg);border:1px solid var(--c-border);border-radius:var(--radius);padding:var(--s-3);margin-bottom:var(--s-3);">
-      <span style="font-size:var(--text-sm);">Nilai awal <b>Rp ${formatNilaiSingkat(d.value_start)}</b></span><span>→</span>
-      <span style="font-size:var(--text-sm);">Nilai akhir <b>Rp ${formatNilaiSingkat(d.value_end)}</b></span>
+      <span style="font-size:var(--text-sm);">Starting value <b>Rp ${formatNilaiSingkat(d.value_start)}</b></span><span>→</span>
+      <span style="font-size:var(--text-sm);">Ending value <b>Rp ${formatNilaiSingkat(d.value_end)}</b></span>
       <span style="margin-left:auto;text-align:right;"><span style="font-size:var(--text-lg);font-weight:700;color:${warnaArah(d.delta)};">${formatBertanda(d.delta)}</span>
-      <span style="display:block;font-size:var(--text-xs);color:var(--c-text-3);">perubahan total (Rp)</span></span>
+      <span style="display:block;font-size:var(--text-xs);color:var(--c-text-3);">total change (Rp)</span></span>
     </div>
-    ${batangNilaiHtml('Efek Harga', 'harga saham berubah', d.effect_price, maxEff, d.effect_price < 0 ? '#D94B4B' : '#00A86B')}
-    ${batangNilaiHtml('Efek Lembar Asing', 'lembar asing berubah', d.effect_shares, maxEff, d.effect_shares < 0 ? '#E88A8A' : '#00A86B')}
-    ${batangNilaiHtml('Aksi Korporasi', 'split / rights / placement', d.effect_events, maxEff, '#A3A3A3', 'var(--c-text-2)')}
+    ${batangNilaiHtml('Price Effect', 'share prices changed', d.effect_price, maxEff, d.effect_price < 0 ? '#D94B4B' : '#00A86B')}
+    ${batangNilaiHtml('Foreign Shares Effect', 'foreign shares changed', d.effect_shares, maxEff, d.effect_shares < 0 ? '#E88A8A' : '#00A86B')}
+    ${batangNilaiHtml('Corporate Actions', 'split / rights / placement', d.effect_events, maxEff, '#A3A3A3', 'var(--c-text-2)')}
     <div style="display:flex;justify-content:space-between;border-top:1px dashed var(--c-border);margin-top:var(--s-3);padding-top:var(--s-2);font-size:var(--text-sm);color:var(--c-text-2);">
-      <span>Rekonsiliasi: <b>${formatBertanda(d.effect_price)} + ${formatBertanda(d.effect_shares)} + ${formatBertanda(d.effect_events)} = ${formatBertanda(recon)}</b></span>
-      <span style="color:#00A86B;font-weight:700;">✓ cocok dengan perubahan total</span>
+      <span>Reconciliation: <b>${formatBertanda(d.effect_price)} + ${formatBertanda(d.effect_shares)} + ${formatBertanda(d.effect_events)} = ${formatBertanda(recon)}</b></span>
+      <span style="color:#00A86B;font-weight:700;">✓ matches the total change</span>
     </div>
-    ${evTags ? `<div style="margin-top:var(--s-3);font-size:var(--text-xs);color:var(--c-text-2);">Emiten aksi korporasi terbesar: ${evTags}</div>` : ''}
-    <div style="margin-top:var(--s-2);font-size:var(--text-xs);color:var(--c-text-3);line-height:1.5;">Efek lembar mencakup jual/beli di pasar reguler dan perpindahan luar pasar (mis. distribusi saham). Emiten dengan perubahan jumlah saham &gt;2% dipisah ke Aksi Korporasi agar tidak mengacaukan efek harga; perubahan nilai emiten tersebut tampil utuh di bucket itu.</div>
+    ${evTags ? `<div style="margin-top:var(--s-3);font-size:var(--text-xs);color:var(--c-text-2);">Largest corporate-action issuers: ${evTags}</div>` : ''}
+    <div style="margin-top:var(--s-2);font-size:var(--text-xs);color:var(--c-text-3);line-height:1.5;">The shares effect covers regular-market buy/sell and off-market transfers (e.g. share distributions). Issuers whose share count changed &gt;2% are separated into Corporate Actions so as not to distort the price effect; the full value change of those issuers appears in that bucket.</div>
   </div>
   <div style="background:var(--c-surface);border:1px solid var(--c-border);border-radius:var(--radius);padding:var(--s-4);">
-    <div style="font-size:var(--text-md);font-weight:700;">● Arus Kotor Asing — Rotasi atau Keluar?</div>
-    <div style="font-size:var(--text-xs);color:var(--c-text-3);margin:var(--s-2) 0 var(--s-3);">Total transaksi asing di pasar reguler pada periode yang sama (${dateLabelYear(d.from_date)} – ${dateLabelYear(d.to_date)})</div>
-    ${batangNilaiHtml('Total Beli Asing', 'akumulasi di pasar reguler', g.buy, maxGross, '#00A86B', '#00A86B')}
-    ${batangNilaiHtml('Total Jual Asing', 'distribusi di pasar reguler', g.sell, maxGross, '#D94B4B', '#D94B4B', formatNilaiSingkat(g.sell))}
-    ${batangNilaiHtml('Netto', 'selisih beli − jual', g.net, maxGross, g.net < 0 ? '#E88A8A' : '#00A86B')}
+    <div style="font-size:var(--text-md);font-weight:700;">● Gross Foreign Flows — Rotation or Exit?</div>
+    <div style="font-size:var(--text-xs);color:var(--c-text-3);margin:var(--s-2) 0 var(--s-3);">Total foreign transactions in the regular market over the same period (${dateLabelYear(d.from_date)} – ${dateLabelYear(d.to_date)})</div>
+    ${batangNilaiHtml('Total Foreign Buying', 'accumulated in the regular market', g.buy, maxGross, '#00A86B', '#00A86B')}
+    ${batangNilaiHtml('Total Foreign Selling', 'distributed in the regular market', g.sell, maxGross, '#D94B4B', '#D94B4B', formatNilaiSingkat(g.sell))}
+    ${batangNilaiHtml('Net', 'buy minus sell', g.net, maxGross, g.net < 0 ? '#E88A8A' : '#00A86B')}
     <div style="background:var(--c-info-bg);border:1px solid var(--c-border);border-radius:var(--radius);padding:var(--s-3);margin-top:var(--s-3);">
-      <div style="font-size:var(--text-sm);font-weight:700;color:var(--c-primary);">🧭 Bacaan pola: ${g.pattern || '-'}</div>
-      <div style="font-size:var(--text-sm);color:var(--c-text-2);line-height:1.55;margin-top:2px;">${DEC_PATTERN_INFO[g.pattern] || ''} Beli berjalan ${ratioPct} dari nilai jual; 5 emiten terbesar menyumbang ${concPct} jual bersih (${topSell}).</div>
+      <div style="font-size:var(--text-sm);font-weight:700;color:var(--c-primary);">🧭 Pattern reading: ${PATTERN_LABEL[g.pattern] || g.pattern || '-'}</div>
+      <div style="font-size:var(--text-sm);color:var(--c-text-2);line-height:1.55;margin-top:2px;">${DEC_PATTERN_INFO[g.pattern] || ''} Buying ran at ${ratioPct} of sell value; the 5 largest issuers contributed ${concPct} of net selling (${topSell}).</div>
     </div>
-    <div style="margin-top:var(--s-2);font-size:var(--text-xs);color:var(--c-text-3);">Angka Rp pada kartu ini dan kartu bedah memakai jendela yang sama tetapi sumber berbeda (arus harian vs snapshot KSEI), jadi netto arus tidak harus sama persis dengan efek lembar.</div>
+    <div style="margin-top:var(--s-2);font-size:var(--text-xs);color:var(--c-text-3);">The Rp figures on this card and the breakdown card use the same window but different sources (daily flows vs KSEI snapshots), so net flow need not match the shares effect exactly.</div>
   </div>
   ${(() => {
     const flowNet = g.net || 0;
@@ -295,28 +301,28 @@ function fillDecomposition(wrap) {
     const gapVal = shareEff - flowNet;
     let gapBlock;
     if (Math.abs(gapVal) < 0.10 * Math.max(Math.abs(flowNet), 1)) {
-      gapBlock = `<div style="font-size:var(--text-sm);color:var(--c-text-2);line-height:1.6;margin-top:var(--s-2);">Keduanya hampir sama — perubahan lembar periode ini hampir seluruhnya dijelaskan oleh transaksi di pasar reguler.</div>`;
+      gapBlock = `<div style="font-size:var(--text-sm);color:var(--c-text-2);line-height:1.6;margin-top:var(--s-2);">The two are nearly equal — this period's share change is almost fully explained by regular-market transactions.</div>`;
     } else {
       const hargaTurun = (d.effect_price || 0) < 0;
-      const judul2 = hargaTurun ? 'Harga Saham Jatuh' : 'Harga Saham Naik';
-      const sebab2 = `angka kartu bawah dihitung pada harga saat transaksi terjadi, sedangkan kartu atas (KSEI) dihitung pada harga akhir periode. Karena harga di akhir periode ${hargaTurun ? 'jatuh' : 'naik'}, nilai rupiah dari lembar yang ${gapVal > 0 ? 'hilang' : 'berubah'} ikut ${hargaTurun ? 'mengecil' : 'membesar'}.`;
+      const judul2 = hargaTurun ? 'Share Prices Fell' : 'Share Prices Rose';
+      const sebab2 = `the lower card figures are priced at transaction-time prices, while the upper card (KSEI) is priced at end-of-period prices. Because prices at period end ${hargaTurun ? 'fell' : 'rose'}, the rupiah value of the shares that ${gapVal > 0 ? 'disappeared' : 'changed'} ${hargaTurun ? 'shrank' : 'grew'} along with them.`;
       const teksPenjelasanLuarPasar = (v) => v > 0
-        ? 'uang hasil penjualan di bursa tidak semuanya ditarik pulang — sebagian dipakai membeli saham lewat jalur luar bursa (mis. private placement, rights issue, atau kesepakatan langsung). Transaksi itu <b>tidak</b> tercatat di Arus Kotor (kartu bawah), tetapi tercatat di data KSEI (kartu atas) — makanya pengurangan lembarnya lebih kecil daripada jual bersihnya.'
-        : 'sebagian lembar keluar lewat jalur luar bursa (mis. distribusi saham atau transfer langsung). Perpindahan itu <b>tidak</b> tercatat di Arus Kotor (kartu bawah), tetapi tercatat di data KSEI (kartu atas) — makanya pengurangan lembarnya lebih besar daripada jual bersihnya.';
+        ? 'not all proceeds from exchange sales were taken home — part was used to buy shares off-exchange (e.g. private placements, rights issues, or direct deals). Those transactions are <b>not</b> recorded in Gross Flows (lower card), but are recorded in KSEI data (upper card) — which is why the share reduction is smaller than net selling.'
+        : 'some shares left via off-exchange routes (e.g. share distributions or direct transfers). Those moves are <b>not</b> recorded in Gross Flows (lower card), but are recorded in KSEI data (upper card) — which is why the share reduction is larger than net selling.';
       const gp = d.gap;
       if (gp && (gp.off_market != null)) {
         const causes = [
-          { key: 'off', val: gp.off_market || 0, color: '#E8A33D', label: 'Luar pasar',
-            title: (gp.off_market || 0) > 0 ? 'Ada Beli di Luar Bursa (Luar Pasar Reguler)' : 'Ada Pelepasan di Luar Bursa (Luar Pasar Reguler)',
-            body: teksPenjelasanLuarPasar(gp.off_market || 0), note: `luar pasar netto ${formatBertanda(gp.off_market || 0)}` },
-          { key: 'basis', val: gp.price_basis || 0, color: '#5B8FF9', label: 'Basis harga',
+          { key: 'off', val: gp.off_market || 0, color: '#E8A33D', label: 'Off-market',
+            title: (gp.off_market || 0) > 0 ? 'Off-Exchange Buying (Outside the Regular Market)' : 'Off-Exchange Disposal (Outside the Regular Market)',
+            body: teksPenjelasanLuarPasar(gp.off_market || 0), note: `off-market net ${formatBertanda(gp.off_market || 0)}` },
+          { key: 'basis', val: gp.price_basis || 0, color: '#5B8FF9', label: 'Price basis',
             title: judul2,
-            body: `angka Arus Kotor (kartu bawah) dihargai pada harga saat transaksi terjadi, sedangkan efek lembar (kartu atas) dihargai pada harga akhir periode. Karena harga bergerak besar selama periode ini — efek harga totalnya ${formatBertanda(d.effect_price)} — nilai rupiah dari perubahan lembar yang sama tampil berbeda di kedua kartu, dan perbedaan cara menghargai inilah penyumbang terbesar selisihnya.`,
-            note: `basis harga ${formatBertanda(gp.price_basis || 0)}` },
-          { key: 'cov', val: gp.coverage || 0, color: '#8A94A6', label: 'Cakupan emiten event',
-            title: 'Cakupan Emiten Aksi Korporasi',
-            body: `${d.emiten_events || 0} emiten yang jumlah sahamnya berubah lebih dari 2% tidak dibedah per lembar — seluruh perubahan nilainya masuk bucket Aksi Korporasi — tetapi jual-beli reguler mereka tetap terhitung di Arus Kotor (kartu bawah). Arus netto emiten-emiten itulah penyumbang terbesar selisih kedua kartu.`,
-            note: `cakupan emiten event ${formatBertanda(gp.coverage || 0)}` },
+            body: `Gross Flow figures (lower card) are priced at transaction-time prices, while the shares effect (upper card) is priced at end-of-period prices. Because prices moved sharply during this period — total price effect ${formatBertanda(d.effect_price)} — the rupiah value of the same share change looks different on the two cards, and this pricing difference is the largest contributor to the gap.`,
+            note: `price basis ${formatBertanda(gp.price_basis || 0)}` },
+          { key: 'cov', val: gp.coverage || 0, color: '#8A94A6', label: 'Event-issuer coverage',
+            title: 'Corporate-Action Issuer Coverage',
+            body: `${d.emiten_events || 0} issuers whose share count changed by more than 2% are not broken down per share — their full value change goes into the Corporate Actions bucket — but their regular buy/sell still counts in Gross Flows (lower card). The net flow of those issuers is the largest contributor to the gap between the two cards.`,
+            note: `event-issuer coverage ${formatBertanda(gp.coverage || 0)}` },
         ];
         const sorted = [...causes].sort((a, b) => Math.abs(b.val) - Math.abs(a.val));
         const main = sorted[0];
@@ -325,32 +331,32 @@ function fillDecomposition(wrap) {
         const legend = causes.map(c => `<span><span style="display:inline-block;width:10px;height:10px;border-radius:3px;background:${c.color};margin-right:6px;"></span>${c.label} <b>${formatBertanda(c.val)}</b></span>`).join('');
         const inTxt = (gp.top_off_market_in || []).map(r => `${r.ticker} ${formatBertanda(r.value)}`).join(' · ');
         const outTxt = (gp.top_off_market_out || []).map(r => `${r.ticker} ${formatBertanda(r.value)}`).join(' · ');
-        const namesLine = (inTxt || outTxt) ? `<div style="font-size:var(--text-sm);color:var(--c-text-2);margin-top:var(--s-2);">Luar pasar terbesar — ${inTxt ? `masuk: <span style="color:#2FBF71;font-weight:600;">${inTxt}</span>` : ''}${inTxt && outTxt ? ' &nbsp;|&nbsp; ' : ''}${outTxt ? `keluar: <span style="color:#E5484D;font-weight:600;">${outTxt}</span>` : ''}</div>` : '';
+        const namesLine = (inTxt || outTxt) ? `<div style="font-size:var(--text-sm);color:var(--c-text-2);margin-top:var(--s-2);">Largest off-market — ${inTxt ? `in: <span style="color:#2FBF71;font-weight:600;">${inTxt}</span>` : ''}${inTxt && outTxt ? ' &nbsp;|&nbsp; ' : ''}${outTxt ? `out: <span style="color:#E5484D;font-weight:600;">${outTxt}</span>` : ''}</div>` : '';
         const otherNotes = sorted.slice(1).map(c => c.note).join(' · ');
         gapBlock = `
-    <div style="font-size:var(--text-sm);color:var(--c-text-2);line-height:1.6;margin-top:var(--s-2);">Selisih <b>${formatBertanda(gapVal)}</b> itu terutama dijelaskan satu hal:</div>
+    <div style="font-size:var(--text-sm);color:var(--c-text-2);line-height:1.6;margin-top:var(--s-2);">The gap of <b>${formatBertanda(gapVal)}</b> is mainly explained by one thing:</div>
     <div style="background:rgba(232,163,61,.07);border:1px solid var(--c-border);border-radius:var(--radius-sm,8px);padding:10px 14px;margin-top:var(--s-2);font-size:var(--text-sm);color:var(--c-text-2);line-height:1.6;"><b>${main.title}:</b> ${main.body}</div>
-    <div style="font-size:var(--text-xs);letter-spacing:.04em;color:var(--c-text-3);margin-top:var(--s-3);">PEMECAHAN SELISIH ${formatBertanda(gapVal)}</div>
+    <div style="font-size:var(--text-xs);letter-spacing:.04em;color:var(--c-text-3);margin-top:var(--s-3);">GAP BREAKDOWN ${formatBertanda(gapVal)}</div>
     <div style="display:flex;height:22px;border-radius:6px;overflow:hidden;margin-top:6px;">${segs}</div>
     <div style="display:flex;gap:18px;flex-wrap:wrap;font-size:var(--text-sm);color:var(--c-text-2);margin-top:7px;">${legend}</div>
     ${namesLine}
-    <div style="font-size:var(--text-xs);color:var(--c-text-3);line-height:1.5;margin-top:var(--s-2);">Komponen lain — ${otherNotes}. Komponen bertanda berlawanan dengan selisih berarti menahan, bukan menambah.</div>`;
+    <div style="font-size:var(--text-xs);color:var(--c-text-3);line-height:1.5;margin-top:var(--s-2);">Other components — ${otherNotes}. A component signed opposite to the gap dampens it rather than adding to it.</div>`;
       } else {
-        const judul1 = gapVal > 0 ? 'Ada Beli di Luar Bursa (Luar Pasar Reguler)' : 'Ada Pelepasan di Luar Bursa (Luar Pasar Reguler)';
+        const judul1 = gapVal > 0 ? 'Off-Exchange Buying (Outside the Regular Market)' : 'Off-Exchange Disposal (Outside the Regular Market)';
         gapBlock = `
-    <div style="font-size:var(--text-sm);color:var(--c-text-2);line-height:1.6;margin-top:var(--s-2);">Selisih <b>${formatBertanda(gapVal)}</b> itu terutama dijelaskan satu hal:</div>
+    <div style="font-size:var(--text-sm);color:var(--c-text-2);line-height:1.6;margin-top:var(--s-2);">The gap of <b>${formatBertanda(gapVal)}</b> is mainly explained by one thing:</div>
     <div style="font-size:var(--text-sm);color:var(--c-text-2);line-height:1.6;margin-top:var(--s-2);"><b>${judul1}:</b> ${teksPenjelasanLuarPasar(gapVal)}</div>
-    <div style="font-size:var(--text-xs);color:var(--c-text-3);line-height:1.5;margin-top:var(--s-2);">Faktor teknis lain — <b>${judul2}:</b> ${sebab2}${d.emiten_events ? ` Cakupan: ${d.emiten_events} emiten aksi korporasi tidak masuk efek lembar, tetapi arus regulernya terhitung di kartu bawah — ikut menyumbang selisih.` : ''}</div>`;
+    <div style="font-size:var(--text-xs);color:var(--c-text-3);line-height:1.5;margin-top:var(--s-2);">Other technical factors — <b>${judul2}:</b> ${sebab2}${d.emiten_events ? ` Coverage: ${d.emiten_events} corporate-action issuers are excluded from the shares effect, but their regular flows count on the lower card — also contributing to the gap.` : ''}</div>`;
       }
     }
     return `<div style="background:var(--c-surface);border:1px solid var(--c-border);border-left:4px solid #E8A33D;border-radius:var(--radius);padding:var(--s-4);margin-top:var(--s-4);">
-    <div style="font-size:var(--text-md);font-weight:700;">● Kesimpulan Gabungan — Aktivitas vs Hasil Akhir</div>
+    <div style="font-size:var(--text-md);font-weight:700;">● Combined Conclusion — Activity vs Final Outcome</div>
     <div style="font-size:var(--text-sm);color:var(--c-text-2);line-height:1.6;margin-top:var(--s-2);">
-      Di pasar reguler asing ${flowNet < 0 ? 'menjual' : 'membeli'} bersih <b>${formatNilaiSingkat(Math.abs(flowNet))}</b> (aktivitas), sementara lembar kepemilikan resmi mereka di KSEI berubah setara <b>${formatBertanda(shareEff)}</b> (hasil akhir).
+      In the regular market, foreigners ${flowNet < 0 ? 'sold' : 'bought'} a net <b>${formatNilaiSingkat(Math.abs(flowNet))}</b> (activity), while their official KSEI ownership shares changed by an equivalent <b>${formatBertanda(shareEff)}</b> (final outcome).
     </div>
     ${gapBlock}
     <div style="font-size:var(--text-sm);color:var(--c-text-2);line-height:1.6;margin-top:var(--s-2);">
-      Kesimpulan periode ini: nilai asing berubah <b>${formatBertanda(d.delta)}</b> — terutama oleh efek harga (<b>${formatBertanda(d.effect_price)}</b>) — dengan pola arus <b>${g.pattern || '-'}</b>.
+      Conclusion for this period: foreign value changed <b>${formatBertanda(d.delta)}</b> — mainly through the price effect (<b>${formatBertanda(d.effect_price)}</b>) — with a <b>${g.pattern || '-'}</b> flow pattern.
     </div>
   </div>`;
   })()}`;
@@ -361,7 +367,7 @@ function fillDecomposition(wrap) {
     decState.mode = m;
     decState.loading = true;
     fillDecomposition(wrap);
-    if (typeWrapEl) typeWrapEl.innerHTML = '<div style="padding:var(--s-4);color:var(--c-text-3);font-size:var(--text-sm);">Memuat bedah golongan…</div>';
+    if (typeWrapEl) typeWrapEl.innerHTML = '<div style="padding:var(--s-4);color:var(--c-text-3);font-size:var(--text-sm);">Loading group breakdown…</div>';
     await loadDecomposition(m);
     fillDecomposition(wrap);
     if (typeWrapEl) fillByTypeSection(typeWrapEl);
@@ -382,11 +388,11 @@ function buildMarketOwnershipSection(fo) {
   const wrap = createEl('div', { style: { marginBottom: 'var(--s-6)' } });
   wrap.innerHTML = `
     <div style="display:flex;gap:var(--s-2);flex-wrap:wrap;">
-      ${selKpiHtml('Nilai Asing Sekarang', formatNilaiSingkat(cur.foreign_value), dateLabelYear(cur.date) + ' · ' + (cur.emiten || '-') + ' emiten', '#E8A33D')}
-      ${selKpiHtml('Porsi Asing Pasar', cur.foreign_pct != null ? cur.foreign_pct.toFixed(1) + '%' : '-', 'dari total nilai ekuitas', '#5B8FF9')}
-      ${selKpiHtml('Nilai Tertinggi', formatNilaiSingkat(fo.peak && fo.peak.foreign_value), dateLabelYear(fo.peak && fo.peak.date), '#00A86B')}
-      ${selKpiHtml('Nilai Terendah', formatNilaiSingkat(fo.trough && fo.trough.foreign_value), dateLabelYear(fo.trough && fo.trough.date), '#D94B4B')}
-      ${selKpiHtml('Perubahan Nilai 3 / 12 bln', deltaHtml, 'efek harga + beli/jual')}
+      ${selKpiHtml('Current Foreign Value', formatNilaiSingkat(cur.foreign_value), dateLabelYear(cur.date) + ' · ' + (cur.emiten || '-') + ' issuers', '#E8A33D')}
+      ${selKpiHtml('Market Foreign Share', cur.foreign_pct != null ? cur.foreign_pct.toFixed(1) + '%' : '-', 'of total equity value', '#5B8FF9')}
+      ${selKpiHtml('Highest Value', formatNilaiSingkat(fo.peak && fo.peak.foreign_value), dateLabelYear(fo.peak && fo.peak.date), '#00A86B')}
+      ${selKpiHtml('Lowest Value', formatNilaiSingkat(fo.trough && fo.trough.foreign_value), dateLabelYear(fo.trough && fo.trough.date), '#D94B4B')}
+      ${selKpiHtml('Value Change 3 / 12 mo', deltaHtml, 'price effect + buy/sell')}
     </div>`;
   return wrap;
 }
@@ -394,12 +400,12 @@ function buildMarketOwnershipSection(fo) {
 
 /* ─── Struktur Kepemilikan Pasar ─── */
 const STRUCTURE_GROUP_INFO = [
-  ['foreign', 'Asing', '#E8A33D'],
-  ['local_institutions', 'Institusi Lokal', '#5B8FF9'],
-  ['retail', 'Ritel', '#00A86B'],
-  ['local_corporates', 'Korporasi Lokal', '#F6903D'],
-  ['local_others', 'Lokal Lainnya', '#8A94A6'],
-  ['unclassified', 'Tak-terklasifikasi', '#D5DAE0'],
+  ['foreign', 'Foreign', '#E8A33D'],
+  ['local_institutions', 'Local Institutions', '#5B8FF9'],
+  ['retail', 'Retail', '#00A86B'],
+  ['local_corporates', 'Local Corporates', '#F6903D'],
+  ['local_others', 'Other Local', '#8A94A6'],
+  ['unclassified', 'Unclassified', '#D5DAE0'],
 ];
 // Urutan tumpuk kolom (bawah -> atas): tak-terklasifikasi di dasar,
 // asing di puncak.
@@ -419,7 +425,7 @@ function buildStructureSectionHtml(res) {
     </div>`;
   const tiles = `
     <div style="display:flex;gap:var(--s-2);flex-wrap:wrap;margin-bottom:var(--s-3);">
-      ${tileHtml('Kapitalisasi Pasar · ' + dateLabelYear(cur.date), formatNilaiSingkat(cur.total_value), 'inherit')}
+      ${tileHtml('Market Capitalization · ' + dateLabelYear(cur.date), formatNilaiSingkat(cur.total_value), 'inherit')}
       ${STRUCTURE_GROUP_INFO.map(([key, label, color]) => tileHtml(label, g(cur, key).toFixed(1) + '%', color)).join('')}
     </div>`;
 
@@ -438,16 +444,16 @@ function buildStructureSectionHtml(res) {
   const rStart = g(start, 'retail');
   const rNaik = rNow >= rStart;
   const rp = res.retail_peak || {};
-  const termometer = `Termometer ritel: kepemilikan investor individu lokal kini <b>${formatNilaiSingkat(gv(cur, 'retail'))}</b> (${rNow.toFixed(1)}% kapitalisasi), ${rNaik ? 'naik' : 'turun'} dari ${rStart.toFixed(1)}% pada ${dateLabelYear(start.date)} — pangsa ritel ${rNaik ? 'membesar' : 'mengecil'} dalam struktur pasar. Nilai ritel tertinggi ${formatNilaiSingkat(rp.value)} pada ${dateLabelYear(rp.date)}.`;
+  const termometer = `Retail thermometer: local individual investor ownership is now <b>${formatNilaiSingkat(gv(cur, 'retail'))}</b> (${rNow.toFixed(1)}% of capitalization), ${rNaik ? 'up' : 'down'} from ${rStart.toFixed(1)}% on ${dateLabelYear(start.date)} — the retail share ${rNaik ? 'grew' : 'shrank'} within the market structure. Highest retail value ${formatNilaiSingkat(rp.value)} on ${dateLabelYear(rp.date)}.`;
 
   return `<div style="background:var(--c-surface);border:1px solid var(--c-border);border-radius:var(--radius);padding:var(--s-4);margin-bottom:var(--s-4);">
-    <div style="font-size:var(--text-md);font-weight:700;">● Struktur Kepemilikan Pasar</div>
-    <div style="font-size:var(--text-xs);color:var(--c-text-3);margin:var(--s-2) 0 var(--s-3);">Pangsa kapitalisasi pasar per kelompok pemilik · dari snapshot KSEI (termasuk emiten tak likuid) · ${dateLabelYear(res.data_start)} → ${dateLabelYear(res.data_end)} · tiap kolom satu snapshot</div>
+    <div style="font-size:var(--text-md);font-weight:700;">● Market Ownership Structure</div>
+    <div style="font-size:var(--text-xs);color:var(--c-text-3);margin:var(--s-2) 0 var(--s-3);">Market-capitalization share per owner group · from KSEI snapshots (including illiquid issuers) · ${dateLabelYear(res.data_start)} → ${dateLabelYear(res.data_end)} · one column per snapshot</div>
     ${tiles}
     <div style="display:flex;gap:2px;height:110px;align-items:stretch;">${kolom}</div>
     <div style="display:flex;gap:var(--s-3);flex-wrap:wrap;margin-top:var(--s-2);">${legenda}</div>
     <div style="font-size:var(--text-sm);color:var(--c-text-2);line-height:1.55;margin-top:var(--s-3);">${termometer}</div>
-    <div style="font-size:var(--text-xs);color:var(--c-text-3);line-height:1.5;margin-top:var(--s-2);">Irisan tak-terklasifikasi adalah saham tanpa klasifikasi SID — umumnya saham pengendali/strategis; besarnya bukan kesalahan data, melainkan batas klasifikasi KSEI.</div>
+    <div style="font-size:var(--text-xs);color:var(--c-text-3);line-height:1.5;margin-top:var(--s-2);">The unclassified slice is shares without SID classification — usually controlling/strategic holdings; its size is not a data error but a limit of KSEI classification.</div>
   </div>`;
 }
 
@@ -458,18 +464,18 @@ function buildStructureSection(res) {
 }
 
 /* ─── Bedah Golongan Asing + Cermin Lokal ─── */
-const TYPE_LABELS = { IS: 'Asuransi', CP: 'Korporasi', PF: 'Dana Pensiun', IB: 'Bank Investasi', ID: 'Individu', MF: 'Reksa Dana', SC: 'Sekuritas', FD: 'Yayasan', OT: 'Lainnya' };
+const TYPE_LABELS = { IS: 'Insurance', CP: 'Corporates', PF: 'Pension Funds', IB: 'Investment Banks', ID: 'Individuals', MF: 'Mutual Funds', SC: 'Securities Firms', FD: 'Foundations', OT: 'Others' };
 const FOREIGN_BUCKET_INFO = [
-  ['lengket', 'Lengket', 'Dana pensiun · asuransi · yayasan', '#5B8FF9'],
-  ['taktis', 'Taktis', 'Reksa dana · bank investasi', '#9270CA'],
-  ['korporasi', 'Korporasi', 'Perusahaan asing langsung', '#F6903D'],
-  ['lainnya', 'Lainnya', 'Individu · sekuritas · lainnya (termasuk akun nominee)', '#E8A33D'],
+  ['lengket', 'Sticky', 'Pension funds · insurance · foundations', '#5B8FF9'],
+  ['taktis', 'Tactical', 'Mutual funds · investment banks', '#9270CA'],
+  ['korporasi', 'Corporates', 'Direct foreign companies', '#F6903D'],
+  ['lainnya', 'Others', 'Individuals · securities firms · others (including nominee accounts)', '#E8A33D'],
 ];
 const LOCAL_GROUP_INFO = [
-  ['institusi_dana', 'Institusi Dana', 'Reksa dana · dana pensiun · asuransi', '#5B8FF9'],
-  ['korporasi', 'Korporasi', 'Perusahaan lokal — sering kendaraan pengendali', '#F6903D'],
-  ['ritel', 'Ritel', 'Investor individu lokal', '#00A86B'],
-  ['lainnya', 'Lainnya', 'Bank investasi · sekuritas · yayasan · lainnya', '#8A94A6'],
+  ['institusi_dana', 'Fund Institutions', 'Mutual funds · pension funds · insurance', '#5B8FF9'],
+  ['korporasi', 'Corporates', 'Local companies — often controlling vehicles', '#F6903D'],
+  ['ritel', 'Retail', 'Local individual investors', '#00A86B'],
+  ['lainnya', 'Others', 'Investment banks · securities firms · foundations · others', '#8A94A6'],
 ];
 
 function formatBertanda(v) {
@@ -505,26 +511,26 @@ function buildByTypeHtml(res) {
       const beli = (mv.buyers || [])[0];
       const jual = (mv.sellers || [])[0];
       const movers = [
-        beli ? `paling membeli: <b>${beli.ticker}</b> ${formatBertanda(beli.effect)}` : '',
-        jual ? `paling menjual: <b>${jual.ticker}</b> ${formatBertanda(jual.effect)}` : '',
+        beli ? `top buyer: <b>${beli.ticker}</b> ${formatBertanda(beli.effect)}` : '',
+        jual ? `top seller: <b>${jual.ticker}</b> ${formatBertanda(jual.effect)}` : '',
       ].filter(Boolean).join(' · ');
       return `<div style="padding:var(--s-2) 0;border-bottom:1px dashed var(--c-border);">
         <div style="display:flex;justify-content:space-between;gap:var(--s-3);flex-wrap:wrap;">
           <span style="font-size:var(--text-sm);font-weight:600;">${TYPE_LABELS[code]} <span style="color:var(--c-text-3);font-weight:400;">(${code})</span></span>
-          <span style="font-size:var(--text-sm);">lembar <b style="color:${(t.effect_shares || 0) < 0 ? '#D94B4B' : '#00A86B'};">${formatBertanda(t.effect_shares)}</b> · harga ${formatBertanda(t.effect_price)} · porsi ${(t.pct_start || 0).toFixed(1)}% → ${(t.pct_end || 0).toFixed(1)}%</span>
+          <span style="font-size:var(--text-sm);">shares <b style="color:${(t.effect_shares || 0) < 0 ? '#D94B4B' : '#00A86B'};">${formatBertanda(t.effect_shares)}</b> · price ${formatBertanda(t.effect_price)} · share ${(t.pct_start || 0).toFixed(1)}% → ${(t.pct_end || 0).toFixed(1)}%</span>
         </div>
         ${movers ? `<div style="font-size:var(--text-xs);color:var(--c-text-3);margin-top:2px;">${movers}</div>` : ''}
       </div>`;
     }).join('');
   return `<div style="background:var(--c-surface);border:1px solid var(--c-border);border-radius:var(--radius);padding:var(--s-4);margin-bottom:var(--s-4);">
-    <div style="font-size:var(--text-md);font-weight:700;">● Bedah Golongan Asing — Siapa Melepas, Siapa Menahan</div>
-    <div style="font-size:var(--text-xs);color:var(--c-text-3);margin:var(--s-2) 0 var(--s-3);">Perubahan lembar per golongan investor asing (KSEI) · ${dateLabelYear(res.from_date)} → ${dateLabelYear(res.to_date)} · ${res.emiten_analyzed} emiten dibedah · ${res.emiten_events} emiten aksi korporasi dipisah · jendela mengikuti chip mode di kartu Bedah di atas</div>
-    <div style="font-size:var(--text-sm);color:var(--c-text-2);line-height:1.55;">Golongan <b>lengket</b> (dana pensiun, asuransi, yayasan) kini memegang <b>${(res.sticky_pct_end || 0).toFixed(1)}%</b> nilai asing, ${naik ? 'naik' : 'turun'} dari ${(res.sticky_pct_start || 0).toFixed(1)}% di awal jendela — uang paling sabar ${naik ? 'bertahan dan bertambah porsinya' : 'ikut menyusut porsinya'}.</div>
+    <div style="font-size:var(--text-md);font-weight:700;">● Foreign Group Breakdown — Who Sold, Who Held</div>
+    <div style="font-size:var(--text-xs);color:var(--c-text-3);margin:var(--s-2) 0 var(--s-3);">Share change per foreign investor group (KSEI) · ${dateLabelYear(res.from_date)} → ${dateLabelYear(res.to_date)} · ${res.emiten_analyzed} issuers analyzed · ${res.emiten_events} corporate-action issuers separated · window follows the mode chips on the Breakdown card above</div>
+    <div style="font-size:var(--text-sm);color:var(--c-text-2);line-height:1.55;">The <b>sticky</b> group (pension funds, insurance, foundations) now holds <b>${(res.sticky_pct_end || 0).toFixed(1)}%</b> of foreign value, ${naik ? 'up' : 'down'} from ${(res.sticky_pct_start || 0).toFixed(1)}% at the window start — the most patient money ${naik ? 'held and grew its share' : 'shrank along in share'}.</div>
     <div style="margin-top:var(--s-2);">${bars}</div>
-    <div style="font-size:var(--text-sm);color:var(--c-text-2);line-height:1.55;">Dari ember Lainnya (${formatBertanda(lainEff)}), golongan Lainnya (OT) sendiri menyumbang ${formatBertanda(otEff)} — ember ini mencakup akun nominee dan omnibus, jadi isinya bukan satu jenis investor tunggal.</div>
-    <button data-typedetail style="margin-top:var(--s-3);padding:4px 12px;border:1px solid var(--c-border);border-radius:999px;font-size:var(--text-xs);cursor:pointer;background:var(--c-surface-2);color:var(--c-text-2);">Lihat rincian 9 golongan</button>
+    <div style="font-size:var(--text-sm);color:var(--c-text-2);line-height:1.55;">From the Others bucket (${formatBertanda(lainEff)}), the Others group (OT) itself contributed ${formatBertanda(otEff)} — this bucket covers nominee and omnibus accounts, so it is not a single investor type.</div>
+    <button data-typedetail style="margin-top:var(--s-3);padding:4px 12px;border:1px solid var(--c-border);border-radius:999px;font-size:var(--text-xs);cursor:pointer;background:var(--c-surface-2);color:var(--c-text-2);">Show details of 9 groups</button>
     <div id="kepemilikan-rincian-golongan" style="display:none;margin-top:var(--s-2);">${detailRows}</div>
-    <div style="margin-top:var(--s-2);font-size:var(--text-xs);color:var(--c-text-3);line-height:1.5;">Δ antar-snapshot adalah perubahan kepemilikan — termasuk perpindahan luar pasar dan reklasifikasi — bukan arus bursa murni.</div>
+    <div style="margin-top:var(--s-2);font-size:var(--text-xs);color:var(--c-text-3);line-height:1.5;">Δ between snapshots is an ownership change — including off-market transfers and reclassifications — not pure exchange flow.</div>
   </div>`;
 }
 
@@ -538,11 +544,11 @@ function buildLocalMirrorHtml(res) {
   const lTot = (l.total || {}).effect_shares || 0;
   const u = res.unclassified;
   const note = u
-    ? `Seluruh lembar terklasifikasi lokal berubah ${formatBertanda(lTot)}, sementara asing ${formatBertanda(fTot)}. Selisihnya bukan kesalahan: irisan tak-terklasifikasi (saham tanpa klasifikasi SID) berubah ${formatBertanda(u.effect_shares)} pada periode yang sama — lembar berpindah dari irisan itu ke golongan lokal yang terklasifikasi, di samping penerbitan bersih emiten non-event.`
-    : `Seluruh lembar terklasifikasi lokal berubah ${formatBertanda(lTot)}, sementara asing ${formatBertanda(fTot)} — selisih keduanya berasal dari perubahan irisan tak-terklasifikasi (saham tanpa klasifikasi SID) dan penerbitan bersih emiten non-event.`;
+    ? `All classified local shares changed ${formatBertanda(lTot)}, while foreign shares changed ${formatBertanda(fTot)}. The difference is not an error: the unclassified slice (shares without SID classification) changed ${formatBertanda(u.effect_shares)} over the same period — shares moved from that slice into classified local groups, alongside net issuance by non-event issuers.`
+    : `All classified local shares changed ${formatBertanda(lTot)}, while foreign shares changed ${formatBertanda(fTot)} — the difference comes from changes in the unclassified slice (shares without SID classification) and net issuance by non-event issuers.`;
   return `<div style="background:var(--c-surface);border:1px solid var(--c-border);border-radius:var(--radius);padding:var(--s-4);margin-bottom:var(--s-4);">
-    <div style="font-size:var(--text-md);font-weight:700;">● Cermin Lokal — Siapa Menyerap</div>
-    <div style="font-size:var(--text-xs);color:var(--c-text-3);margin:var(--s-2) 0 var(--s-3);">Perubahan lembar per kelompok investor lokal (KSEI) pada jendela yang sama</div>
+    <div style="font-size:var(--text-md);font-weight:700;">● Local Mirror — Who Absorbed</div>
+    <div style="font-size:var(--text-xs);color:var(--c-text-3);margin:var(--s-2) 0 var(--s-3);">Share change per local investor group (KSEI) over the same window</div>
     ${bars}
     <div style="font-size:var(--text-sm);color:var(--c-text-2);line-height:1.55;">${note}</div>
   </div>`;
@@ -557,7 +563,7 @@ function fillByTypeSection(wrap) {
     if (!target) return;
     const openNow = target.style.display !== 'none';
     target.style.display = openNow ? 'none' : 'block';
-    btn.textContent = openNow ? 'Lihat rincian 9 golongan' : 'Sembunyikan rincian';
+    btn.textContent = openNow ? 'Show details of 9 groups' : 'Hide details';
   }));
 }
 

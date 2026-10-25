@@ -1,4 +1,4 @@
-/* pages/tools/type-writing-2/type-writing.js — Pilih Mode Pengetik Alami (hub)
+/* pages/tools/type-writing-2/type-writing.js — Choose a Natural Typer Mode (hub)
  * Konversi dari tools/type-writing/index.html ke module SPA.
  * Klik mode memuat type-bahasa.js / type-coder.js secara dinamis (tanpa partikel). */
 import { createEl } from '../../../utils/dom.js';
@@ -49,27 +49,27 @@ export function render() {
     import('./' + moduleName + '.js')
       .then((mod) => {
         mountPoint.innerHTML = '';
-        const backBtn = createEl('button', { class: 'tw-btn tw-back', type: 'button' }, ['← Kembali ke Pilihan Mode']);
+        const backBtn = createEl('button', { class: 'tw-btn tw-back', type: 'button' }, ['← Back to Mode Selection']);
         backBtn.addEventListener('click', () => renderMenu());
         mountPoint.appendChild(backBtn);
         mountPoint.appendChild(mod.render());
       })
       .catch(() => {
-        mountPoint.innerHTML = '<p style="color:var(--c-danger, #f56565);">Gagal memuat mode. Coba lagi.</p>';
+        mountPoint.innerHTML = '<p style="color:var(--c-danger, #f56565);">Failed to load mode. Try again.</p>';
       });
   }
 
   function renderMenu() {
     mountPoint.innerHTML = '';
-    const h1 = createEl('h1', {}, ['Pilih Mode Pengetik Alami']);
+    const h1 = createEl('h1', {}, ['Choose a Natural Typer Mode']);
     const nav = createEl('div', { class: 'tw-nav' });
 
     const btnBahasa = createEl('button', { class: 'tw-btn', type: 'button' });
-    btnBahasa.innerHTML = '<i class="fas fa-language"></i> Mode Bahasa';
+    btnBahasa.innerHTML = '<i class="fas fa-language"></i> Language Mode';
     btnBahasa.addEventListener('click', () => loadMode('type-bahasa'));
 
     const btnCoder = createEl('button', { class: 'tw-btn', type: 'button' });
-    btnCoder.innerHTML = '<i class="fas fa-code"></i> Mode Coder';
+    btnCoder.innerHTML = '<i class="fas fa-code"></i> Coder Mode';
     btnCoder.addEventListener('click', () => loadMode('type-coder'));
 
     nav.append(btnBahasa, btnCoder);

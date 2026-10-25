@@ -107,13 +107,13 @@ export function render() {
 
   // --- BUILD CONTROLS ---
   page.appendChild(createEl('h1', { class: 'cts-title' }, ['Color Pallete Mixer']));
-  page.appendChild(createEl('p', { class: 'cts-sub' }, ['Geser Hue Shifter untuk langsung mengubah warna dasar dan palet. Default 12 kotak.']));
+  page.appendChild(createEl('p', { class: 'cts-sub' }, ['Drag the Hue Shifter to instantly change the base color and palette. Default: 12 boxes.']));
 
   const controls = createEl('div', { class: 'cts-controls' });
 
-  // Group 1: Warna Dasar
+  // Group 1: Base Color
   const g1 = createEl('div', { class: 'cts-group' });
-  g1.appendChild(createEl('label', {}, ['Warna Dasar']));
+  g1.appendChild(createEl('label', {}, ['Base Color']));
   const row1 = createEl('div', { class: 'cts-row' });
   const baseColorPicker = document.createElement('input');
   baseColorPicker.type = 'color';
@@ -132,21 +132,21 @@ export function render() {
 
   // Group 2: Weight
   const g2 = createEl('div', { class: 'cts-group' });
-  g2.appendChild(createEl('label', {}, ['Kekuatan Langkah (Weight)']));
+  g2.appendChild(createEl('label', {}, ['Step Strength (Weight)']));
   const row2 = createEl('div', { class: 'cts-row' });
-  row2.appendChild(createEl('span', {}, ['Halus']));
+  row2.appendChild(createEl('span', {}, ['Subtle']));
   const weightSlider = document.createElement('input');
   weightSlider.type = 'range';
   weightSlider.className = 'cts-range';
   weightSlider.min = '1'; weightSlider.max = '10'; weightSlider.value = '5';
   const weightValue = createEl('span', { class: 'cts-value' }, ['5']);
-  row2.append(weightSlider, weightValue, createEl('span', {}, ['Ekstrim']));
+  row2.append(weightSlider, weightValue, createEl('span', {}, ['Extreme']));
   g2.appendChild(row2);
   controls.appendChild(g2);
 
   // Group 3: Total Kotak
   const g3 = createEl('div', { class: 'cts-group' });
-  g3.appendChild(createEl('label', {}, ['Total Kotak Palet (Genap)']));
+  g3.appendChild(createEl('label', {}, ['Total Palette Boxes (Even)']));
   const row3 = createEl('div', { class: 'cts-row' });
   row3.appendChild(createEl('span', {}, ['2']));
   const stepsSlider = document.createElement('input');
@@ -156,12 +156,12 @@ export function render() {
   const totalBoxes = createEl('span', { class: 'cts-value' }, ['12']);
   row3.append(stepsSlider, totalBoxes, createEl('span', {}, ['36']));
   g3.appendChild(row3);
-  g3.appendChild(createEl('small', {}, ['(Contoh: 12 kotak = 6 Shade + 6 Tint)']));
+  g3.appendChild(createEl('small', {}, ['(Example: 12 boxes = 6 Shades + 6 Tints)']));
   controls.appendChild(g3);
 
   // Group 4 (wide): Hue Shifter
   const g4 = createEl('div', { class: 'cts-group cts-wide' });
-  g4.appendChild(createEl('label', {}, ['Geser Nada Warna (Hue Shifter)']));
+  g4.appendChild(createEl('label', {}, ['Shift Color Tone (Hue Shifter)']));
   const row4 = createEl('div', { class: 'cts-row' });
   const hueSlider = document.createElement('input');
   hueSlider.type = 'range';
@@ -235,7 +235,7 @@ export function render() {
 
   function generatePalette(baseColorHexValue, currentHue, weight, steps) {
     if (!/^#([0-9A-F]{3}([0-9A-F]{3})?)$/i.test(baseColorHexValue)) {
-      paletteContainer.innerHTML = '<p style="color:var(--c-text-2);">Input Hex tidak valid.</p>';
+      paletteContainer.innerHTML = '<p style="color:var(--c-text-2);">Invalid hex input.</p>';
       return;
     }
     const [r, g, b] = hexToRgb(baseColorHexValue);
@@ -272,7 +272,7 @@ export function render() {
     if (info) {
       baseColorName.innerHTML = `<strong>${info.name}</strong> <span class="cts-unknown">(${info.hex})</span>`;
     } else {
-      baseColorName.innerHTML = '<span class="cts-unknown">Hex tidak valid</span>';
+      baseColorName.innerHTML = '<span class="cts-unknown">Invalid hex</span>';
     }
   };
 

@@ -12,7 +12,7 @@ function generatePassword(length, incUpper, incLower, incNum, incSpecial) {
   if (incLower) chars += LOWER;
   if (incNum) chars += NUMBERS;
   if (incSpecial) chars += SPECIAL;
-  if (!chars) return 'Pilih setidaknya satu opsi karakter!';
+  if (!chars) return 'Select at least one character option!';
 
   const arr = new Uint32Array(length);
   crypto.getRandomValues(arr);
@@ -59,7 +59,7 @@ export function render() {
 
     const outField = document.createElement('div');
     outField.className = 'pw-output__field';
-    outField.textContent = password || 'Klik Generate...';
+    outField.textContent = password || 'Click Generate...';
     outField.style.color = password ? 'var(--c-text)' : 'var(--c-text-3)';
     outWrap.appendChild(outField);
 
@@ -113,7 +113,7 @@ export function render() {
     sliderWrap.className = 'pw-slider';
     sliderWrap.innerHTML = `
       <div class="pw-slider__row">
-        <span class="pw-slider__label">Panjang Password</span>
+        <span class="pw-slider__label">Password Length</span>
         <span class="pw-slider__value">${length}</span>
       </div>
     `;

@@ -87,7 +87,7 @@ export const Auth = {
   async login(username, password) {
     const r = await Api.post('/auth/login', { username, password });
     if (!r?.access_token) {
-      throw new ApiError(r?.detail || 'Login gagal', 401);
+      throw new ApiError(r?.detail || 'Login failed', 401);
     }
     saveSession(r.access_token, r.user ?? {});
     return store.user;
@@ -109,10 +109,10 @@ export const Auth = {
     if (token && isTokenExpired(token)) {
       // Attempt token refresh before calling /me
       token = await refreshToken();
-      if (!token) throw new Error('Sesi telah berakhir. Silakan login kembali.');
+      if (!token) throw new Error('Your session has expired. Please log in again.');
     }
     const r = await Api.get('/auth/me');
-    if (!r) throw new Error('Anda harus login untuk mengakses fitur ini.');
+    if (!r) throw new Error('You must log in to access this feature.');
     saveSession(token || store.token || '', r);
     return store.user;
   },

@@ -145,7 +145,7 @@ async function restorePersistedDownload() {
   // network round trip. The server reconciles the real progress below.
   state.downloading = true; state.downloadId = downloadId;
   state.progress = data.progress || 0;
-  state.downloadStatus = data.status === 'interrupted' ? 'Menyambung ulang...' : 'Mengunduh...';
+  state.downloadStatus = data.status === 'interrupted' ? 'Reconnecting...' : 'Downloading...';
   state.error = null;
   startStatusPolling(downloadId); connectProgressWebSocket();
   renderAll();
@@ -156,17 +156,17 @@ async function restorePersistedDownload() {
     const st = status?.status || 'not_found';
     if (st === 'downloading' || st === 'interrupted') {
       state.progress = status?.progress || state.progress;
-      state.downloadStatus = st === 'interrupted' ? 'Menyambung ulang...' : 'Mengunduh...';
+      state.downloadStatus = st === 'interrupted' ? 'Reconnecting...' : 'Downloading...';
       savePersistedProgress(state.progress, st);
       renderProgress();
     } else if (st === 'completed') {
       stopPolling(); clearDownloadState(); state.downloading = false; state.progress = 100;
-      state.downloadStatus = 'Selesai!';
+      state.downloadStatus = 'Done!';
       toast('Download selesai: ' + (status?.file_name || ''), 'success');
       renderAll();
     } else if (st === 'failed') {
       stopPolling(); clearDownloadState(); state.downloading = false;
-      state.error = 'Download gagal: ' + (status?.error || 'Unknown error');
+      state.error = 'Download failed: ' + (status?.error || 'Unknown error');
       renderAll();
     } else {
       // 'not_found' — backend record disappeared (restart cleanup etc).
@@ -225,22 +225,22 @@ function openProgressWebSocket(wsUrl) {
         state.progress = msg.progress || 0;
         state.downloadSpeed = msg.speed || null;
         state.downloadEta = msg.eta || null;
-        state.downloadStatus = `Mengunduh... ${state.progress.toFixed(1)}%`;
+        state.downloadStatus = `Downloading... ${state.progress.toFixed(1)}%`;
         savePersistedProgress(state.progress, 'downloading');
         renderProgress();
       } else if (msg.status === 'completed') {
         clearDownloadState(); state.downloading = false; state.progress = 100;
-        state.downloadStatus = 'Selesai!'; state.downloadId = null;
+        state.downloadStatus = 'Done!'; state.downloadId = null;
         state.downloadSpeed = null; state.downloadEta = null;
         stopPolling(); checkActiveDownloads(); toast('Download selesai!', 'success');
         renderAll();
       } else if (msg.status === 'error') {
         clearDownloadState(); state.downloading = false;
-        state.error = 'Download gagal: ' + (msg.message || 'Unknown');
+        state.error = 'Download failed: ' + (msg.message || 'Unknown');
         state.downloadId = null; state.downloadSpeed = null; state.downloadEta = null;
         stopPolling(); checkActiveDownloads(); renderAll();
       } else if (msg.status === 'cancelled') {
-        clearDownloadState(); state.downloading = false; state.downloadStatus = 'Dibatalkan';
+        clearDownloadState(); state.downloading = false; state.downloadStatus = 'Cancelled';
         state.downloadId = null; state.downloadSpeed = null; state.downloadEta = null;
         stopPolling(); checkActiveDownloads(); renderAll();
       }
@@ -271,17 +271,17 @@ function startStatusPolling(downloadId) {
       const pct = status?.progress || 0, speed = status?.speed || null, eta = status?.eta || null;
       if (st === 'downloading' || st === 'interrupted') {
         state.progress = pct; state.downloadSpeed = speed; state.downloadEta = eta;
-        state.downloadStatus = `Mengunduh... ${pct.toFixed(1)}%`;
+        state.downloadStatus = `Downloading... ${pct.toFixed(1)}%`;
         savePersistedProgress(pct, st);
         renderProgress();
       } else if (st === 'completed') {
         stopPolling(); clearDownloadState(); state.downloading = false; state.progress = 100;
-        state.downloadStatus = 'Selesai!'; state.downloadId = null;
+        state.downloadStatus = 'Done!'; state.downloadId = null;
         state.downloadSpeed = null; state.downloadEta = null;
         toast('Download selesai: ' + (status?.file_name || ''), 'success'); renderAll();
       } else if (st === 'failed') {
         stopPolling(); clearDownloadState(); state.downloading = false;
-        state.error = 'Download gagal: ' + (status?.error || 'Unknown error');
+        state.error = 'Download failed: ' + (status?.error || 'Unknown error');
         state.downloadId = null; state.downloadSpeed = null; state.downloadEta = null;
         renderAll();
       } else {
@@ -303,7 +303,7 @@ function stopPolling() {
 
 /* ─── Cancel ─── */
 async function cancelDownload(downloadId) {
-  if (!confirm('Batalkan Download?\nFile temp/fragment akan dibersihkan.')) return;
+  if (!confirm('Cancel Download?\nTemp/fragment files will be cleaned up.')) return;
   try {
     await Api.post('/video/cancel/' + downloadId, {});
     if (state.downloadId === downloadId) {
@@ -312,13 +312,13 @@ async function cancelDownload(downloadId) {
       stopPolling();
     }
     await checkActiveDownloads(); toast('Download dibatalkan', 'warn'); renderAll();
-  } catch (e) { toast('Gagal membatalkan: ' + (e.message || e), 'danger'); }
+  } catch (e) { toast('Failed to cancel: ' + (e.message || e), 'danger'); }
 }
 
 /* ─── Extract ─── */
 async function doExtract() {
   const url = state.url.trim();
-  if (!url) { state.error = 'Masukkan URL video'; renderError(); return; }
+  if (!url) { state.error = 'Enter a video URL'; renderError(); return; }
   state.extracting = true; state.error = null; state.videoInfo = null;
   state.selectedFormat = null; state.groupExpanded = {};
   updateExtractButton(true);
@@ -326,7 +326,7 @@ async function doExtract() {
   try {
     const res = await Api.post('/video/extract', { url });
     const data = res?.data || res;
-    if (!data) throw new Error('Respons kosong dari server');
+    if (!data) throw new Error('Empty response from server');
     state.videoInfo = data; state.extracting = false;
     const formats = data.formats || [];
     const resGroups = groupByResolution(formats);
@@ -341,7 +341,7 @@ async function doExtract() {
     renderVideoInfo(); renderFormatSelector(); renderDownloadButton();
   } catch (e) {
     state.extracting = false;
-    state.error = 'Gagal: ' + (e.message || e).replace(/^Exception: /, '');
+    state.error = 'Failed: ' + (e.message || e).replace(/^Exception: /, '');
     updateExtractButton(false);
     renderError();
   }
@@ -370,7 +370,7 @@ async function doDownload() {
     renderAll();
   } catch (e) {
     stopPolling();
-    const errMsg = 'Download gagal: ' + (e.message || e).replace(/^Exception: /, '');
+    const errMsg = 'Download failed: ' + (e.message || e).replace(/^Exception: /, '');
     state.downloading = false; state.error = errMsg; state.downloadSpeed = null;
     state.downloadEta = null; state.downloadId = null;
     clearDownloadState(); toast(errMsg, 'danger'); renderAll();
@@ -386,7 +386,7 @@ async function pasteFromClipboard() {
       const input = $('.video-page__url-input');
       if (input) { input.value = text; input.focus(); }
     }
-  } catch (_) { toast('Tidak bisa mengakses clipboard', 'warn'); }
+  } catch (_) { toast('Cannot access clipboard', 'warn'); }
 }
 
 /* ─── DOM Refs ─── */
@@ -406,9 +406,9 @@ function renderToolbarOnce() {
   const input = createEl('input', {
     type: 'url',
     class: 'field__input video-page__url-input',
-    placeholder: 'Paste URL video di sini...',
+    placeholder: 'Paste video URL here...',
     value: state.url,
-    'aria-label': 'URL Video',
+    'aria-label': 'Video URL',
   });
   on(input, 'input', (e) => { state.url = e.target.value; });
   on(input, 'keydown', (e) => { if (e.key === 'Enter') doExtract(); });
@@ -418,8 +418,8 @@ function renderToolbarOnce() {
   // Paste button
   const pasteBtn = createEl('button', {
     class: 'btn btn--secondary',
-    'aria-label': 'Paste dari clipboard',
-    title: 'Paste dari clipboard',
+    'aria-label': 'Paste from clipboard',
+    title: 'Paste from clipboard',
   });
   pasteBtn.innerHTML = `${icons.copy} <span>Paste</span>`;
   on(pasteBtn, 'click', pasteFromClipboard);
@@ -446,7 +446,7 @@ function renderToolbarOnce() {
     class: 'btn btn--ghost',
     style: { padding: 'var(--s-2) var(--s-3)', fontSize: 'var(--text-sm)' },
   });
-  historyLink.innerHTML = `${icons['history']} <span>Riwayat Download</span>`;
+  historyLink.innerHTML = `${icons['history']} <span>Download History</span>`;
   navRow.appendChild(historyLink);
   toolbar.appendChild(navRow);
 
@@ -508,7 +508,7 @@ function renderActiveDownloads() {
           <span style="color:${iconColor};flex-shrink:0;">${iconSvg}</span>
           <span style="font-size:var(--text-sm);font-weight:500;flex:1;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;">${fn}</span>
           <span style="font-size:var(--text-sm);font-weight:600;">${pct}%</span>
-          <button class="btn btn--ghost btn--sm video-page__cancel-btn" style="padding:var(--s-1);width:28px;height:28px;min-width:28px;min-height:28px;color:var(--c-danger);" aria-label="Batalkan download" data-cancel="${fn}">${icons['x']}</button>
+          <button class="btn btn--ghost btn--sm video-page__cancel-btn" style="padding:var(--s-1);width:28px;height:28px;min-width:28px;min-height:28px;color:var(--c-danger);" aria-label="Cancel download" data-cancel="${fn}">${icons['x']}</button>
         </div>
         <div class="progress"><div class="progress__bar" style="width:${pct}%;"></div></div>
         ${(speed || eta) ? `<div style="display:flex;justify-content:space-between;margin-top:var(--s-1);font-size:var(--text-xs);color:var(--c-text-3);"><span>${speed}</span><span>Sisa ${eta}</span></div>` : ''}
@@ -521,7 +521,7 @@ function renderActiveDownloads() {
         <span class="spinner" style="width:16px;height:16px;border:2px solid var(--c-border);border-top-color:var(--c-primary);border-radius:50%;animation:spin 1s linear infinite;display:inline-block;"></span>
         ${state.activeDownloads.length} download sedang berjalan
       </div>
-      <a href="#/video-history" class="btn btn--ghost btn--sm" style="font-size:var(--text-xs);">Lihat Riwayat</a>
+      <a href="#/video-history" class="btn btn--ghost btn--sm" style="font-size:var(--text-xs);">View History</a>
     </div>
     ${itemsHtml}`;
 
@@ -605,10 +605,10 @@ function renderFormatSelector() {
   const resGroups = groupByResolution(formats);
 
   let htmlStr = `
-    <div class="card__head" style="margin-bottom:var(--s-4);"><div class="card__title">Pilih Format</div></div>
+    <div class="card__head" style="margin-bottom:var(--s-4);"><div class="card__title">Choose Format</div></div>
     <label style="display:flex;align-items:center;gap:var(--s-3);cursor:pointer;padding:var(--s-2) 0;margin-bottom:var(--s-4);border-bottom:1px solid var(--c-border);" class="video-page__audio-toggle">
       <div class="toggle ${state.audioOnly ? 'toggle--on' : ''}" role="switch" aria-checked="${state.audioOnly}" tabindex="0"></div>
-      <div><div style="font-size:var(--text-sm);font-weight:500;">Audio Saja</div><div style="font-size:var(--text-xs);color:var(--c-text-3);">Download hanya audio</div></div>
+      <div><div style="font-size:var(--text-sm);font-weight:500;">Audio Only</div><div style="font-size:var(--text-xs);color:var(--c-text-3);">Download audio only</div></div>
     </label>`;
 
   if (state.audioOnly && audioFormats.length > 0) {
@@ -616,7 +616,7 @@ function renderFormatSelector() {
   }
   if (!state.audioOnly) {
     if (Object.keys(resGroups).length === 0) {
-      htmlStr += `<p style="color:var(--c-text-3);font-size:var(--text-sm);padding:var(--s-4) 0;text-align:center;">Tidak ada format video tersedia</p>`;
+      htmlStr += `<p style="color:var(--c-text-3);font-size:var(--text-sm);padding:var(--s-4) 0;text-align:center;">No video formats available</p>`;
     } else {
       for (const [key, list] of Object.entries(resGroups)) {
         htmlStr += buildCollapsibleGroup(key, list.length, !!state.groupExpanded[key], key, buildFormatTilesWithSeparator(list));
@@ -716,7 +716,7 @@ function renderProgress() {
   const iconColor = isComplete ? 'var(--c-accent)' : 'var(--c-primary)';
   el.innerHTML = `
     <div class="card__head" style="margin-bottom:var(--s-3);">
-      <div style="display:flex;align-items:center;gap:var(--s-2);font-weight:600;"><span style="color:${iconColor};">${icon}</span>${isComplete ? 'Selesai!' : 'Mengunduh...'}</div>
+      <div style="display:flex;align-items:center;gap:var(--s-2);font-weight:600;"><span style="color:${iconColor};">${icon}</span>${isComplete ? 'Done!' : 'Downloading...'}</div>
       <span style="font-weight:600;font-size:var(--text-sm);">${state.progress.toFixed(1)}%</span>
     </div>
     <div class="progress" style="margin-bottom:var(--s-3);"><div class="progress__bar ${isComplete ? 'progress--success' : ''}" style="width:${state.progress}%;"></div></div>
@@ -796,7 +796,7 @@ export function render() {
 
   // Header
   const header = createEl('div', { style: { marginBottom: 'var(--s-5)' } });
-  header.innerHTML = `<h1 style="font-size:var(--text-lg);font-weight:700;margin-bottom:var(--s-1);">Video Downloader</h1><p style="color:var(--c-text-2);font-size:var(--text-sm);">Paste URL video untuk mengekstrak dan mengunduh.</p>`;
+  header.innerHTML = `<h1 style="font-size:var(--text-lg);font-weight:700;margin-bottom:var(--s-1);">Video Downloader</h1><p style="color:var(--c-text-2);font-size:var(--text-sm);">Paste a video URL to extract and download.</p>`;
   rootEl.appendChild(header);
 
   // Toolbar (rendered ONCE, never destroyed)

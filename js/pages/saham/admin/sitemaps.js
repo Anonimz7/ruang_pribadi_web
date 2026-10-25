@@ -7,7 +7,7 @@ import { createModal } from '../../../ui/modal.js';
 import { renderSkeletonRows } from '../../../ui/loading.js';
 
 const LANGS = [
-  { code: 'id', label: '🇮🇩 Indonesia' },
+  { code: 'id', label: '🇮🇩 Indonesian' },
   { code: 'en', label: '🇬🇧 English' },
   { code: 'ja', label: '🇯🇵 Japanese' },
 ];
@@ -32,13 +32,13 @@ export function render() {
   const title = createEl('h1', { style: { margin: 0 } }, ['Sitemaps']);
   const countBadge = createEl('span', { class: 'badge badge--neutral' }, []);
   const addBtn = createEl('button', { class: 'btn btn--accent', style: { marginLeft: 'auto' } }, []);
-  addBtn.innerHTML = `${icons['plus']} Tambah`;
+  addBtn.innerHTML = `${icons['plus']} Add`;
   addBtn.addEventListener('click', openAddModal);
   header.append(title, countBadge, addBtn);
   container.appendChild(header);
 
   container.appendChild(createEl('p', { style: { color: 'var(--c-text-2)', marginBottom: 'var(--s-5)' } },
-    ['Kelola sumber sitemap berita.']));
+    ['Manage news sitemap sources.']));
 
   // Table
   const tableWrap = createEl('div', { class: 'table-wrap' });
@@ -55,7 +55,7 @@ export function render() {
       state.langMap = langData || {};
     } catch (e) {
       state.sitemaps = [];
-      toast('Gagal memuat sitemaps: ' + (e.message || e), { type: 'error' });
+      toast('Failed to load sitemaps: ' + (e.message || e), { type: 'error' });
     }
 
     state.loading = false;
@@ -72,7 +72,7 @@ export function render() {
       const empty = createEl('div', { class: 'admin-sitemaps__empty' }, []);
       empty.innerHTML = `
         <div class="admin-sitemaps__empty-icon">${icons['link']}</div>
-        <p style="color:var(--c-text-2);font-size:var(--text-sm);margin:0;">Belum ada sitemap.</p>
+        <p style="color:var(--c-text-2);font-size:var(--text-sm);margin:0;">No sitemaps yet.</p>
       `;
       tableWrap.appendChild(empty);
       return;
@@ -81,7 +81,7 @@ export function render() {
     const table = createEl('table', { class: 'table' });
     table.innerHTML = `
       <thead><tr>
-        <th>Domain</th><th>URL</th><th>Bahasa</th><th></th>
+        <th>Domain</th><th>URL</th><th>Language</th><th></th>
       </tr></thead>
     `;
     const tbody = createEl('tbody');
@@ -114,7 +114,7 @@ export function render() {
     const langBtn = createEl('button', {
       type: 'button',
       class: 'badge badge--primary admin-sitemaps__lang',
-      title: 'Klik untuk ubah bahasa',
+      title: 'Click to change language',
     }, [`${langFlag(lang)} ${lang}`]);
     langBtn.addEventListener('click', () => openLangModal(s.domain, lang));
     tdLang.appendChild(langBtn);
@@ -125,7 +125,7 @@ export function render() {
     const actionsWrap = createEl('div', { class: 'table__actions' });
     const delBtn = createEl('button', {
       class: 'btn btn--ghost btn--sm',
-      title: 'Hapus',
+      title: 'Delete',
       style: { color: 'var(--c-danger)' },
     }, []);
     delBtn.innerHTML = icons['trash'];
@@ -146,32 +146,32 @@ export function render() {
         <input type="url" class="field__input" name="url" placeholder="https://example.com/sitemap.xml" required>
       </div>
       <div class="field">
-        <label class="field__label">Bahasa</label>
+        <label class="field__label">Language</label>
         <select class="field__select" name="lang">
           ${LANGS.map(l => `<option value="${l.code}" ${l.code === state.newLang ? 'selected' : ''}>${l.label}</option>`).join('')}
         </select>
       </div>
       <div class="field field--inline" style="justify-content:flex-end;margin-top:var(--s-2);">
-        <button type="button" class="btn btn--secondary" id="cancel">Batal</button>
-        <button type="submit" class="btn btn--primary">${icons['plus']} Tambah</button>
+        <button type="button" class="btn btn--secondary" id="cancel">Cancel</button>
+        <button type="submit" class="btn btn--primary">${icons['plus']} Add</button>
       </div>
     `;
 
-    const modal = createModal({ title: 'Tambah Sitemap', content: form, width: '420px' });
+    const modal = createModal({ title: 'Add Sitemap', content: form, width: '420px' });
     form.querySelector('#cancel').addEventListener('click', () => modal.close());
 
     form.addEventListener('submit', async (e) => {
       e.preventDefault();
       const fd = new FormData(form);
       const url = fd.get('url').trim();
-      if (!url) { toast('Masukkan URL sitemap', { type: 'error' }); return; }
+      if (!url) { toast('Enter a sitemap URL', { type: 'error' }); return; }
       try {
         await Api.post('/sitemaps', { url, language: fd.get('lang') });
-        toast('Sitemap ditambahkan', { type: 'success' });
+        toast('Sitemap added', { type: 'success' });
         modal.close();
         loadSitemaps();
       } catch (err) {
-        toast('Gagal menambahkan: ' + (err.message || err), { type: 'error' });
+        toast('Failed to add: ' + (err.message || err), { type: 'error' });
       }
     });
   }
@@ -180,7 +180,7 @@ export function render() {
   function openLangModal(domain, currentLang) {
     const content = createEl('div', { style: { display: 'flex', flexDirection: 'column', gap: 'var(--s-3)' } });
     content.appendChild(createEl('div', { style: { fontSize: 'var(--text-sm)', color: 'var(--c-text-2)' } },
-      [`Bahasa untuk domain <b>${domain}</b>`]));
+      [`Language for domain <b>${domain}</b>`]));
 
     const select = createEl('select', { class: 'field__select' });
     LANGS.forEach(l => {
@@ -191,21 +191,21 @@ export function render() {
     content.appendChild(select);
 
     const footer = createEl('div', { style: { display: 'flex', justifyContent: 'flex-end', gap: 'var(--s-2)', marginTop: 'var(--s-2)' } });
-    const modal = createModal({ title: 'Ubah Bahasa', content, width: '360px' });
+    const modal = createModal({ title: 'Change Language', content, width: '360px' });
 
-    const cancelBtn = createEl('button', { class: 'btn btn--secondary', type: 'button' }, ['Batal']);
+    const cancelBtn = createEl('button', { class: 'btn btn--secondary', type: 'button' }, ['Cancel']);
     cancelBtn.addEventListener('click', () => modal.close());
 
-    const saveBtn = createEl('button', { class: 'btn btn--primary', type: 'button' }, ['Simpan']);
+    const saveBtn = createEl('button', { class: 'btn btn--primary', type: 'button' }, ['Save']);
     saveBtn.addEventListener('click', async () => {
       try {
         const newMapping = { ...state.langMap, [domain]: select.value };
         await Api.put('/sitemaps/languages', newMapping);
-        toast('Bahasa diperbarui', { type: 'success' });
+        toast('Language updated', { type: 'success' });
         modal.close();
         loadSitemaps();
       } catch (e) {
-        toast('Gagal simpan bahasa: ' + (e.message || e), { type: 'error' });
+        toast('Failed to save language: ' + (e.message || e), { type: 'error' });
       }
     });
 
@@ -217,23 +217,23 @@ export function render() {
   function openDeleteConfirm(s) {
     const content = createEl('div', { style: { display: 'flex', flexDirection: 'column', gap: 'var(--s-3)' } });
     content.appendChild(createEl('p', { style: { color: 'var(--c-text-2)', fontSize: 'var(--text-sm)' } },
-      [`Hapus sitemap dari "${s.domain}"?`]));
+      [`Delete sitemap for "${s.domain}"?`]));
 
     const footer = createEl('div', { style: { display: 'flex', justifyContent: 'flex-end', gap: 'var(--s-2)', marginTop: 'var(--s-2)' } });
-    const modal = createModal({ title: 'Hapus Sitemap', content, width: '380px' });
+    const modal = createModal({ title: 'Delete Sitemap', content, width: '380px' });
 
-    const cancelBtn = createEl('button', { class: 'btn btn--secondary' }, ['Batal']);
+    const cancelBtn = createEl('button', { class: 'btn btn--secondary' }, ['Cancel']);
     cancelBtn.addEventListener('click', () => modal.close());
 
-    const delBtn = createEl('button', { class: 'btn btn--danger' }, ['Hapus']);
+    const delBtn = createEl('button', { class: 'btn btn--danger' }, ['Delete']);
     delBtn.addEventListener('click', async () => {
       try {
         await Api.delete(`/sitemaps/${s.index}`);
-        toast('Sitemap dihapus', { type: 'success' });
+        toast('Sitemap deleted', { type: 'success' });
         modal.close();
         loadSitemaps();
       } catch (e) {
-        toast('Gagal menghapus: ' + (e.message || e), { type: 'error' });
+        toast('Failed to delete: ' + (e.message || e), { type: 'error' });
       }
     });
 

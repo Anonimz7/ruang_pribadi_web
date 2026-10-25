@@ -36,7 +36,7 @@ const MODES = {
 
 function fmtLevel(v) {
   if (v == null || isNaN(v)) return '-';
-  return v.toLocaleString('id-ID', { maximumFractionDigits: 2 });
+  return v.toLocaleString('en-US', { maximumFractionDigits: 2 });
 }
 
 function fmtPct(v) {
@@ -72,7 +72,7 @@ export function render() {
   if (detailMode) {
     const backBar = createEl('div', { style: { marginBottom: 'var(--s-3)' } });
     const backBtn = createEl('button', { class: 'btn btn--secondary btn--sm' });
-    backBtn.textContent = '← Daftar Index';
+    backBtn.textContent = '← Index List';
     backBtn.addEventListener('click', () => navigate('/saham/index'));
     backBar.appendChild(backBtn);
     container.appendChild(backBar);
@@ -80,13 +80,13 @@ export function render() {
     const header = createEl('div', {
       style: { display: 'flex', alignItems: 'center', gap: 'var(--s-3)', marginBottom: 'var(--s-4)', flexWrap: 'wrap' },
     });
-    header.appendChild(createEl('h1', {}, ['Index Saham']));
+    header.appendChild(createEl('h1', {}, ['Stock Indexes']));
     header.appendChild(createEl('p', {
       style: { color: 'var(--c-text-2)', flex: '1', minWidth: '200px' },
-    }, ['Indeks kustom yang dibangun dari daftar saham IDX.']));
+    }, ['Custom indexes built from the IDX stock list.']));
     if (isAdmin) {
       const createBtn = createEl('button', { class: 'btn btn--primary' });
-      createBtn.innerHTML = `${icons['plus']} Buat Index`;
+      createBtn.innerHTML = `${icons['plus']} Create Index`;
       createBtn.addEventListener('click', () => openCreateModal());
       header.appendChild(createBtn);
     }
@@ -106,7 +106,7 @@ export function render() {
       state.indices = (await Api.get('/index-saham')) || [];
     } catch (e) {
       state.indices = [];
-      toast('Gagal memuat daftar: ' + (e.message || e), { type: 'error' });
+      toast('Failed to load list: ' + (e.message || e), { type: 'error' });
     }
     state.loading = false;
     renderList();
@@ -130,8 +130,8 @@ export function render() {
       listWrap.innerHTML = `
         <div class="empty-state" style="text-align:center;padding:var(--s-6);border:1px dashed var(--c-border);border-radius:var(--radius);">
           <div style="font-size:44px;margin-bottom:var(--s-3);opacity:0.3;display:inline-flex;">${icons['layers']}</div>
-          <p style="color:var(--c-text-2);">${isAdmin ? 'Belum ada index. Buat index pertama Anda.' : 'Belum ada index.'}</p>
-          ${isAdmin ? '<button class="btn btn--primary" style="margin-top:var(--s-3);" id="empty-create">' + icons['plus'] + ' Buat Index</button>' : ''}
+          <p style="color:var(--c-text-2);">${isAdmin ? 'No indexes yet. Create your first index.' : 'No indexes yet.'}</p>
+          ${isAdmin ? '<button class="btn btn--primary" style="margin-top:var(--s-3);" id="empty-create">' + icons['plus'] + ' Create Index</button>' : ''}
         </div>`;
       const btn = listWrap.querySelector('#empty-create');
       if (btn) btn.addEventListener('click', () => openCreateModal());
@@ -161,14 +161,14 @@ export function render() {
           </div>
           <div style="text-align:right;flex-shrink:0;">
             <div style="font-weight:700;font-size:var(--text-md);">${fmtLevel(idx.last_level)}</div>
-            <div style="font-size:var(--text-sm);font-weight:600;color:${chgColor};">${fmtPct(chg)} (harian)</div>
+            <div style="font-size:var(--text-sm);font-weight:600;color:${chgColor};">${fmtPct(chg)} (daily)</div>
           </div>
         </div>
         <div style="display:flex;gap:var(--s-2);margin-top:var(--s-3);font-size:var(--text-xs);color:var(--c-text-3);flex-wrap:wrap;">
-          <span style="font-weight:600;color:${trColor};">${tr == null ? '' : `${fmtPct(tr)} sejak dasar`}</span>
-          <span>${idx.member_count ?? 0} anggota</span>
-          ${idx.last_stale ? `<span style="color:var(--c-warn);">data belum lengkap</span>` : ''}
-          ${idx.is_active ? '' : `<span style="color:var(--c-danger);">nonaktif</span>`}
+          <span style="font-weight:600;color:${trColor};">${tr == null ? '' : `${fmtPct(tr)} since base`}</span>
+          <span>${idx.member_count ?? 0} constituents</span>
+          ${idx.last_stale ? `<span style="color:var(--c-warn);">incomplete data</span>` : ''}
+          ${idx.is_active ? '' : `<span style="color:var(--c-danger);">inactive</span>`}
         </div>
       `;
       card.addEventListener('mouseenter', () => card.style.borderColor = 'var(--c-border-hi)');
@@ -195,7 +195,7 @@ export function render() {
       state.selected = await Api.get(`/index-saham/${id}`);
     } catch (e) {
       state.selected = null;
-      toast('Gagal memuat detail: ' + (e.message || e), { type: 'error' });
+      toast('Failed to load details: ' + (e.message || e), { type: 'error' });
       detailWrap.style.display = 'none';
       if (detailMode) navigate('/saham/index');
       return;
@@ -239,11 +239,11 @@ export function render() {
     const info = createEl('div', { style: { flex: '1', minWidth: '220px' } });
     info.appendChild(createEl('h2', { style: { fontSize: 'var(--text-lg)', fontWeight: 700 } }, [idx.name]));
     const sub = createEl('div', { style: { fontSize: 'var(--text-sm)', color: 'var(--c-text-2)' } },
-      [`${idx.code} · ${MODES[idx.weighting_mode] || idx.weighting_mode} · base ${fmtLevel(idx.base_value)} @ ${idx.base_date || '-'} · ${members.length} anggota`]);
+      [`${idx.code} · ${MODES[idx.weighting_mode] || idx.weighting_mode} · base ${fmtLevel(idx.base_value)} @ ${idx.base_date || '-'} · ${members.length} constituents`]);
     if (totalReturn != null) {
       const span = createEl('span', {
         style: { fontWeight: 600, color: totalReturn >= 0 ? 'var(--c-accent)' : 'var(--c-danger)' },
-      }, [` ${fmtPct(totalReturn)} sejak dasar`]);
+      }, [` ${fmtPct(totalReturn)} since base`]);
       sub.appendChild(span);
     }
     info.appendChild(sub);
@@ -255,16 +255,16 @@ export function render() {
     if (isAdmin) {
       const actions = createEl('div', { style: { display: 'flex', gap: 'var(--s-2)', flexWrap: 'wrap' } });
       const editBtn = createEl('button', { class: 'btn btn--secondary btn--sm' });
-      editBtn.innerHTML = `${icons['edit']} Ubah`;
+      editBtn.innerHTML = `${icons['edit']} Edit`;
       editBtn.addEventListener('click', () => openEditModal(idx));
       const membersBtn = createEl('button', { class: 'btn btn--secondary btn--sm' });
-      membersBtn.innerHTML = `${icons['list']} Anggota`;
+      membersBtn.innerHTML = `${icons['list']} Constituents`;
       membersBtn.addEventListener('click', () => openMembersModal(idx));
       const rebuildBtn = createEl('button', { class: 'btn btn--secondary btn--sm' });
       rebuildBtn.innerHTML = `${icons['refresh']} Rebuild`;
       rebuildBtn.addEventListener('click', () => rebuildIndex(idx.id));
       const delBtn = createEl('button', { class: 'btn btn--danger btn--sm' });
-      delBtn.innerHTML = `${icons['trash']} Hapus`;
+      delBtn.innerHTML = `${icons['trash']} Delete`;
       delBtn.addEventListener('click', () => deleteIndex(idx));
       actions.append(editBtn, membersBtn, rebuildBtn, delBtn);
       head.appendChild(actions);
@@ -285,9 +285,9 @@ export function render() {
       },
     });
     const info = createEl('div', { style: { flex: '1', minWidth: '220px' } });
-    info.appendChild(createEl('div', { style: { fontWeight: 600 } }, ['Nilai susunan ini dengan Monte Carlo']));
+    info.appendChild(createEl('div', { style: { fontWeight: 600 } }, ['Appraise this basket with Monte Carlo']));
     info.appendChild(createEl('div', { style: { fontSize: 'var(--text-sm)', color: 'var(--c-text-2)' } },
-      ['Sebaran hasil, peluang berakhir positif, dan risiko drawdown dari seri level indeks ini.']));
+      ['Outcome spread, chance of ending positive, and drawdown risk from this index level series.']));
     strip.appendChild(info);
     const btn = createEl('button', { class: 'btn btn--primary btn--sm' });
     btn.innerHTML = `${icons['dice']} Monte Carlo`;
@@ -305,12 +305,12 @@ export function render() {
       class: 'card__head',
       style: { display: 'flex', gap: 'var(--s-3)', alignItems: 'center', flexWrap: 'wrap' },
     });
-    headRow.appendChild(createEl('h3', { class: 'card__title' }, ['Level Index']));
+    headRow.appendChild(createEl('h3', { class: 'card__title' }, ['Index Value']));
 
     const compareSel = createEl('select', { class: 'field__select', style: { width: 'auto' } });
-    compareSel.appendChild(createEl('option', { value: '' }, ['Tanpa pembanding']));
-    compareSel.appendChild(createEl('option', { value: 'asp' }, ['Pasar (ASP)']));
-    compareSel.appendChild(createEl('option', { value: 'mwi' }, ['Pasar (MWI)']));
+    compareSel.appendChild(createEl('option', { value: '' }, ['No comparison']));
+    compareSel.appendChild(createEl('option', { value: 'asp' }, ['Market (ASP)']));
+    compareSel.appendChild(createEl('option', { value: 'mwi' }, ['Market (MWI)']));
     state.indices
       .filter((i) => String(i.id) !== String(idx.id))
       .forEach((i) => compareSel.appendChild(createEl('option', { value: String(i.id) }, [i.name])));
@@ -358,23 +358,23 @@ export function render() {
 
     if (state.compareId === 'asp' || state.compareId === 'mwi') {
       const key = state.compareId; // 'asp' (rata-rata harga) | 'mwi' (kap. tertimbang, proxy IHSG)
-      const label = state.compareId === 'asp' ? 'Pasar (ASP)' : 'Pasar (MWI)';
+      const label = state.compareId === 'asp' ? 'Market (ASP)' : 'Market (MWI)';
       try {
         const radar = await Api.get('/idx/market/radar', { days: daysW });
         const pts = (radar?.data || []).filter(dalamJendelaTanggal).map((p) => ({ date: p.date, close: p[key] }));
         seriesArr.push({ name: label, type: 'line', data: normalisasiKeBasis100(pts, 'close') });
         colors.push('#059669');
       } catch (e) {
-        toast('Gagal memuat data pasar: ' + (e.message || e), { type: 'warn' });
+        toast('Failed to load market data: ' + (e.message || e), { type: 'warn' });
       }
     } else if (state.compareId) {
       try {
         const other = await Api.get(`/index-saham/${state.compareId}`, { days: daysW });
         const pts = (other?.series || []).filter(dalamJendelaTanggal);
-        seriesArr.push({ name: other?.index?.name || 'Lainnya', type: 'line', data: normalisasiKeBasis100(pts, 'level') });
+        seriesArr.push({ name: other?.index?.name || 'Other', type: 'line', data: normalisasiKeBasis100(pts, 'level') });
         colors.push('#d97706');
       } catch (e) {
-        toast('Gagal memuat pembanding: ' + (e.message || e), { type: 'warn' });
+        toast('Failed to load comparison: ' + (e.message || e), { type: 'warn' });
       }
     }
 
@@ -389,19 +389,19 @@ export function render() {
 
   function buildContributionsCard(contribs) {
     const card = createEl('div', { class: 'card' });
-    card.appendChild(createEl('h3', { class: 'card__title', style: { marginBottom: 'var(--s-3)' } }, ['Kontribusi Sejak Dasar']));
+    card.appendChild(createEl('h3', { class: 'card__title', style: { marginBottom: 'var(--s-3)' } }, ['Contributions Since Base']));
 
     // Transparansi: level kumulatif vs jumlah kontribusi harian (bunga-berbunga)
     const tr = contribs.total_return_pct;
     const sc = contribs.sum_contrib_pct;
     if (tr != null && sc != null) {
       const delta = Math.abs(tr - sc);
-      const note = delta >= 0.01 ? `<span style="color:var(--c-text-3);"> (selisih ${fmtPct(delta)} karena bunga-berbunga)</span>` : '';
+      const note = delta >= 0.01 ? `<span style="color:var(--c-text-3);"> (difference ${fmtPct(delta)} due to compounding)</span>` : '';
       const color = tr >= 0 ? 'var(--c-accent)' : 'var(--c-danger)';
       const line = createEl('div', {
         style: { fontSize: 'var(--text-sm)', marginBottom: 'var(--s-2)', color: 'var(--c-text-2)' },
       });
-      line.innerHTML = `<span style="font-weight:600;color:${color};">Level ${fmtPct(tr)}</span> <span>· Σ kontribusi ${fmtPct(sc)}${note}</span>`;
+      line.innerHTML = `<span style="font-weight:600;color:${color};">Value ${fmtPct(tr)}</span> <span>· Σ contributions ${fmtPct(sc)}${note}</span>`;
       card.appendChild(line);
     }
 
@@ -410,10 +410,10 @@ export function render() {
       style: { display: 'flex', gap: 'var(--s-3)', fontSize: 'var(--text-sm)', marginBottom: 'var(--s-3)', flexWrap: 'wrap' },
     });
     breadthRow.innerHTML = `
-      <span style="color:var(--c-accent);font-weight:600;">▲ ${b.advancers ?? 0} naik</span>
-      <span style="color:var(--c-danger);font-weight:600;">▼ ${b.decliners ?? 0} turun</span>
-      <span style="color:var(--c-text-3);">${b.unchanged ?? 0} datar</span>
-      <span style="color:var(--c-text-3);">· ${contribs.days ?? 0} hari</span>
+      <span style="color:var(--c-accent);font-weight:600;">▲ ${b.advancers ?? 0} up</span>
+      <span style="color:var(--c-danger);font-weight:600;">▼ ${b.decliners ?? 0} down</span>
+      <span style="color:var(--c-text-3);">${b.unchanged ?? 0} flat</span>
+      <span style="color:var(--c-text-3);">· ${contribs.days ?? 0} days</span>
     `;
     card.appendChild(breadthRow);
 
@@ -424,12 +424,12 @@ export function render() {
     // tidak boleh dianggap "belum ada data".
     if (tops.length === 0 && bottoms.length === 0) {
       card.appendChild(createEl('p', { style: { color: 'var(--c-text-3)', fontSize: 'var(--text-sm)' } },
-        ['Belum ada data kontribusi.']));
+        ['No contribution data yet.']));
       return card;
     }
 
     const table = createEl('table', { class: 'table' });
-    table.innerHTML = `<thead><tr><th style="width:40px;">#</th><th>Ticker</th><th>Kontribusi</th><th>Bobot Rata-rata</th><th>Hari</th></tr></thead>`;
+    table.innerHTML = `<thead><tr><th style="width:40px;">#</th><th>Ticker</th><th>Contribution</th><th>Avg Weight</th><th>Days</th></tr></thead>`;
     const tbody = createEl('tbody');
     [...tops, ...bottoms].forEach((c, i) => {
       const tr = createEl('tr', {});
@@ -438,7 +438,7 @@ export function render() {
         <td style="color:var(--c-text-3);">${i + 1}</td>
         <td style="font-weight:600;">${c.ticker}</td>
         <td style="color:${color};font-weight:600;">${fmtPct(c.contribution_pct)}</td>
-        <td>${c.avg_weight_pct != null ? c.avg_weight_pct.toLocaleString('id-ID') + '%' : '-'}</td>
+        <td>${c.avg_weight_pct != null ? c.avg_weight_pct.toLocaleString('en-US') + '%' : '-'}</td>
         <td>${c.days != null ? c.days : '-'}</td>`;
       tbody.appendChild(tr);
     });
@@ -452,16 +452,16 @@ export function render() {
   function buildMembersCard(idx, members) {
     const card = createEl('div', { class: 'card' });
     card.appendChild(createEl('h3', { class: 'card__title', style: { marginBottom: 'var(--s-3)' } },
-      [`Anggota (${members.length})`]));
+      [`Constituents (${members.length})`]));
 
     if (members.length === 0) {
       card.appendChild(createEl('p', { style: { color: 'var(--c-text-3)', fontSize: 'var(--text-sm)' } },
-        ['Index ini belum memiliki anggota.']));
+        ['This index has no constituents yet.']));
       return card;
     }
 
     const table = createEl('table', { class: 'table' });
-    table.innerHTML = `<thead><tr><th style="width:40px;">#</th><th>Ticker</th><th>Perusahaan</th><th>Sektor</th>${idx.weighting_mode === 'custom' ? '<th>Bobot</th>' : ''}<th>Status</th></tr></thead>`;
+    table.innerHTML = `<thead><tr><th style="width:40px;">#</th><th>Ticker</th><th>Company</th><th>Sector</th>${idx.weighting_mode === 'custom' ? '<th>Bobot</th>' : ''}<th>Status</th></tr></thead>`;
     const tbody = createEl('tbody');
     members.forEach((m, i) => {
       const tr = createEl('tr', {});
@@ -472,7 +472,7 @@ export function render() {
         <td style="font-weight:600;">${m.ticker}</td>
         <td style="font-size:var(--text-sm);color:var(--c-text-2);">${m.company_name || '-'}</td>
         <td>${sectorBadge ? sectorBadge.outerHTML : '<span class="badge badge--neutral">-</span>'}</td>
-        ${idx.weighting_mode === 'custom' ? `<td>${m.weight_pct != null ? m.weight_pct.toLocaleString('id-ID') + '%' : '-'}</td>` : ''}
+        ${idx.weighting_mode === 'custom' ? `<td>${m.weight_pct != null ? m.weight_pct.toLocaleString('en-US') + '%' : '-'}</td>` : ''}
         <td style="white-space:nowrap;">${badge.outerHTML}</td>`;
       tbody.appendChild(tr);
     });
@@ -488,26 +488,26 @@ export function render() {
   async function rebuildIndex(id) {
     try {
       await Api.post(`/index-saham/${id}/rebuild`);
-      toast('Rebuild selesai.', { type: 'success' });
+      toast('Rebuild complete.', { type: 'success' });
       await Promise.all([loadIndices(), selectIndex(id)]);
     } catch (e) {
-      toast('Gagal rebuild: ' + (e.message || e), { type: 'error' });
+      toast('Rebuild failed: ' + (e.message || e), { type: 'error' });
     }
   }
 
   function deleteIndex(idx) {
     const content = createEl('div', {});
     content.appendChild(createEl('p', { style: { color: 'var(--c-text-2)' } },
-      [`Hapus index "${idx.name}" beserta seluruh data level hariannya?`]));
-    const modal = createModal({ title: 'Hapus Index', content, width: '420px' });
+      [`Delete index "${idx.name}" along with all its daily level data?`]));
+    const modal = createModal({ title: 'Delete Index', content, width: '420px' });
     const footer = createEl('div', { style: { display: 'flex', gap: 'var(--s-2)', marginTop: 'var(--s-3)', justifyContent: 'flex-end' } });
-    const cancel = createEl('button', { class: 'btn btn--secondary' }, ['Batal']);
+    const cancel = createEl('button', { class: 'btn btn--secondary' }, ['Cancel']);
     cancel.addEventListener('click', () => modal.close());
-    const confirm = createEl('button', { class: 'btn btn--danger' }, ['Hapus']);
+    const confirm = createEl('button', { class: 'btn btn--danger' }, ['Delete']);
     confirm.addEventListener('click', async () => {
       try {
         await Api.delete(`/index-saham/${idx.id}`);
-        toast('Index dihapus.', { type: 'success' });
+        toast('Index deleted.', { type: 'success' });
         modal.close();
         state.selected = null;
         detailWrap.style.display = 'none';
@@ -516,7 +516,7 @@ export function render() {
         if (detailMode) navigate('/saham/index');
         else loadIndices();
       } catch (e) {
-        toast('Gagal hapus: ' + (e.message || e), { type: 'error' });
+        toast('Delete failed: ' + (e.message || e), { type: 'error' });
       }
     });
     footer.append(cancel, confirm);
@@ -536,22 +536,22 @@ export function render() {
   function openFormModal(idx) {
     const isEdit = !!idx;
     const content = createEl('div', { style: { display: 'flex', flexDirection: 'column', gap: 'var(--s-3)' } });
-    const modal = createModal({ title: isEdit ? `Ubah: ${idx.name}` : 'Buat Index', content, width: '480px' });
+    const modal = createModal({ title: isEdit ? `Edit: ${idx.name}` : 'Create Index', content, width: '480px' });
 
     const nameField = createEl('div', { class: 'field' });
-    nameField.innerHTML = '<label class="field__label">Nama *</label>';
-    const nameInput = createEl('input', { class: 'field__input', type: 'text', placeholder: 'Contoh: Big Cap 30' });
+    nameField.innerHTML = '<label class="field__label">Name *</label>';
+    const nameInput = createEl('input', { class: 'field__input', type: 'text', placeholder: 'e.g. Big Cap 30' });
     if (isEdit) nameInput.value = idx.name;
     nameField.appendChild(nameInput);
 
     const codeField = createEl('div', { class: 'field' });
-    codeField.innerHTML = '<label class="field__label">Kode (slug; kosongkan untuk otomatis dari nama)</label>';
+    codeField.innerHTML = '<label class="field__label">Code (slug; leave empty to auto-generate from name)</label>';
     const codeInput = createEl('input', { class: 'field__input', type: 'text', placeholder: 'big-cap-30' });
     if (isEdit) { codeInput.value = idx.code; codeInput.disabled = true; codeInput.style.opacity = 0.5; }
     codeField.appendChild(codeInput);
 
     const modeField = createEl('div', { class: 'field' });
-    modeField.innerHTML = '<label class="field__label">Mode Pembobotan</label>';
+    modeField.innerHTML = '<label class="field__label">Weighting Mode</label>';
     const modeSel = createEl('select', { class: 'field__select' });
     Object.entries(MODES).forEach(([v, l]) => modeSel.appendChild(createEl('option', { value: v }, [l])));
     if (isEdit) modeSel.value = idx.weighting_mode;
@@ -564,10 +564,10 @@ export function render() {
       const v = modeSel.value;
       if (v === 'custom') {
         modeHint.textContent = isEdit
-          ? 'Anggota tanpa bobot dihitung 0% sampai diisi. Setelah disimpan, buka tombol Anggota dan isi bobot tiap saham (total wajib 100%).'
-          : 'Setelah index dibuat, buka tombol Anggota lalu isi bobot tiap saham (total wajib 100%).';
+          ? 'Constituents without a weight count as 0% until filled in. After saving, open the Constituents button and fill in the weight of each stock (total must be 100%).'
+          : 'After the index is created, open the Constituents button and fill in the weight of each stock (total must be 100%).';
       } else if (isEdit && idx.weighting_mode === 'custom') {
-        modeHint.textContent = 'Bobot custom tetap tersimpan; kembali ke modus ini akan memakainya lagi.';
+        modeHint.textContent = 'Custom weights stay saved; switching back to this mode will reuse them.';
       } else {
         modeHint.textContent = '';
       }
@@ -576,14 +576,14 @@ export function render() {
     updateModeHint();
 
     const baseDateField = createEl('div', { class: 'field' });
-    baseDateField.innerHTML = '<label class="field__label">Tanggal Dasar (kosongkan = tanggal terbaru)</label>';
+    baseDateField.innerHTML = '<label class="field__label">Base Date (leave empty = latest date)</label>';
     const baseDateInput = createEl('input', { class: 'field__input', type: 'date' });
     if (isEdit && idx.base_date) baseDateInput.value = idx.base_date;
     baseDateField.appendChild(baseDateInput);
 
     const row2 = createEl('div', { style: { display: 'flex', gap: 'var(--s-3)' } });
     const baseValField = createEl('div', { class: 'field', style: { flex: '1' } });
-    baseValField.innerHTML = '<label class="field__label">Nilai Dasar</label>';
+    baseValField.innerHTML = '<label class="field__label">Base Value</label>';
     const baseValInput = createEl('input', { class: 'field__input', type: 'number', step: '0.01', value: '100' });
     if (isEdit && idx.base_value != null) baseValInput.value = idx.base_value;
     baseValField.appendChild(baseValInput);
@@ -595,7 +595,7 @@ export function render() {
     row2.append(baseValField, covField);
 
     const descField = createEl('div', { class: 'field' });
-    descField.innerHTML = '<label class="field__label">Deskripsi</label>';
+    descField.innerHTML = '<label class="field__label">Description</label>';
     const descInput = createEl('textarea', { class: 'field__textarea', rows: 2 });
     if (isEdit && idx.description) descInput.value = idx.description;
     descField.appendChild(descInput);
@@ -603,16 +603,16 @@ export function render() {
     content.append(nameField, codeField, modeField, baseDateField, row2, descField);
 
     const footer = createEl('div', { style: { display: 'flex', gap: 'var(--s-2)', marginTop: 'var(--s-2)', justifyContent: 'flex-end' } });
-    const cancel = createEl('button', { class: 'btn btn--secondary' }, ['Batal']);
+    const cancel = createEl('button', { class: 'btn btn--secondary' }, ['Cancel']);
     cancel.addEventListener('click', () => modal.close());
-    const save = createEl('button', { class: 'btn btn--primary' }, [isEdit ? 'Simpan' : 'Buat']);
+    const save = createEl('button', { class: 'btn btn--primary' }, [isEdit ? 'Save' : 'Create']);
     save.addEventListener('click', () => handleSaveForm());
     footer.append(cancel, save);
     content.appendChild(footer);
 
     async function handleSaveForm() {
       const name = nameInput.value.trim();
-      if (!name) { toast('Nama wajib diisi', { type: 'error' }); return; }
+      if (!name) { toast('Name is required', { type: 'error' }); return; }
       const body = {
         name,
         description: descInput.value.trim() || null,
@@ -629,11 +629,11 @@ export function render() {
         } else {
           await Api.post('/index-saham', body);
         }
-        toast(isEdit ? 'Index diperbarui.' : 'Index dibuat.', { type: 'success' });
+        toast(isEdit ? 'Index updated.' : 'Index created.', { type: 'success' });
         modal.close();
         await loadIndices();
       } catch (e) {
-        toast(e.message || 'Gagal menyimpan', { type: 'error' });
+        toast(e.message || 'Failed to save', { type: 'error' });
       }
     }
   }
@@ -668,7 +668,7 @@ export function render() {
     }
 
     const content = createEl('div', { class: 'idx-members-modal', style: { display: 'flex', flexDirection: 'column', gap: 'var(--s-3)' } });
-    const modal = createModal({ title: `Anggota: ${idx.name}`, content, width: '760px' });
+    const modal = createModal({ title: `Constituents: ${idx.name}`, content, width: '760px' });
     const isCustom = idx.weighting_mode === 'custom';
 
     // Weight-sum indicator (custom mode): terisi + sisa + tombol bagi rata
@@ -678,7 +678,7 @@ export function render() {
     const weightHint = createEl('span', {
       style: { fontSize: 'var(--text-sm)', fontWeight: 600 },
     });
-    const fillBtn = createEl('button', { class: 'btn btn--secondary btn--sm' }, ['Bagi Rata Sisa']);
+    const fillBtn = createEl('button', { class: 'btn btn--secondary btn--sm' }, ['Split Remaining Evenly']);
     weightRow.append(weightHint, fillBtn);
     if (isCustom) content.appendChild(weightRow);
 
@@ -689,11 +689,11 @@ export function render() {
       const sum = totalWeight();
       const ok = Math.abs(sum - 100) <= 0.01;
       if (ok) {
-        weightHint.textContent = 'Total bobot: 100%';
+        weightHint.textContent = 'Total weight: 100%';
         weightHint.style.color = 'var(--c-accent)';
       } else {
         const sisa = Math.max(100 - sum, 0);
-        weightHint.textContent = `Terisi ${sum.toLocaleString('id-ID', { maximumFractionDigits: 2 })}% · Sisa ${sisa.toLocaleString('id-ID', { maximumFractionDigits: 2 })}% — harus 100%`;
+        weightHint.textContent = `Filled ${sum.toLocaleString('en-US', { maximumFractionDigits: 2 })}% · Remaining ${sisa.toLocaleString('en-US', { maximumFractionDigits: 2 })}% — must be 100%`;
         weightHint.style.color = 'var(--c-danger)';
       }
     };
@@ -702,9 +702,9 @@ export function render() {
       if (!isCustom) return;
       const sum = totalWeight();
       const sisa = 100 - sum;
-      if (sisa <= 0.01) { toast('Bobot sudah 100%.', { type: 'warn' }); return; }
+      if (sisa <= 0.01) { toast('Weights already total 100%.', { type: 'warn' }); return; }
       const elig = [...state2.selected].filter((t) => !(Number(state2.weights[t]) > 0));
-      if (elig.length === 0) { toast('Tidak ada anggota kosong untuk dibagi.', { type: 'warn' }); return; }
+      if (elig.length === 0) { toast('No unweighted constituents to split among.', { type: 'warn' }); return; }
       const n = elig.length;
       const base = Math.floor((sisa / n) * 100) / 100;
       for (let i = 0; i < n - 1; i++) state2.weights[elig[i]] = base;
@@ -720,41 +720,41 @@ export function render() {
     const searchWrap = createEl('div', { class: 'search', style: { flex: '1', minWidth: '200px' } });
     searchWrap.innerHTML = `
       <span class="search__icon">${icons['search']}</span>
-      <input type="text" class="search__input" placeholder="Cari ticker / nama...">
-      <button type="button" class="search__clear" aria-label="Bersihkan pencarian">${icons['x']}</button>`;
+      <input type="text" class="search__input" placeholder="Search ticker / name...">
+      <button type="button" class="search__clear" aria-label="Clear search">${icons['x']}</button>`;
     toolbar.appendChild(searchWrap);
 
     const makeSelect = (label, width) => {
       const field = createEl('div', { class: 'field', style: { width, minWidth: width } });
       field.innerHTML = `<label class="field__label">${label}</label>`;
       const sel = createEl('select', { class: 'field__select' });
-      sel.appendChild(createEl('option', { value: '' }, ['Semua']));
+      sel.appendChild(createEl('option', { value: '' }, ['All']));
       field.appendChild(sel);
       toolbar.appendChild(field);
       return sel;
     };
-    const sectorSel = makeSelect('Sektor', '130px');
+    const sectorSel = makeSelect('Sector', '130px');
     const primarySel = makeSelect('Primary', '130px');
-    const subSel = makeSelect('Sub Sektor', '130px');
-    const viewSel = makeSelect('Tampilan', '150px');
-    viewSel.innerHTML = '<option value="">Semua saham</option><option value="selected">Terpilih saja</option>';
+    const subSel = makeSelect('Sub Sector', '130px');
+    const viewSel = makeSelect('View', '150px');
+    viewSel.innerHTML = '<option value="">All stocks</option><option value="selected">Selected only</option>';
     content.appendChild(toolbar);
 
     // Bulk add: tempel daftar ticker langsung
     const bulkWrap = createEl('div', { class: 'card', style: { padding: 'var(--s-3)' } });
     bulkWrap.innerHTML = `
       <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:var(--s-2);flex-wrap:wrap;row-gap:var(--s-1);">
-        <b style="font-size:var(--text-sm);">Tambah Langsung</b>
-        <span style="font-size:var(--text-xs);color:var(--c-text-3);">tempel ticker, pisahkan dengan koma / baris / spasi</span>
+        <b style="font-size:var(--text-sm);">Quick Add</b>
+        <span style="font-size:var(--text-xs);color:var(--c-text-3);">paste tickers, separated by commas / lines / spaces</span>
       </div>`;
     const bulkInput = createEl('textarea', {
       class: 'field__textarea', rows: 2, style: { fontFamily: 'monospace' },
-      placeholder: 'contoh: BBCA, BBRI, TLKM\nUNVR ASII',
+      placeholder: 'e.g. BBCA, BBRI, TLKM\nUNVR ASII',
     });
     bulkWrap.appendChild(bulkInput);
     const bulkRow = createEl('div', { style: { display: 'flex', gap: 'var(--s-2)', marginTop: 'var(--s-2)', alignItems: 'center', flexWrap: 'wrap' } });
     const bulkBtn = createEl('button', { class: 'btn btn--secondary btn--sm' });
-    bulkBtn.innerHTML = `${icons['plus']} Tambah ke Pilihan`;
+    bulkBtn.innerHTML = `${icons['plus']} Add to Selection`;
     const unknownHint = createEl('span', { style: { fontSize: 'var(--text-xs)', color: 'var(--c-text-3)' } });
     bulkRow.append(bulkBtn, unknownHint);
     bulkWrap.appendChild(bulkRow);
@@ -765,7 +765,7 @@ export function render() {
     }
     bulkBtn.addEventListener('click', () => {
       const tickers = parseBulkTickers(bulkInput.value);
-      if (tickers.length === 0) { toast('Tidak ada ticker valid di input', { type: 'warn' }); return; }
+      if (tickers.length === 0) { toast('No valid tickers in the input', { type: 'warn' }); return; }
       let added = 0;
       tickers.forEach((t) => {
         if (!state2.selected.has(t)) {
@@ -774,7 +774,7 @@ export function render() {
           added++;
         }
       });
-      unknownHint.textContent = `${tickers.length} dibaca, ${added} baru ditambahkan.`;
+      unknownHint.textContent = `${tickers.length} read, ${added} newly added.`;
       bulkInput.value = '';
       if (isCustom) updateWeightHint();
       updateSelectedCount();
@@ -790,8 +790,8 @@ export function render() {
     // Selected counter + select/deselect all
     const selectedCount = createEl('span', { style: { fontSize: 'var(--text-sm)', fontWeight: 600, color: 'var(--c-primary)' } });
     pagRow.appendChild(selectedCount);
-    const selectAllBtn = createEl('button', { class: 'btn btn--ghost btn--sm' }, ['Pilih Semua']);
-    const deselectAllBtn = createEl('button', { class: 'btn btn--ghost btn--sm' }, ['Hapus Pilihan']);
+    const selectAllBtn = createEl('button', { class: 'btn btn--ghost btn--sm' }, ['Select All']);
+    const deselectAllBtn = createEl('button', { class: 'btn btn--ghost btn--sm' }, ['Clear Selection']);
     selectAllBtn.addEventListener('click', () => {
       state2.results.forEach((s) => {
         if (s.label_delisted !== 1 && !state2.selected.has(s.ticker)) {
@@ -815,7 +815,7 @@ export function render() {
     pagRow.append(selectedCount, selectAllBtn, deselectAllBtn);
 
     function updateSelectedCount() {
-      selectedCount.textContent = `Terpilih: ${state2.selected.size} saham`;
+      selectedCount.textContent = `Selected: ${state2.selected.size} stocks`;
     }
     updateSelectedCount();
 
@@ -862,18 +862,18 @@ export function render() {
       if (state2.sector) {
         try {
           const options = await Api.get('/idx/sectors', { sector: state2.sector });
-          primarySel.innerHTML = '<option value="">Semua</option>' + (options || []).map((o) => `<option value="${o}">${o}</option>`).join('');
-        } catch (_) { primarySel.innerHTML = '<option value="">Semua</option>'; }
+          primarySel.innerHTML = '<option value="">All</option>' + (options || []).map((o) => `<option value="${o}">${o}</option>`).join('');
+        } catch (_) { primarySel.innerHTML = '<option value="">All</option>'; }
       } else {
-        primarySel.innerHTML = '<option value="">Semua</option>';
+        primarySel.innerHTML = '<option value="">All</option>';
       }
       if (state2.sector && state2.primary) {
         try {
           const options = await Api.get('/idx/sectors', { sector: state2.sector, primary_sector: state2.primary });
-          subSel.innerHTML = '<option value="">Semua</option>' + (options || []).map((o) => `<option value="${o}">${o}</option>`).join('');
-        } catch (_) { subSel.innerHTML = '<option value="">Semua</option>'; }
+          subSel.innerHTML = '<option value="">All</option>' + (options || []).map((o) => `<option value="${o}">${o}</option>`).join('');
+        } catch (_) { subSel.innerHTML = '<option value="">All</option>'; }
       } else {
-        subSel.innerHTML = '<option value="">Semua</option>';
+        subSel.innerHTML = '<option value="">All</option>';
       }
     }
 
@@ -906,7 +906,7 @@ export function render() {
         }
       } catch (e) {
         state2.results = []; state2.total = 0;
-        toast('Gagal memuat saham: ' + (e.message || e), { type: 'error' });
+        toast('Failed to load stocks: ' + (e.message || e), { type: 'error' });
       }
       renderTable();
       renderPagination();
@@ -915,14 +915,14 @@ export function render() {
     function renderTable() {
       tableWrap.innerHTML = '';
       if (state2.results.length === 0) {
-        tableWrap.innerHTML = '<p style="padding:var(--s-4);color:var(--c-text-3);font-size:var(--text-sm);">Tidak ada saham ditemukan.</p>';
+        tableWrap.innerHTML = '<p style="padding:var(--s-4);color:var(--c-text-3);font-size:var(--text-sm);">No stocks found.</p>';
         return;
       }
       const table = createEl('table', { class: 'table' });
       table.innerHTML = `<thead><tr>
         <th style="width:36px;"></th>
-        <th>Ticker</th><th>Perusahaan</th><th>Sektor</th>
-        ${isCustom ? '<th style="width:110px;">Bobot %</th>' : ''}
+        <th>Ticker</th><th>Company</th><th>Sector</th>
+        ${isCustom ? '<th style="width:110px;">Weight %</th>' : ''}
       </tr></thead>`;
       const tbody = createEl('tbody');
       state2.results.forEach((s) => {
@@ -931,7 +931,7 @@ export function render() {
         const tdChk = createEl('td', {});
         const chk = createEl('input', { type: 'checkbox' });
         chk.checked = state2.selected.has(s.ticker);
-        if (delisted) { chk.disabled = true; chk.title = 'Saham delisted'; }
+        if (delisted) { chk.disabled = true; chk.title = 'Delisted stock'; }
         chk.addEventListener('change', () => {
           if (chk.checked) {
             state2.selected.add(s.ticker);
@@ -981,7 +981,7 @@ export function render() {
       // remove old controls, keep the selected-count span
       pagRow.querySelectorAll('.pag-ctl').forEach((el) => el.remove());
       const { totalPages } = pageInfo(state2.page, state2.perPage, state2.total);
-      const info = createEl('span', { class: 'pag-ctl' }, [`${state2.page} / ${totalPages || 1} (${state2.total} saham)`]);
+      const info = createEl('span', { class: 'pag-ctl' }, [`${state2.page} / ${totalPages || 1} (${state2.total} stocks)`]);
       const prev = createEl('button', { class: 'btn btn--ghost btn--sm pag-ctl' }, ['Prev']);
       prev.addEventListener('click', () => { if (state2.page > 1) { state2.page--; loadStocks(); } });
       const next = createEl('button', { class: 'btn btn--ghost btn--sm pag-ctl' }, ['Next']);
@@ -995,9 +995,9 @@ export function render() {
     const previewBtn = createEl('button', { class: 'btn btn--secondary' });
     previewBtn.innerHTML = `${icons['radar']} Preview`;
     ftLeft.appendChild(previewBtn);
-    const cancelBtn = createEl('button', { class: 'btn btn--secondary' }, ['Batal']);
+    const cancelBtn = createEl('button', { class: 'btn btn--secondary' }, ['Cancel']);
     cancelBtn.addEventListener('click', () => modal.close());
-    const saveBtn = createEl('button', { class: 'btn btn--primary' }, ['Simpan Anggota']);
+    const saveBtn = createEl('button', { class: 'btn btn--primary' }, ['Save Constituents']);
     saveBtn.addEventListener('click', handleSave);
     ftRight.append(cancelBtn, saveBtn);
     footer.append(ftLeft, ftRight);
@@ -1007,47 +1007,47 @@ export function render() {
 
     async function handlePreview() {
       const tickers = [...state2.selected];
-      if (tickers.length === 0) { toast('Pilih minimal 1 saham', { type: 'warn' }); return; }
+      if (tickers.length === 0) { toast('Select at least 1 stock', { type: 'warn' }); return; }
       if (isCustom) {
         const sum = tickers.reduce((a, t) => a + (Number(state2.weights[t]) || 0), 0);
-        if (Math.abs(sum - 100) > 0.01) { toast('Total bobot harus 100%', { type: 'error' }); return; }
+        if (Math.abs(sum - 100) > 0.01) { toast('Total weight must be 100%', { type: 'error' }); return; }
       }
       try {
         const body = { weighting_mode: idx.weighting_mode, tickers };
         if (isCustom) body.weight_map = state2.weights;
         const res = await Api.post('/index-saham/preview', body);
-        if (!res.valid) { toast(res.reason || 'Preview gagal', { type: 'error' }); return; }
+        if (!res.valid) { toast(res.reason || 'Preview failed', { type: 'error' }); return; }
         const lines = [
-          `Level simulasi: ${fmtLevel(res.level_preview)} (${fmtPct(res.return_pct)})`,
-          `Cakupan: ${res.coverage_pct}%`,
+          `Simulated level: ${fmtLevel(res.level_preview)} (${fmtPct(res.return_pct)})`,
+          `Coverage: ${res.coverage_pct}%`,
         ];
         const contrib = (res.contributors || []).slice(0, 5)
           .map((c) => `${c.ticker} ${fmtPct(c.contribution_pct)}/${fmtPct(c.return_pct)}`).join(' · ');
-        if (contrib) lines.push(`Top kontributor: ${contrib}`);
+        if (contrib) lines.push(`Top contributors: ${contrib}`);
         toast(lines.join(' | '), { type: 'info', duration: 5000 });
       } catch (e) {
-        toast(e.message || 'Preview gagal', { type: 'error' });
+        toast(e.message || 'Preview failed', { type: 'error' });
       }
     }
 
     async function handleSave() {
       const tickers = [...state2.selected];
-      if (tickers.length === 0) { toast('Pilih minimal 1 saham', { type: 'warn' }); return; }
+      if (tickers.length === 0) { toast('Select at least 1 stock', { type: 'warn' }); return; }
       if (isCustom) {
         const sum = tickers.reduce((a, t) => a + (Number(state2.weights[t]) || 0), 0);
-        if (Math.abs(sum - 100) > 0.01) { toast('Total bobot harus 100%', { type: 'error' }); return; }
+        if (Math.abs(sum - 100) > 0.01) { toast('Total weight must be 100%', { type: 'error' }); return; }
       }
       setSaving(true);
       try {
         const body = { tickers };
         if (isCustom) body.weight_map = state2.weights;
         const res = await Api.put(`/index-saham/${idx.id}/members`, body);
-        toast(`Anggota disimpan (${res.member_count || tickers.length}). Rebuild: ${res.rebuild?.days_written ?? '?'} hari.`, { type: 'success', duration: 5000 });
+        toast(`Constituents saved (${res.member_count || tickers.length}). Rebuild: ${res.rebuild?.days_written ?? '?'} days.`, { type: 'success', duration: 5000 });
         modal.close();
         await Promise.all([loadIndices(), selectIndex(idx.id)]);
       } catch (e) {
         setSaving(false);
-        toast(e.message || 'Gagal menyimpan anggota', { type: 'error' });
+        toast(e.message || 'Failed to save constituents', { type: 'error' });
       }
     }
 
@@ -1057,7 +1057,7 @@ export function render() {
         b.style.opacity = on ? '0.6' : '';
         b.style.cursor = on ? 'wait' : '';
       });
-      saveBtn.textContent = on ? 'Menyimpan...' : 'Simpan Anggota';
+      saveBtn.textContent = on ? 'Saving...' : 'Save Constituents';
     }
 
     // Init
@@ -1085,7 +1085,7 @@ export function render() {
     async function loadSectorOptions() {
       try {
         const sectors = await Api.get('/idx/sectors');
-        sectorSel.innerHTML = '<option value="">Semua</option>' + (sectors || []).map((s) => `<option value="${s}">${s}</option>`).join('');
+        sectorSel.innerHTML = '<option value="">All</option>' + (sectors || []).map((s) => `<option value="${s}">${s}</option>`).join('');
       } catch (_) {}
     }
   }

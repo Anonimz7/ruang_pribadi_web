@@ -61,7 +61,7 @@ export function render() {
         <div class="search${state.searchTerm ? ' has-clear' : ''}" style="flex:1;min-width:200px;">
           <span class="search__icon">${icons['search']}</span>
           <input type="text" class="search__input" placeholder="Search ticker or name..." value="${state.searchTerm}">
-          <button type="button" class="search__clear" aria-label="Bersihkan pencarian">${icons['x']}</button>
+          <button type="button" class="search__clear" aria-label="Clear search">${icons['x']}</button>
         </div>
         <div class="field" style="width:140px;min-width:140px;">
           <label class="field__label">Sector</label>
@@ -85,7 +85,7 @@ export function render() {
           </select>
         </div>
         ${(state.sector || state.primary || state.subSector)
-          ? `<button class="btn btn--ghost btn--sm" id="reset-filters" aria-label="Reset filter sektor">${icons['x']} Reset</button>`
+          ? `<button class="btn btn--ghost btn--sm" id="reset-filters" aria-label="Reset sector filter">${icons['x']} Reset</button>`
           : ''}
       </div>
     `;
@@ -197,7 +197,7 @@ export function render() {
     } catch (e) {
       state.stocks = [];
       state.total = 0;
-      tableWrap.innerHTML = `<div class="empty" style="padding:var(--s-4);color:var(--c-danger);"><p>Gagal memuat: ${e.message || e}</p></div>`;
+      tableWrap.innerHTML = `<div class="empty" style="padding:var(--s-4);color:var(--c-danger);"><p>Failed to load: ${e.message || e}</p></div>`;
     }
 
     renderTable();
@@ -211,7 +211,7 @@ export function render() {
       tableWrap.innerHTML = `
         <div class="empty-state" style="text-align:center;padding:var(--s-6);">
           <div style="font-size:48px;margin-bottom:var(--s-4);opacity:0.3;">${icons['trending-up']}</div>
-          <p style="color:var(--c-text-2);">Tidak ada saham ditemukan.</p>
+          <p style="color:var(--c-text-2);">No stocks found.</p>
         </div>
       `;
       return;
@@ -236,12 +236,12 @@ export function render() {
             nowrap: true
           });
           const sectorBadge = StockSectorBadge(s.sector, true);
-          const eyeTitle = delisted ? 'Saham telah delisted' : `Analisis ${s.ticker} (buka di tab baru)`;
+          const eyeTitle = delisted ? 'Stock has been delisted' : `Analyze ${s.ticker} (opens in a new tab)`;
           return `
             <tr class="stock-list-page__row${delisted ? ' stock-list-page__row--delisted' : ''}" data-ticker="${s.ticker}"${delisted ? '' : ' data-open="1"'}>
               <td>${delisted
                 ? `<span class="stock-list-page__ticker stock-list-page__ticker--delisted">${s.ticker}</span>`
-                : `<a href="${analysisUrl}" target="_blank" rel="noopener" class="stock-list-page__ticker" title="Analisis ${s.ticker} (buka di tab baru)" onclick="localStorage.setItem('stocks_initial_ticker','${s.ticker}')">${s.ticker}</a>`}
+                : `<a href="${analysisUrl}" target="_blank" rel="noopener" class="stock-list-page__ticker" title="Analyze ${s.ticker} (opens in a new tab)" onclick="localStorage.setItem('stocks_initial_ticker','${s.ticker}')">${s.ticker}</a>`}
               </td>
               <td style="font-weight:500;">${s.company_name}</td>
               <td>${sectorBadge ? sectorBadge.outerHTML : '<span class="badge badge--neutral">-</span>'}</td>
@@ -285,7 +285,7 @@ export function render() {
       page: state.page, perPage: state.perPage, total: state.total,
       prevGlobal: 'stockListPrev', nextGlobal: 'stockListNext',
       indicatorClass: 'stock-list-page__page-indicator',
-      infoHtml: pageInfoText(state.page, state.perPage, state.total, 'saham', filterActive ? ' (filter aktif)' : '') + (badges ? ' ' + badges : ''),
+      infoHtml: pageInfoText(state.page, state.perPage, state.total, 'stocks', filterActive ? ' (filter active)' : '') + (badges ? ' ' + badges : ''),
       infoStyle: 'display:inline-flex;align-items:center;gap:var(--s-2);flex-wrap:wrap;font-size:var(--text-sm);color:var(--c-text-3);',
     });
   }

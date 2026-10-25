@@ -23,7 +23,7 @@ export function createAppBar() {
   // Title
   const title = document.createElement('div');
   title.className = 'appbar__title';
-  title.textContent = 'Ruang Pribadi';
+  title.textContent = 'Personal Space';
   el.appendChild(title);
 
   // Actions
@@ -37,7 +37,7 @@ export function createAppBar() {
   const homeBtn = document.createElement('button');
   homeBtn.className = 'appbar__btn tooltip';
   homeBtn.innerHTML = icons['grid'];
-  homeBtn.setAttribute('aria-label', 'Beranda');
+  homeBtn.setAttribute('aria-label', 'Home');
   homeBtn.title = 'Beranda';
   homeBtn.addEventListener('click', () => {
     navigate('/');
@@ -86,7 +86,7 @@ export function createAppBar() {
   // Update title based on page
   subscribe('currentPage', (path) => {
     const map = {
-      '/': 'Beranda',
+      '/': 'Home',
       '/profile': 'Profile',
       '/quiz': 'Quiz',
       '/games': 'Games',
@@ -110,7 +110,7 @@ export function createAppBar() {
       '/saham/news': 'News Intelligence',
       '/saham/stocks': 'IDX Stocks',
       '/saham/stock-list': 'Stock List',
-      '/saham/market': 'Radar Pasar',
+      '/saham/market': 'Market Radar',
       '/saham/reports': 'Reports',
       '/saham/admin/dashboard': 'Server Dashboard',
       '/saham/admin/users': 'User Permissions',
@@ -121,7 +121,7 @@ export function createAppBar() {
       '/saham/admin/stock-status': 'Stock Status',
       '/saham/admin/idx-upload': 'IDX Upload',
     };
-    title.textContent = map[path] || 'Ruang Pribadi';
+    title.textContent = map[path] || 'Personal Space';
   });
 
   return el;

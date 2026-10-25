@@ -11,15 +11,15 @@ function formatDate(iso) {
   if (!iso) return '-';
   const d = new Date(iso);
   if (isNaN(d.getTime())) return '-';
-  return d.toLocaleDateString('id-ID') + ' ' + d.toLocaleTimeString('id-ID', { hour: '2-digit', minute: '2-digit' });
+  return d.toLocaleDateString('en-US') + ' ' + d.toLocaleTimeString('en-US', { hour: '2-digit', minute: '2-digit' });
 }
 
 const PHASE_LABEL = {
   dumping: 'MySQL Dump',
-  zipping: 'Membuat ZIP',
-  uploading: 'Upload ke GDrive',
-  done: 'Selesai',
-  failed: 'Gagal',
+  zipping: 'Creating ZIP',
+  uploading: 'Upload to GDrive',
+  done: 'Done',
+  failed: 'Failed',
 };
 
 export function render() {
@@ -36,7 +36,7 @@ export function render() {
   const container = createEl('div', { class: 'admin-backup' }, []);
   container.appendChild(createEl('h1', {}, ['Backup System']));
   container.appendChild(createEl('p', { style: { color: 'var(--c-text-2)', marginBottom: 'var(--s-5)' } },
-    ['Kelola backup database dan integrasi Google Drive.']));
+    ['Manage database backups and Google Drive integration.']));
 
   // ── GDrive card ──
   const gdriveCard = createEl('div', { class: 'card' });
@@ -75,7 +75,7 @@ export function render() {
       style: { fontWeight: 600, color: connected ? 'var(--c-success)' : 'var(--c-warn)' },
     }, [connected ? 'Google Drive Connected' : 'Google Drive Disconnected']));
     textWrap.appendChild(createEl('p', { class: 'field__hint' },
-      [connected ? 'Backup otomatis ter-upload' : 'Klik Hubungkan untuk otorisasi']));
+      [connected ? 'Backups auto-upload' : 'Click Connect to authorize']));
     row.appendChild(textWrap);
     body.appendChild(row);
 
@@ -94,7 +94,7 @@ export function render() {
       });
       info.append(
         createEl('span', {}, [`${(storage.usage_gb || 0).toFixed(1)} / ${storage.limit_gb.toFixed(1)} GB`]),
-        createEl('span', {}, [`${Math.round(storage.remaining_mb || 0)} MB tersisa`]),
+        createEl('span', {}, [`${Math.round(storage.remaining_mb || 0)} MB left`]),
       );
       progress.appendChild(info);
       body.appendChild(progress);
@@ -103,13 +103,13 @@ export function render() {
     // Buttons
     const btns = createEl('div', { style: { display: 'flex', gap: 'var(--s-3)' } });
     if (connected) {
-      const terhubung = createEl('button', { type: 'button', class: 'btn btn--secondary', disabled: true }, ['Terhubung']);
-      const putuskan = createEl('button', { type: 'button', class: 'btn btn--ghost', style: { color: 'var(--c-danger)' } }, ['Putuskan']);
+      const terhubung = createEl('button', { type: 'button', class: 'btn btn--secondary', disabled: true }, ['Connected']);
+      const putuskan = createEl('button', { type: 'button', class: 'btn btn--ghost', style: { color: 'var(--c-danger)' } }, ['Disconnect']);
       putuskan.addEventListener('click', confirmDisconnect);
       btns.append(terhubung, putuskan);
     } else {
       const hubungkan = createEl('button', { type: 'button', class: 'btn btn--primary' }, []);
-      hubungkan.innerHTML = `${icons['link']} Hubungkan`;
+      hubungkan.innerHTML = `${icons['link']} Connect`;
       hubungkan.addEventListener('click', connectGdrive);
       btns.append(hubungkan);
     }
@@ -121,15 +121,15 @@ export function render() {
   async function connectGdrive() {
     try {
       const res = await Api.post('/admin/backup/gdrive/auth');
-      if (!res?.auth_url) { toast('Gagal mendapatkan auth URL', { type: 'error' }); return; }
+      if (!res?.auth_url) { toast('Failed to get auth URL', { type: 'error' }); return; }
 
       const content = createEl('div', { style: { display: 'flex', flexDirection: 'column', gap: 'var(--s-3)' } });
       const steps = createEl('div', { style: { fontSize: 'var(--text-sm)', color: 'var(--c-text-2)', lineHeight: 1.7 } });
       steps.append(
-        createEl('div', {}, ['1. Buka link di bawah & login Google']),
-        createEl('div', {}, ['2. Setelah grant, browser redirect ke localhost']),
-        createEl('div', {}, ['3. Salin kode dari URL (bagian ?code=XXX)']),
-        createEl('div', {}, ['4. Paste kode di bawah ini']),
+        createEl('div', {}, ['1. Open the link below & log in to Google']),
+        createEl('div', {}, ['2. After granting, the browser redirects to localhost']),
+        createEl('div', {}, ['3. Copy the code from the URL (?code=XXX part)']),
+        createEl('div', {}, ['4. Paste the code below']),
       );
       content.appendChild(steps);
 
@@ -138,55 +138,55 @@ export function render() {
 
       const field = createEl('div', { class: 'field' });
       field.appendChild(createEl('label', { class: 'field__label' }, ['Authorization Code']));
-      const codeInput = createEl('input', { type: 'text', class: 'field__input', placeholder: 'Paste code dari URL...' });
+      const codeInput = createEl('input', { type: 'text', class: 'field__input', placeholder: 'Paste code from URL...' });
       field.appendChild(codeInput);
       content.appendChild(field);
 
       const footer = createEl('div', { style: { display: 'flex', justifyContent: 'flex-end', gap: 'var(--s-2)' } });
       const modal = createModal({ title: '🔐 Google Drive Auth', content, width: '440px' });
 
-      const cancelBtn = createEl('button', { type: 'button', class: 'btn btn--secondary' }, ['Batal']);
+      const cancelBtn = createEl('button', { type: 'button', class: 'btn btn--secondary' }, ['Cancel']);
       cancelBtn.addEventListener('click', () => modal.close());
 
-      const hubungkanBtn = createEl('button', { type: 'button', class: 'btn btn--primary' }, ['Hubungkan']);
+      const hubungkanBtn = createEl('button', { type: 'button', class: 'btn btn--primary' }, ['Connect']);
       hubungkanBtn.addEventListener('click', async () => {
         const code = codeInput.value.trim();
-        if (!code) { toast('Masukkan kode otorisasi', { type: 'error' }); return; }
+        if (!code) { toast('Enter the authorization code', { type: 'error' }); return; }
         try {
           await Api.post('/admin/backup/gdrive/code', { code });
-          toast('Google Drive terhubung!', { type: 'success' });
+          toast('Google Drive connected!', { type: 'success' });
           modal.close();
           loadAll();
         } catch (e) {
-          toast('Gagal menghubungkan: ' + (e.message || e), { type: 'error' });
+          toast('Failed to connect: ' + (e.message || e), { type: 'error' });
         }
       });
 
       footer.append(cancelBtn, hubungkanBtn);
       content.appendChild(footer);
     } catch (e) {
-      toast('Gagal mendapatkan auth URL: ' + (e.message || e), { type: 'error' });
+      toast('Failed to get auth URL: ' + (e.message || e), { type: 'error' });
     }
   }
 
   async function confirmDisconnect() {
     const content = createEl('div', { style: { display: 'flex', flexDirection: 'column', gap: 'var(--s-3)' } });
     content.appendChild(createEl('p', { style: { fontSize: 'var(--text-sm)', color: 'var(--c-text-2)' } },
-      ['Backup tidak akan bisa di-upload ke Google Drive.']));
+      ['Backups will no longer upload to Google Drive.']));
     const footer = createEl('div', { style: { display: 'flex', justifyContent: 'flex-end', gap: 'var(--s-2)', marginTop: 'var(--s-2)' } });
-    const modal = createModal({ title: 'Putuskan GDrive?', content, width: '380px' });
+    const modal = createModal({ title: 'Disconnect GDrive?', content, width: '380px' });
 
-    const cancelBtn = createEl('button', { class: 'btn btn--secondary' }, ['Batal']);
+    const cancelBtn = createEl('button', { class: 'btn btn--secondary' }, ['Cancel']);
     cancelBtn.addEventListener('click', () => modal.close());
-    const putusBtn = createEl('button', { class: 'btn btn--danger' }, ['Putuskan']);
+    const putusBtn = createEl('button', { class: 'btn btn--danger' }, ['Disconnect']);
     putusBtn.addEventListener('click', async () => {
       try {
         await Api.post('/admin/backup/gdrive/disconnect');
-        toast('Google Drive diputuskan', { type: 'success' });
+        toast('Google Drive disconnected', { type: 'success' });
         modal.close();
         loadAll();
       } catch (e) {
-        toast('Gagal: ' + (e.message || e), { type: 'error' });
+        toast('Failed: ' + (e.message || e), { type: 'error' });
       }
     });
     footer.append(cancelBtn, putusBtn);
@@ -201,9 +201,9 @@ export function render() {
     backupBtn.disabled = backupSedangBerjalan();
     if (backupSedangBerjalan()) {
       backupBtn.appendChild(createEl('span', { class: 'admin-backup__spin' }));
-      backupBtn.appendChild(createEl('span', {}, ['Sedang Berjalan...']));
+      backupBtn.appendChild(createEl('span', {}, ['Running...']));
     } else {
-      backupBtn.innerHTML = `${icons['database']} Mulai Backup Sekarang`;
+      backupBtn.innerHTML = `${icons['database']} Start Backup Now`;
     }
   }
 
@@ -254,15 +254,15 @@ export function render() {
     historyWrap.appendChild(createEl('div', { class: 'card__head' }, [], []));
     historyWrap.querySelector('.card__head').innerHTML = `
       <div>
-        <div class="card__title">Riwayat Backup</div>
-        <div class="card__subtitle">${state.history.length} item</div>
+        <div class="card__title">Backup History</div>
+        <div class="card__subtitle">${state.history.length} item${state.history.length === 1 ? '' : 's'}</div>
       </div>
     `;
 
     const body = createEl('div', { style: { display: 'flex', flexDirection: 'column', gap: 'var(--s-2)' } });
 
     if (state.history.length === 0) {
-      body.appendChild(createEl('p', { class: 'admin-backup__empty' }, ['Belum ada backup']));
+      body.appendChild(createEl('p', { class: 'admin-backup__empty' }, ['No backups yet']));
     } else {
       state.history.forEach(h => body.appendChild(buildHistoryItem(h)));
     }
@@ -284,9 +284,9 @@ export function render() {
     const meta = createEl('div', { class: 'admin-backup__row-meta' });
     const gdriveSpan = createEl('span', {
       style: { color: h.gdrive_uploaded ? 'var(--c-success)' : 'var(--c-warn)', display: 'inline-flex', alignItems: 'center', gap: 4 },
-      title: h.gdrive_uploaded ? 'Ter-upload ke GDrive' : 'Tidak di-upload ke GDrive',
+      title: h.gdrive_uploaded ? 'Uploaded to GDrive' : 'Not uploaded to GDrive',
     }, []);
-    gdriveSpan.innerHTML = h.gdrive_uploaded ? `${icons['cloud']} GDrive` : `${icons['cloud-off']} lokal`;
+    gdriveSpan.innerHTML = h.gdrive_uploaded ? `${icons['cloud']} GDrive` : `${icons['cloud-off']} local`;
     meta.append(
       createEl('span', {}, [h.date_str || formatDate(h.timestamp)]),
       createEl('span', {}, ['•']),
@@ -309,7 +309,7 @@ export function render() {
     dlBtn.style.color = 'var(--c-text-2)';
     actions.appendChild(dlBtn);
 
-    const delBtn = createEl('button', { type: 'button', class: 'btn btn--ghost btn--sm', title: 'Hapus', style: { color: 'var(--c-danger)' } }, []);
+    const delBtn = createEl('button', { type: 'button', class: 'btn btn--ghost btn--sm', title: 'Delete', style: { color: 'var(--c-danger)' } }, []);
     delBtn.innerHTML = icons['trash'];
     delBtn.addEventListener('click', () => confirmDelete(filename));
     actions.appendChild(delBtn);
@@ -321,21 +321,21 @@ export function render() {
   async function confirmDelete(filename) {
     const content = createEl('div', { style: { display: 'flex', flexDirection: 'column', gap: 'var(--s-3)' } });
     content.appendChild(createEl('p', { style: { fontSize: 'var(--text-sm)', color: 'var(--c-text-2)' } },
-      [`Hapus "${filename}" secara permanen?`]));
+      [`Delete "${filename}" permanently?`]));
     const footer = createEl('div', { style: { display: 'flex', justifyContent: 'flex-end', gap: 'var(--s-2)', marginTop: 'var(--s-2)' } });
-    const modal = createModal({ title: 'Hapus Backup?', content, width: '380px' });
+    const modal = createModal({ title: 'Delete Backup?', content, width: '380px' });
 
-    const cancelBtn = createEl('button', { class: 'btn btn--secondary' }, ['Batal']);
+    const cancelBtn = createEl('button', { class: 'btn btn--secondary' }, ['Cancel']);
     cancelBtn.addEventListener('click', () => modal.close());
-    const delBtn = createEl('button', { class: 'btn btn--danger' }, ['Hapus']);
+    const delBtn = createEl('button', { class: 'btn btn--danger' }, ['Delete']);
     delBtn.addEventListener('click', async () => {
       try {
         await Api.delete(`/admin/backup/${encodeURIComponent(filename)}`);
-        toast(`${filename} dihapus`, { type: 'success' });
+        toast(`${filename} deleted`, { type: 'success' });
         modal.close();
         loadHistory();
       } catch (e) {
-        toast('Gagal menghapus: ' + (e.message || e), { type: 'error' });
+        toast('Failed to delete: ' + (e.message || e), { type: 'error' });
       }
     });
     footer.append(cancelBtn, delBtn);
@@ -346,23 +346,23 @@ export function render() {
   function startBackup() {
     const content = createEl('div', { style: { display: 'flex', flexDirection: 'column', gap: 'var(--s-3)' } });
     content.appendChild(createEl('p', { style: { fontSize: 'var(--text-sm)', color: 'var(--c-text-2)' } },
-      ['Ini akan melakukan dump database MySQL, membuat ZIP archive, dan meng-upload ke Google Drive (jika terhubung).']));
+      ['This will dump the MySQL database, create a ZIP archive, and upload to Google Drive (if connected).']));
     const footer = createEl('div', { style: { display: 'flex', justifyContent: 'flex-end', gap: 'var(--s-2)', marginTop: 'var(--s-2)' } });
-    const modal = createModal({ title: 'Mulai Backup?', content, width: '400px' });
+    const modal = createModal({ title: 'Start Backup?', content, width: '400px' });
 
-    const cancelBtn = createEl('button', { class: 'btn btn--secondary' }, ['Batal']);
+    const cancelBtn = createEl('button', { class: 'btn btn--secondary' }, ['Cancel']);
     cancelBtn.addEventListener('click', () => modal.close());
-    const mulaiBtn = createEl('button', { class: 'btn btn--primary' }, ['Mulai']);
+    const mulaiBtn = createEl('button', { class: 'btn btn--primary' }, ['Start']);
     mulaiBtn.addEventListener('click', async () => {
       try {
         const res = await Api.post('/admin/backup/run');
         if (!res?.success) throw new Error(res?.message || 'unknown');
-        toast('Backup dimulai!', { type: 'success' });
+        toast('Backup started!', { type: 'success' });
         modal.close();
         loadStatus();
         initWebSocket();
       } catch (e) {
-        toast('Gagal memulai backup: ' + (e.message || e), { type: 'error' });
+        toast('Failed to start backup: ' + (e.message || e), { type: 'error' });
       }
     });
     footer.append(cancelBtn, mulaiBtn);
@@ -434,7 +434,7 @@ export function render() {
       if (state.phase === 'done' || state.phase === 'failed') {
         loadHistory();
         loadGdrive();
-        toast(state.phase === 'done' ? 'Backup selesai!' : `Backup gagal: ${data.error || 'Unknown error'}`, {
+        toast(state.phase === 'done' ? 'Backup complete!' : `Backup failed: ${data.error || 'Unknown error'}`, {
           type: state.phase === 'done' ? 'success' : 'error',
         });
       }
