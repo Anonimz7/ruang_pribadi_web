@@ -655,6 +655,11 @@ export function render() {
       [`Engine ${engineTxt} v${d.engine_version} · data up to ${fmtDate(d.as_of_date)} · horizon ${d.params?.horizon_days ?? '-'} days${qTxt} · ${d.params?.n_sims ?? '-'} simulations · window ${WIN_LABEL[d.params?.window] || d.params?.window || '-'} · constituents at simulation time: ${(d.members_snapshot || []).length} issuers.`]));
     card.appendChild(createEl('p', { style: { fontSize: 'var(--text-sm)', color: 'var(--c-text-3)', margin: '0 0 var(--s-3)' } },
       [`Data fingerprint: market up to ${fp.market_max || '-'} · fundamentals up to ${fp.fundamentals_max || '-'} · ratios ${fp.ratios_count ?? '-'} rows · KSEI ${fp.ksei_latest || '-'}.`]));
+    const kp = d.params?.ksei;
+    if (kp && kp.current) {
+      card.appendChild(createEl('p', { style: { fontSize: 'var(--text-sm)', color: 'var(--c-text-2)', margin: '0 0 var(--s-3)' } },
+        [`KSEI lens at simulation time: ${kp.months} monthly snapshots, latest ${kp.current.month} at ${kp.current.pct.toFixed(1)}% foreign (classified) — tertile ${KSEI_LABEL[kp.current.tertile] || kp.current.tertile}. Blocks — high: ${kp.blocks.atas}, middle: ${kp.blocks.tengah}, low: ${kp.blocks.bawah}; days in labeled months: ${Number(kp.days_labeled).toLocaleString('en-US')}, excluded: ${Number(kp.days_excluded).toLocaleString('en-US')}.`]));
+    }
     const snap = d.members_snapshot || [];
     if (snap.length) {
       const parts = snap.map((m) => {
