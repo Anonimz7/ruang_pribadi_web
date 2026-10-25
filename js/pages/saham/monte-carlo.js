@@ -550,7 +550,7 @@ export function render() {
         });
       }
       renderResult();
-      if (state.method === 'level') loadLedger();
+      loadLedger();
     } catch (e) {
       state.result = null;
       renderError(e.message || String(e));
@@ -584,7 +584,7 @@ export function render() {
       ledgerListWrap.innerHTML = '';
       if (!runs.length) {
         ledgerListWrap.appendChild(createEl('div', { style: { fontSize: 'var(--text-sm)', color: 'var(--c-text-3)' } },
-          ['Belum ada simulasi tersimpan. Jalankan simulasi Level di atas — ia tersimpan otomatis.']));
+          ['Belum ada simulasi tersimpan. Jalankan simulasi di atas — Level maupun Fundamental tersimpan otomatis.']));
         return;
       }
       const tbl = createEl('table', { style: { width: '100%', borderCollapse: 'collapse', fontSize: 'var(--text-sm)' } });
@@ -596,7 +596,8 @@ export function render() {
       runs.forEach((run) => {
         const tr = createEl('tr', { style: { borderTop: '1px solid var(--c-border)', cursor: 'pointer' } });
         const modeTxt = run.engine === 'mc2'
-          ? `Rezim (${MODE_LABEL[run.params?.mode] || run.params?.mode || '-'})` : 'Level';
+          ? `Rezim (${MODE_LABEL[run.params?.mode] || run.params?.mode || '-'})`
+          : run.engine === 'mc3' ? 'Fundamental' : 'Level';
         tr.innerHTML = `
           <td style="padding:5px 6px;">${run.pinned ? '📌 ' : ''}${run.name ? run.name : fmtDate((run.created_at || '').slice(0, 10))}</td>
           <td style="padding:5px 6px;">${idxName(run.index_id)}</td>
@@ -631,23 +632,44 @@ export function render() {
     const title = d.name || `Simulasi ${fmtDate((d.created_at || '').slice(0, 10))}`;
     card.appendChild(createEl('h3', { class: 'card__title', style: { marginBottom: 'var(--s-2)' } }, [`${d.pinned ? '📌 ' : ''}${title} — ${idxName(d.index_id)}`]));
     const fp = d.fingerprint || {};
+    const engineTxt = d.engine === 'mc2' ? 'MC-2 (rezim)' : d.engine === 'mc3' ? 'MC-3 (fundamental)' : 'MC-1 (level)';
+    const qTxt = d.engine === 'mc3' ? ` · ${d.params?.quarters ?? '-'} kuartal` : '';
     card.appendChild(createEl('p', { style: { fontSize: 'var(--text-sm)', color: 'var(--c-text-2)', margin: '0 0 var(--s-2)' } },
-      [`Mesin ${d.engine === 'mc2' ? 'MC-2 (rezim)' : 'MC-1 (level)'} v${d.engine_version} · data s.d. ${fmtDate(d.as_of_date)} · horizon ${d.params?.horizon_days ?? '-'} hari · ${d.params?.n_sims ?? '-'} simulasi · jendela ${WIN_LABEL[d.params?.window] || d.params?.window || '-'} · anggota saat simulasi: ${(d.members_snapshot || []).length} emiten.`]));
+      [`Mesin ${engineTxt} v${d.engine_version} · data s.d. ${fmtDate(d.as_of_date)} · horizon ${d.params?.horizon_days ?? '-'} hari${qTxt} · ${d.params?.n_sims ?? '-'} simulasi · jendela ${WIN_LABEL[d.params?.window] || d.params?.window || '-'} · anggota saat simulasi: ${(d.members_snapshot || []).length} emiten.`]));
     card.appendChild(createEl('p', { style: { fontSize: 'var(--text-sm)', color: 'var(--c-text-3)', margin: '0 0 var(--s-3)' } },
       [`Sidik jari data: pasar s.d. ${fp.market_max || '-'} · fundamental s.d. ${fp.fundamentals_max || '-'} · rasio ${fp.ratios_count ?? '-'} baris · KSEI ${fp.ksei_latest || '-'}.`]));
     const snap = d.members_snapshot || [];
     if (snap.length) {
-      const parts = snap.map((m) => (m.weight_pct != null ? `${m.ticker || '-'} ${m.weight_pct.toLocaleString('id-ID') + '%'}` : (m.ticker || '-'))).join(' · ');
+      const parts = snap.map((m) => {
+        const base = m.weight_pct != null ? `${m.ticker || '-'} ${m.weight_pct.toLocaleString('id-ID') + '%'}` : (m.ticker || '-');
+        return (d.engine === 'mc3' && m.status === 'fallback') ? `${base} (cadangan)` : base;
+      }).join(' · ');
       card.appendChild(createEl('p', { style: { fontSize: 'var(--text-sm)', color: 'var(--c-text-2)', margin: '0 0 var(--s-3)' } },
         [`Daftar anggota (${snap.length}): ${parts}.`]));
     }
     const fan = (d.summary && d.summary.fan) || [];
     if (fan.length) {
       const fc = createEl('div', {});
-      fc.innerHTML = fanSvgRealized(fan, d.params?.horizon_days || 63, []);
-      card.appendChild(fc);
-      card.appendChild(createEl('div', { style: { fontSize: 'var(--text-xs)', color: 'var(--c-text-3)', marginBottom: 'var(--s-3)' } },
-        ['Pita = sebaran jalur tersimpan pada tanggal simulasi.']));
+      if (d.engine === 'mc3') {
+        fc.innerHTML = fanSvgQ(fan, d.params?.quarters || 1);
+        card.appendChild(fc);
+        card.appendChild(createEl('div', { style: { fontSize: 'var(--text-xs)', color: 'var(--c-text-3)', marginBottom: 'var(--s-3)' } },
+          ['Pita = sebaran kuartalan tersimpan pada tanggal simulasi. Tanpa statistik drawdown — simpul kuartalan terlalu kasar.']));
+      } else {
+        fc.innerHTML = fanSvgRealized(fan, d.params?.horizon_days || 63, []);
+        card.appendChild(fc);
+        card.appendChild(createEl('div', { style: { fontSize: 'var(--text-xs)', color: 'var(--c-text-3)', marginBottom: 'var(--s-3)' } },
+          ['Pita = sebaran jalur tersimpan pada tanggal simulasi.']));
+      }
+    }
+    if (d.engine === 'mc3' && d.summary) {
+      const at = d.summary.attribution || {};
+      const mat = d.summary.materials || {};
+      const ac = createEl('p', { style: { fontSize: 'var(--text-sm)', color: 'var(--c-text-2)', margin: '0 0 var(--s-3)' } });
+      ac.innerHTML = `Atribusi (median): pertumbuhan laba <b>${fmtPct(at.earnings || 0)}</b> · perubahan kelipatan (PER) <b>${fmtPct(at.multiple || 0)}</b> · interaksi <b>${fmtPct(at.interaction || 0)}</b> · dividen <b>${fmtPct(at.dividend || 0)}</b> · jalur cadangan <b>${fmtPct(at.fallback || 0)}</b>. (Median tiap komponen tidak harus berjumlah ke return median.)`;
+      card.appendChild(ac);
+      card.appendChild(createEl('p', { style: { fontSize: 'var(--text-sm)', color: 'var(--c-text-2)', margin: '0 0 var(--s-3)' } },
+        [`Bahan: ${mat.n_covered ?? '-'} dari ${mat.n_members ?? '-'} anggota tercakup uraian (bobot ${mat.covered_weight != null ? (mat.covered_weight * 100).toLocaleString('id-ID', { maximumFractionDigits: 1 }) + '%' : '-'}); sisanya dinilai jalur harga cadangan.`]));
     }
     const acts = createEl('div', { style: { display: 'flex', gap: 'var(--s-2)', flexWrap: 'wrap' } });
     const pinBtn = createEl('button', { class: 'btn btn--secondary btn--sm' }, [d.pinned ? 'Lepas pin' : 'Pin']);
