@@ -11,6 +11,9 @@ import { toast } from '../../ui/toast.js';
 
 const HORIZONS = [[21, '1 mo'], [63, '3 mo'], [126, '6 mo'], [252, '1 yr'], [504, '2 yr']];
 const NSIMS = [[10000, '10,000'], [50000, '50,000'], [100000, '100,000'], [250000, '250,000']];
+const WINDOWS = [['all', 'All history'], ['1y', '1 yr'], ['2y', '2 yr'], ['3y', '3 yr'], ['5y', '5 yr']];
+const CONDITIONS = [['all', 'All history'], ['flow', 'Current flow regime']];
+const FLOW_LABEL = { masuk: 'Inflow', netral: 'Neutral', keluar: 'Outflow' };
 const BUCKETS = ['bullish', 'sideways', 'bearish'];
 const COLORS = { bullish: '#3b82f6', sideways: '#9ca3af', bearish: '#f59e0b' };
 const LABELS = { bullish: 'Bullish (up)', sideways: 'Sideways (flat)', bearish: 'Bearish (down)' };
@@ -59,7 +62,7 @@ export function render() {
     ['Just for fun — three representative lines from simulations over historical issuer or index data. Not a forecast, not a recommendation. Nothing is saved.']));
   container.appendChild(head);
 
-  const state = { target: 'indeks', ticker: '', indexId: '', horizon: 63, nSims: 50000, running: false, hasResult: false };
+  const state = { target: 'indeks', ticker: '', indexId: '', window: 'all', condition: 'all', horizon: 63, nSims: 50000, running: false, hasResult: false };
 
   const ctl = createEl('div', { class: 'card', style: { marginBottom: 'var(--s-3)' } });
   ctl.appendChild(createEl('h3', { class: 'card__title', style: { marginBottom: 'var(--s-3)' } }, ['Simulation Settings']));
@@ -94,6 +97,8 @@ export function render() {
   const idxSel = createEl('select', { class: 'field__select', style: { minWidth: '220px' } });
   idxSel.addEventListener('change', (e) => { state.indexId = e.target.value; });
   const idxField = field('INDEX', idxSel);
+  const windowSel = sel(WINDOWS, state.window, (v) => { state.window = v; });
+  const condSel = sel(CONDITIONS, state.condition, (v) => { state.condition = v; });
   const horizonSel = sel(HORIZONS, state.horizon, (v) => { state.horizon = Number(v); });
   const nSimsSel = sel(NSIMS, state.nSims, (v) => { state.nSims = Number(v); });
   const runBtn = createEl('button', { class: 'btn btn--primary' }, ['Simulate']);
@@ -101,6 +106,8 @@ export function render() {
   grid.appendChild(field('TARGET', targetSel));
   grid.appendChild(tickerField);
   grid.appendChild(idxField);
+  grid.appendChild(field('RETURN WINDOW', windowSel));
+  grid.appendChild(field('CONDITION', condSel));
   grid.appendChild(field('HORIZON', horizonSel));
   grid.appendChild(field('NUMBER OF SIMULATIONS', nSimsSel));
   grid.appendChild(runBtn);
@@ -108,7 +115,7 @@ export function render() {
   ctl.appendChild(grid);
   ctl.appendChild(createEl('p', {
     style: { fontSize: 'var(--text-xs)', color: 'var(--c-text-3)', marginTop: 'var(--s-3)' },
-  }, ['One line point = 1 day for short horizons; longer horizons are aggregated (1 point = 5 days up to 1 year, 21 days above that). Groups from path ends: up when the final log return is > +1%, down when < −1%, otherwise flat.']));
+  }, ['One line point = 1 day for short horizons; longer horizons are aggregated (1 point = 5 days up to 1 year, 21 days above that). Groups from path ends: up when the final log return is > +1%, down when < −1%, otherwise flat. Condition = which blocks the simulation may start from. All history uses every block; current flow regime uses only blocks starting on days whose foreign-flow state matches the latest day (inflow / neutral / outflow).']));
   container.appendChild(ctl);
 
   const resultWrap = createEl('div', {});
@@ -151,6 +158,10 @@ export function render() {
 
     resultWrap.appendChild(createEl('p', { style: { fontSize: 'var(--text-sm)', color: 'var(--c-text-2)', margin: '0 0 var(--s-2)' } },
       [`1 point = ${r.step_days} days · returns used: ${r.n_returns.toLocaleString('en-US')} · horizon ${r.horizon_days} days · ${r.n_sims.toLocaleString('en-US')} simulations.`]));
+    if (r.flow) {
+      resultWrap.appendChild(createEl('p', { style: { fontSize: 'var(--text-sm)', color: 'var(--c-text-2)', margin: '0 0 var(--s-2)' } },
+        [`Condition: current flow regime — ${FLOW_LABEL[r.flow.state] || r.flow.state} (${r.flow.date}) · blocks — inflow: ${r.flow.blocks.masuk}, neutral: ${r.flow.blocks.netral}, outflow: ${r.flow.blocks.keluar} · ${Number(r.flow.flow_days).toLocaleString('en-US')} flow days read.`]));
+    }
     resultWrap.appendChild(createEl('p', { style: { fontSize: 'var(--text-xs)', color: 'var(--c-text-3)', margin: '0' } },
       [r.note || 'Not a forecast, not a recommendation — median lines from simulations over historical data.']));
   }
@@ -174,6 +185,8 @@ export function render() {
         target: state.target,
         horizon_days: state.horizon,
         n_sims: state.nSims,
+        window: state.window,
+        condition: state.condition,
       };
       if (state.target === 'saham') body.ticker = state.ticker.trim();
       else body.index_id = Number(state.indexId);

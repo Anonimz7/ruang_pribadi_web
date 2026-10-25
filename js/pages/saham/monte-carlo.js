@@ -18,9 +18,10 @@ const HORIZONS = [[21, '1 mo'], [63, '3 mo'], [126, '6 mo'], [252, '1 yr']];
 const WINDOWS = [['1y', '1 yr'], ['2y', '2 yr'], ['3y', '3 yr'], ['5y', '5 yr'], ['all', 'All']];
 const NSIMS = [[2000, '2,000'], [5000, '5,000'], [10000, '10,000']];
 const METHODS = [['level', 'Level (price)'], ['fundamental', 'Fundamental (earnings × multiple)']];
-const MODES = [['semua', 'All blocks'], ['rezim', 'Current flow regime'], ['tekanan', 'Stress scenario']];
+const MODES = [['semua', 'All blocks'], ['rezim', 'Current flow regime'], ['tekanan', 'Stress scenario'], ['ksei', 'KSEI ownership trend']];
 const STATE_LABEL = { masuk: 'Inflow', netral: 'Neutral', keluar: 'Outflow' };
-const MODE_LABEL = { semua: 'All blocks', rezim: 'Current flow regime', tekanan: 'Stress scenario' };
+const KSEI_LABEL = { atas: 'High', tengah: 'Middle', bawah: 'Low' };
+const MODE_LABEL = { semua: 'All blocks', rezim: 'Current flow regime', tekanan: 'Stress scenario', ksei: 'KSEI ownership trend' };
 const WIN_LABEL = { '1y': 'Last 1 year', '2y': 'Last 2 years', '3y': 'Last 3 years', '5y': 'Last 5 years', all: 'full series' };
 
 function fmtPct(v) {
@@ -250,7 +251,7 @@ export function render() {
   const modeField = field('FLOW REGIME MODE', makeSeg(MODES, state.mode, (v) => { state.mode = v; }));
   modeField.appendChild(createEl('p', {
     style: { fontSize: 'var(--text-xs)', color: 'var(--c-text-3)', marginTop: 'var(--s-1)' },
-  }, ['Regime = the index foreign-flow window state (inflow / neutral / outflow). Current regime uses only blocks from the current state; stress uses only outflow blocks, as if outflow continued.']));
+  }, ['Regime = the index foreign-flow window state (inflow / neutral / outflow). Current regime uses only blocks from the current state; stress uses only outflow blocks, as if outflow continued. KSEI lens: months are grouped by aggregate foreign-ownership tertile; only blocks from months in the same tertile as the latest snapshot are used.']));
   const methodNote = createEl('p', {
     style: { fontSize: 'var(--text-xs)', color: 'var(--c-text-3)', marginTop: 'var(--s-3)' },
   }, ['Method: 20-day block bootstrap over log returns of the index level (stale (no-trade) days skipped). Fixed seed — same input gives the same result. Regime mode conditions blocks on the index foreign-flow state (window state: inflow / neutral / outflow). Results always read together with their source window: output inherits the regime of that window.']);
@@ -410,26 +411,35 @@ export function render() {
         ? `<br><b>STRESS SCENARIO:</b> results below use only blocks starting on outflow days — this is an "as if the outflow regime continued" scenario, not the average state.`
         : r.mode === 'rezim'
           ? `<br><b>Conditioned on the current flow regime:</b> results below use only blocks starting in the current flow state (${STATE_LABEL[(r.regime.current || {}).state] || '-'}).`
-          : '');
+          : r.mode === 'ksei'
+            ? `<br><b>Conditioned on the current KSEI tertile:</b> results below use only blocks from months in the same foreign-ownership tertile as the latest snapshot (${(r.ksei && r.ksei.current) ? `${KSEI_LABEL[r.ksei.current.tertile] || r.ksei.current.tertile} (${r.ksei.current.month}, ${r.ksei.current.pct.toFixed(1)}% foreign)` : '-'}).`
+            : '');
     resultWrap.appendChild(wl);
 
     if (r.comparison) {
       const rc = createEl('div', { class: 'card', style: { marginBottom: 'var(--s-3)' } });
-      rc.appendChild(createEl('h3', { class: 'card__title', style: { marginBottom: 'var(--s-2)' } }, ['Flow Regime & Mode Comparison']));
+      rc.appendChild(createEl('h3', { class: 'card__title', style: { marginBottom: 'var(--s-2)' } }, ['Mode Comparison']));
       const rg = r.regime || {};
       const info = createEl('p', { style: { fontSize: 'var(--text-sm)', color: 'var(--c-text-2)', margin: '0 0 var(--s-3)' } });
       if (rg.available && rg.current) {
         info.textContent = `Current state: ${STATE_LABEL[rg.current.state] || rg.current.state} ` +
           `(${fmtDate(rg.current.date)}, index net foreign flow ${formatNilaiSingkat(rg.current.flow)}). ` +
           `Blocks available — inflow: ${rg.blocks.masuk}, neutral: ${rg.blocks.netral}, outflow: ${rg.blocks.keluar} ` +
-          `dari ${Number(rg.flow_days).toLocaleString('en-US')} flow days read.`;
+          `of ${Number(rg.flow_days).toLocaleString('en-US')} flow days read.`;
       } else {
         info.textContent = 'Index foreign flow is not read sufficiently or uniformly in this window — conditioned modes are unavailable; only All blocks mode can be used.';
       }
       rc.appendChild(info);
+      if (r.ksei && r.ksei.available && r.ksei.current) {
+        const ki = createEl('p', { style: { fontSize: 'var(--text-sm)', color: 'var(--c-text-2)', margin: '0 0 var(--s-3)' } });
+        ki.textContent = `KSEI lens: ${r.ksei.months} monthly snapshots, latest ${r.ksei.current.month} at ${r.ksei.current.pct.toFixed(1)}% foreign (classified) — tertile ${KSEI_LABEL[r.ksei.current.tertile] || r.ksei.current.tertile}. ` +
+          `Blocks — high: ${r.ksei.blocks.atas}, middle: ${r.ksei.blocks.tengah}, low: ${r.ksei.blocks.bawah}; ` +
+          `days in labeled months: ${Number(r.ksei.days_labeled).toLocaleString('en-US')}, excluded: ${Number(r.ksei.days_excluded).toLocaleString('en-US')}.`;
+        rc.appendChild(ki);
+      }
       const tbl = createEl('table', { style: { width: '100%', borderCollapse: 'collapse', fontSize: 'var(--text-sm)' } });
       const rowHtml = (c) => {
-        const name = MODE_LABEL[c.mode] + (c.state ? ` (${STATE_LABEL[c.state] || c.state})` : '');
+        const name = MODE_LABEL[c.mode] + (c.state ? ` (${KSEI_LABEL[c.state] || STATE_LABEL[c.state] || c.state})` : '');
         if (c.unavailable) {
           return `<td style="padding:6px 8px;">${name}</td><td colspan="4" style="padding:6px 8px;color:var(--c-text-3);">${c.unavailable}</td>`;
         }
