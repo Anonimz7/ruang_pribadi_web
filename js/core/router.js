@@ -41,6 +41,7 @@ const routes = {
   '/saham/reports': () => import('../pages/saham/reports.js'),
   '/saham/index': () => import('../pages/saham/index-saham.js'),
   '/saham/monte-carlo': () => import('../pages/saham/monte-carlo.js'),
+  '/saham/simulasi-iseng': () => import('../pages/saham/simulasi-iseng.js'),
   '/saham/pemantauan': () => import('../pages/saham/pemantauan.js'),
   '/saham/admin/dashboard': () => import('../pages/saham/admin/dashboard.js'),
   '/saham/admin/users': () => import('../pages/saham/admin/users.js'),

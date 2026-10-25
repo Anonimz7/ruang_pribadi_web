@@ -122,6 +122,14 @@
       "minTier": 2
     },
     {
+      "key": "simulasi_iseng",
+      "icon": "Icons.dice",
+      "label": "Simulasi Iseng",
+      "section": "market",
+      "portal": "saham",
+      "minTier": 2
+    },
+    {
       "key": "pemantauan",
       "icon": "Icons.visibility",
       "label": "Pemantauan",
