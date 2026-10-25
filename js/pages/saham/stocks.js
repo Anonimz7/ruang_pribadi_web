@@ -353,7 +353,7 @@ function buildCompareBiiChartApex(container, primaryData, compareData, compareTi
 /* ─── State ─── */
 const stockState = {
   searchTerm: '', searchResults: [], searching: false,
-  selectedTicker: '', days: 30, analysis: null, loading: false,
+  selectedTicker: '', days: 30, analysis: null, loading: false, loadEpoch: 0,
   foreignPos: null,
   foreignOwn: null,
   foreignAnchor: null,
@@ -383,6 +383,8 @@ async function jalankanPencarian(q) {
 }
 
 async function loadAnalysis(ticker, { keepCompare = false } = {}) {
+  // Epoch: drop results from loads superseded by navigation or a newer load.
+  const epoch = ++stockState.loadEpoch;
   const t = ticker.toUpperCase();
   stockState.loading = true; stockState.searchResults = []; stockState.selectedTicker = t;
   stockState.analysis = null;
@@ -411,8 +413,10 @@ async function loadAnalysis(ticker, { keepCompare = false } = {}) {
     toast('Failed to load analysis: ' + (e.message || e), 'danger');
     console.error('[Stocks] Analysis error:', e);
   } finally {
-    stockState.loading = false;
-    renderAnalysis();
+    if (epoch === stockState.loadEpoch) {
+      stockState.loading = false;
+      renderAnalysis();
+    }
   }
 }
 
@@ -576,6 +580,7 @@ function renderSearchDropdown() {
 
 /* ─── Render: Compare bar ─── */
 function renderCompareBar() {
+  if (!stockRootEl) return;
   let el = stockRefs.compareBar;
   if (!stockState.analysis) { if (el) { el.remove(); stockRefs.compareBar = null; } return; }
   if (!el) {
@@ -668,6 +673,7 @@ function showCompareModal() {
 
 /* ─── Render: Loading ─── */
 function renderLoading() {
+  if (!stockRootEl) return;
   let el = stockRefs.analysisContainer;
   if (!el) {
     el = createEl('div', { class: 'stocks-page__analysis' });
@@ -680,6 +686,7 @@ function renderLoading() {
 
 /* ─── Render: Analysis ─── */
 function renderAnalysis() {
+  if (!stockRootEl) return;
   let el = stockRefs.analysisContainer;
   if (!el) {
     el = createEl('div', { class: 'stocks-page__analysis' });
@@ -799,6 +806,7 @@ function metricCard(label, value, color) {
 }
 
 async function mountCharts(rawData) {
+  if (!stockRootEl) return;
   clearCharts();
   try {
     await loadApexCharts();
@@ -1210,6 +1218,7 @@ function cleanup() {
   clearCharts();
   if (stockState._searchDebounce) clearTimeout(stockState._searchDebounce);
   if (stockState._compareDebounce) clearTimeout(stockState._compareDebounce);
+  stockState.loadEpoch++;
   stockRootEl = null; stockRefs = {};
 }
 

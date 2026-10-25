@@ -12,12 +12,14 @@ import { formatNilaiSingkat, dateLabelYear } from '../../utils/format.js';
 import { spinnerCardHtml } from '../../ui/loading.js';
 
 /* ─── State ─── */
-const pageState = { loading: false, data: null, charts: [] };
+const pageState = { loading: false, data: null, charts: [], loadEpoch: 0 };
 const decState = { mode: 'peak', data: null, loading: false };
 const typeState = { data: null };
 
 /* ─── API ─── */
 async function loadPage() {
+  // Epoch: drop results from loads superseded by navigation or a newer load.
+  const epoch = ++pageState.loadEpoch;
   pageState.loading = true;
   renderLoading();
   try {
@@ -28,6 +30,7 @@ async function loadPage() {
       Api.get('/idx/market/foreign-decomposition', { mode: 'peak' }).catch(() => null),
       Api.get('/idx/market/ownership-by-type', { mode: 'peak' }).catch(() => null),
     ]);
+    if (epoch !== pageState.loadEpoch) return;
     pageState.data = {};
     const fp = fpos?.data || fpos;
     if (fp) pageState.data.foreign_pos = fp;
@@ -76,6 +79,7 @@ function renderHeader() {
 }
 
 function renderLoading() {
+  if (!pageRootEl) return;
   let el = pageRefs.content;
   if (!el) {
     el = createEl('div', { class: 'kepemilikan-page__content' });
@@ -88,6 +92,7 @@ function renderLoading() {
 
 /* ─── Render: Halaman ─── */
 function renderPage() {
+  if (!pageRootEl) return;
   let el = pageRefs.content;
   if (!el) {
     el = createEl('div', { class: 'kepemilikan-page__content' });
@@ -137,6 +142,7 @@ function renderPage() {
 }
 
 async function mountPageCharts() {
+  if (!pageRootEl) return;
   clearCharts();
   try {
     await loadApexCharts();
@@ -570,6 +576,7 @@ function fillByTypeSection(wrap) {
 /* ─── Cleanup ─── */
 function cleanup() {
   clearCharts();
+  pageState.loadEpoch++;
   pageRootEl = null; pageRefs = {}; typeWrapEl = null;
 }
 

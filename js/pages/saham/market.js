@@ -57,11 +57,13 @@ const PERIODS = [30, 60, 90, 180, 365];
 
 /* ─── State ─── */
 const marketState = {
-  days: 30, loading: false, data: null, charts: [],
+  days: 30, loading: false, data: null, charts: [], loadEpoch: 0,
 };
 
 /* ─── API ─── */
 async function loadMarket() {
+  // Epoch: drop results from loads superseded by navigation or a newer load.
+  const epoch = ++marketState.loadEpoch;
   marketState.loading = true;
   renderLoading();
   try {
@@ -71,6 +73,7 @@ async function loadMarket() {
       Api.get('/idx/market/top-foreign-ownership').catch(() => null),
       Api.get('/idx/market/divergence', { days: marketState.days }).catch(() => null),
     ]);
+    if (epoch !== marketState.loadEpoch) return;
     marketState.data = res?.data || res;
     const tf = tfo?.data || tfo;
     if (tf) marketState.data.top_foreign_own = tf;
@@ -152,6 +155,7 @@ function renderPeriodChips() {
 
 /* ─── Render: Loading ─── */
 function renderLoading() {
+  if (!marketRootEl) return;
   let el = marketRefs.content;
   if (!el) {
     el = createEl('div', { class: 'market-page__content' });
@@ -164,6 +168,7 @@ function renderLoading() {
 
 /* ─── Render: Market ─── */
 function renderMarket() {
+  if (!marketRootEl) return;
   let el = marketRefs.content;
   if (!el) {
     el = createEl('div', { class: 'market-page__content' });
@@ -377,6 +382,7 @@ function kpiTile(label, value, change, color) {
 }
 
 async function mountMarketCharts(asp, mwi, marketData) {
+  if (!marketRootEl) return;
   clearCharts();
   if (!marketData.length) return;
   try {
@@ -498,6 +504,7 @@ function buildTable(title, headers, rows) {
 /* ─── Cleanup ─── */
 function cleanup() {
   clearCharts();
+  marketState.loadEpoch++;
   marketRootEl = null; marketRefs = {};
 }
 
