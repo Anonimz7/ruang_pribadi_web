@@ -12,8 +12,9 @@ import { toast } from '../../ui/toast.js';
 const HORIZONS = [[21, '1 mo'], [63, '3 mo'], [126, '6 mo'], [252, '1 yr'], [504, '2 yr']];
 const NSIMS = [[10000, '10,000'], [50000, '50,000'], [100000, '100,000'], [250000, '250,000']];
 const WINDOWS = [['all', 'All history'], ['1y', '1 yr'], ['2y', '2 yr'], ['3y', '3 yr'], ['5y', '5 yr']];
-const CONDITIONS = [['all', 'All history'], ['flow', 'Current flow regime']];
+const CONDITIONS = [['all', 'All history'], ['flow', 'Current flow regime'], ['ksei', 'KSEI trend']];
 const FLOW_LABEL = { masuk: 'Inflow', netral: 'Neutral', keluar: 'Outflow' };
+const KSEI_LABEL = { atas: 'High', tengah: 'Middle', bawah: 'Low' };
 const BUCKETS = ['bullish', 'sideways', 'bearish'];
 const COLORS = { bullish: '#3b82f6', sideways: '#9ca3af', bearish: '#f59e0b' };
 const LABELS = { bullish: 'Bullish (up)', sideways: 'Sideways (flat)', bearish: 'Bearish (down)' };
@@ -115,7 +116,7 @@ export function render() {
   ctl.appendChild(grid);
   ctl.appendChild(createEl('p', {
     style: { fontSize: 'var(--text-xs)', color: 'var(--c-text-3)', marginTop: 'var(--s-3)' },
-  }, ['One line point = 1 day for short horizons; longer horizons are aggregated (1 point = 5 days up to 1 year, 21 days above that). Groups from path ends: up when the final log return is > +1%, down when < −1%, otherwise flat. Condition = which blocks the simulation may start from. All history uses every block; current flow regime uses only blocks starting on days whose foreign-flow state matches the latest day (inflow / neutral / outflow).']));
+  }, ['One line point = 1 day for short horizons; longer horizons are aggregated (1 point = 5 days up to 1 year, 21 days above that). Groups from path ends: up when the final log return is > +1%, down when < −1%, otherwise flat. Condition = which blocks the simulation may start from. All history uses every block; current flow regime uses only blocks starting on days whose foreign-flow state matches the latest day (inflow / neutral / outflow). KSEI trend uses only blocks from months in the same foreign-ownership tertile as the latest snapshot (tertiles over the full KSEI history).']));
   container.appendChild(ctl);
 
   const resultWrap = createEl('div', {});
@@ -161,6 +162,10 @@ export function render() {
     if (r.flow) {
       resultWrap.appendChild(createEl('p', { style: { fontSize: 'var(--text-sm)', color: 'var(--c-text-2)', margin: '0 0 var(--s-2)' } },
         [`Condition: current flow regime — ${FLOW_LABEL[r.flow.state] || r.flow.state} (${r.flow.date}) · blocks — inflow: ${r.flow.blocks.masuk}, neutral: ${r.flow.blocks.netral}, outflow: ${r.flow.blocks.keluar} · ${Number(r.flow.flow_days).toLocaleString('en-US')} flow days read.`]));
+    }
+    if (r.ksei) {
+      resultWrap.appendChild(createEl('p', { style: { fontSize: 'var(--text-sm)', color: 'var(--c-text-2)', margin: '0 0 var(--s-2)' } },
+        [`Condition: KSEI trend — ${KSEI_LABEL[r.ksei.current.tertile] || r.ksei.current.tertile} (${r.ksei.current.month}, ${r.ksei.current.pct.toFixed(1)}% foreign) · ${r.ksei.months} monthly snapshots · blocks — high: ${r.ksei.blocks.atas}, middle: ${r.ksei.blocks.tengah}, low: ${r.ksei.blocks.bawah} · days in labeled months: ${Number(r.ksei.days_labeled).toLocaleString('en-US')}, excluded: ${Number(r.ksei.days_excluded).toLocaleString('en-US')}.`]));
     }
     resultWrap.appendChild(createEl('p', { style: { fontSize: 'var(--text-xs)', color: 'var(--c-text-3)', margin: '0' } },
       [r.note || 'Not a forecast, not a recommendation — median lines from simulations over historical data.']));
