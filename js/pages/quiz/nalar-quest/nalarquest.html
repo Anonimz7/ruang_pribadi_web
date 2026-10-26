@@ -465,6 +465,7 @@
         <button class="btn-sm" id="ds-load-file">Muat file JSON</button>
         <button class="btn-sm" id="ds-reload">Muat ulang dataset</button>
         <button class="btn-sm" id="ds-api" disabled title="Nonaktif &mdash; backend belum disiapkan">API backend (nonaktif)</button>
+        <button class="btn-sm" id="ds-guide">Unduh panduan MD</button>
       </div>
       <input type="file" id="ds-file" accept=".json,application/json" style="display:none">
       <div class="ds-list" id="ds-custom-list"></div>
@@ -1216,6 +1217,91 @@ const DS_EXAMPLE_STATIC = {
   explanation: "Penjelasan soal statis."
 };
 
+/* ---------- Panduan penulis (unduh MD) ----------
+   Langkah 1 sistem prompt: tombol + dokumen kerangka. Isi bertanda
+   [AKAN DIISI] dilengkapi bertahap, satu bagian per langkah. */
+const PANDUAN_MD = [
+  '# Panduan Penulis Soal NalarQuest',
+  'Dokumen ini adalah panduan + sistem prompt untuk menulis bank soal NalarQuest.',
+  'File ini diunduh dari panel Dataset. Bagian bertanda [AKAN DIISI] dilengkapi bertahap.',
+  '',
+  '## 1. Bentuk file JSON',
+  'Satu file = satu objek:',
+  '- version: string, mis. "0.7.2"',
+  '- description: string',
+  '- templates: array cetakan soal generatif',
+  '- static: array soal jadi',
+  '',
+  '## 2. Field template (soal generatif)',
+  '- id: string unik, mis. "ded.trans.choice"',
+  '- type: "deductive" | "inductive" | "abductive"',
+  '- domain: "angka" | "simbol" | "teks"',
+  '- principle: prinsip yang dilatih (lihat daftar di bagian 4)',
+  '- surface_domain: permukaan soal, mis. "angka", "simbol", "cerita"',
+  '- surface_distance: 0 = permukaan asal, 1 = satu langkah lebih jauh, 2 = lebih jauh lagi',
+  '- contrast_with: array id soal kontras (boleh kosong)',
+  '- difficulty: 1, 2, atau 3',
+  '- vars: spesifikasi variabel (int / pick / expr)',
+  '- constraints: array ekspresi yang harus benar, mis. ["a > b", "b > c"]',
+  '- prompt: teks soal, variabel ditulis {nama}',
+  '- input: bentuk jawaban (lihat bagian 5)',
+  '- explain: penjelasan yang tampil setelah menjawab',
+  '',
+  '## 3. Field statis (soal jadi)',
+  'Sama seperti template, kecuali:',
+  '- tanpa vars dan constraints',
+  '- tambah source: "static" dan template_id (boleh null)',
+  '- penjelasan memakai field "explanation" (bukan "explain")',
+  '',
+  '## 4. Opsi jenis logika dan prinsip',
+  'Jenis logika (type):',
+  '- deductive: dari premis ke kesimpulan yang niscaya',
+  '- inductive: dari contoh ke pola atau generalisasi',
+  '- abductive: dari gejala ke penjelasan terbaik',
+  '',
+  'Prinsip yang sudah ada di bank:',
+  '- transitivity, categorical_syllogism, modus_ponens',
+  '- arithmetic_sequence, geometric_sequence, alternating_pattern, prime_sequence',
+  '- best_explanation',
+  'Prinsip baru boleh ditambah, ditulis snake_case.',
+  '',
+  '## 5. Bentuk jawaban (input)',
+  '- choice: pilihan ganda; options minimal 2, tepat 1 correct, teks opsi tidak boleh duplikat; shuffle true/false',
+  '- keypad: jawaban angka; wajib canonical',
+  '- palette: jawaban simbol; wajib canonical dan keys',
+  '- fill: isian rumpang; wajib slots (tiap slot punya answer) dan parts',
+  '',
+  '## 6. Template atau statis, kapan pakai yang mana',
+  '- Template: soal yang bisa digenerasi dari variabel + constraint. Satu cetakan menghasilkan ratusan variasi. Pakai ini untuk volume.',
+  '- Statis: soal yang butuh kontrol penuh atas kalimat dan pengecoh. Pakai ini untuk kualitas terkontrol.',
+  '- [AKAN DIISI: panduan memilih lebih lanjut]',
+  '',
+  '## 7. Aturan validasi',
+  '- Field wajib ada: id, type, principle, surface_domain, surface_distance, difficulty, prompt, input, plus explain/explanation.',
+  '- id tidak boleh duplikat di dalam bank.',
+  '- choice: minimal 2 opsi, tepat 1 benar, teks tidak duplikat.',
+  '- keypad/palette: canonical wajib; palette wajib keys.',
+  '- fill: slots wajib punya answer; parts minimal sepanjang slots.',
+  '- Entri yang gagal validasi tidak pernah masuk pool soal.',
+  '',
+  '## 8. Contoh penulisan JSON',
+  '[AKAN DIISI: contoh template lengkap + contoh statis lengkap]',
+  '',
+  '## 9. Sistem prompt (untuk bantuan AI)',
+  '[AKAN DIISI: teks prompt lengkap untuk AI pembuat soal, menyusul]',
+  ''
+].join('\n');
+function downloadPanduanMD(){
+  const blob = new Blob([PANDUAN_MD], { type: 'text/markdown;charset=utf-8' });
+  const a = document.createElement('a');
+  a.href = URL.createObjectURL(blob);
+  a.download = 'nalarquest-panduan-penulis.md';
+  document.body.appendChild(a);
+  a.click();
+  a.remove();
+  setTimeout(() => URL.revokeObjectURL(a.href), 1000);
+}
+
 /* ---------- UI: modal tambah manual + muat file ---------- */
 function initDatasetUI(){
   document.body.insertAdjacentHTML("beforeend",
@@ -1290,6 +1376,7 @@ function initDatasetUI(){
     await loadDataset();
     refreshAfterDatasetChange();
   });
+  document.getElementById("ds-guide").addEventListener("click", downloadPanduanMD);
 }
 
 
