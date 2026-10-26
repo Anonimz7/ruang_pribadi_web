@@ -364,6 +364,37 @@
   .foot-spacer{flex:1 1 auto}
   .foot-note{color:var(--muted)}
   @media (max-width:600px){ .foot-note{display:none} }
+
+  /* v0.7.3: mobile layak pakai — soal dulu, panel lipat, target sentuh.
+     Desktop tidak berubah: semua aturan di bawah hanya ≤700px. */
+  .mobile-bar{display:none}
+  .src-toggle{display:none}
+  @media (max-width:700px){
+    /* Urutan kolom tunggal: soal dulu, baru pengaturan, terakhir JSON */
+    .stage{order:1}
+    .rail{order:2;display:none}
+    .app.rail-open .rail{display:flex}
+    .src{order:3}
+    /* Panel JSON default tertutup di mobile */
+    .src .code{display:none}
+    .src.src-open .code{display:block}
+    .mobile-bar{display:flex;gap:8px;margin-bottom:18px}
+    .mobile-bar .btn-sm{flex:1}
+    .src-toggle{display:inline-block}
+    /* Brand dipadatkan; fade tab DICABUT — di 390px semua tab muat,
+       fade justru membuat tab terakhir terlihat terpotong */
+    .brand .tag{display:none}
+    .tabs button{padding:6px 10px}
+    /* Footer tidak lagi fixed di mobile: bar fixed menutupi isi saat
+       scroll (terbukti menutupi baris pertama pembahasan opsi A) */
+    .foot{position:static}
+    /* Target sentuh ≥44px */
+    .seg button{padding:10px 12px;font-size:12px}
+    .p-row{padding:10px 8px;font-size:11.5px}
+    .opt{padding:15px 14px}
+    .btn-sm{padding:10px 12px;font-size:11px}
+    .btn{padding:13px 12px;font-size:12px}
+  }
 </style>
 </head>
 <body>
@@ -444,6 +475,9 @@
   </aside>
 
   <section class="stage">
+    <div class="mobile-bar">
+      <button class="btn-sm" id="rail-toggle">Pengaturan &amp; Statistik</button>
+    </div>
     <div class="meta">
       <span id="m-id">—</span>
       <span><b id="m-tpl">—</b></span>
@@ -460,6 +494,7 @@
       <div class="inputs" id="inputs"></div>
       <div class="conf-slot" id="conf-slot"></div>
       <div class="explain" id="explain" hidden></div>
+      <button class="btn" id="next-inline" style="display:none;margin-top:20px;max-width:660px">Soal berikutnya</button>
     </article>
   </section>
 
@@ -470,6 +505,7 @@
         <button data-t="soal" class="on">soal.json</button>
         <button data-t="tpl">template</button>
       </div>
+      <button class="btn-sm src-toggle" id="src-toggle">Tampilkan JSON</button>
     </div>
     <div class="redact-note" id="redact-note">
       Field jawaban (<span style="color:var(--ink)">correct</span>,
@@ -1795,7 +1831,7 @@ const els = {
   principleList: $("principle-list"),
   sessionPanel: $("session-panel"),
   bankStatus: $("bank-status"),
-  tabs: $("tabs"), next: $("next")
+  tabs: $("tabs"), next: $("next"), nextInline: $("next-inline")
 };
 
 /* ============================================================
@@ -1841,6 +1877,7 @@ function nextSoal(){
     els.inputs.innerHTML = "";
     els.confSlot.innerHTML = "";
     els.explain.hidden = true;
+    els.nextInline.style.display = "none";
     state.soal = null;
     els.mId.textContent = "—"; els.mTpl.textContent = "—";
     els.mDom.textContent = "—"; els.mDif.textContent = "—";
@@ -1883,6 +1920,7 @@ function draw(){
   els.confSlot.innerHTML = "";
   els.explain.hidden = true;
   els.explain.innerHTML = "";
+  els.nextInline.style.display = "none";
 
   mountInput(s.input);
   drawCode();
@@ -2296,6 +2334,8 @@ function renderExplain(s, correct, confident, ms){
 
   els.explain.innerHTML = html;
   els.explain.hidden = false;
+  /* v0.7.3: alur mobile tidak putus — tombol lanjut tepat di bawah pembahasan */
+  els.nextInline.style.display = "";
 }
 
 function drawStats(){
@@ -2593,6 +2633,16 @@ $("srctabs").addEventListener("click", e => {
 els.next.addEventListener("click", () => {
   if(state.awaitingConfidence) return;
   nextSoal();
+});
+
+/* v0.7.3: toggle panel mobile — pakai ulang guard tombol #next */
+els.nextInline.addEventListener("click", () => els.next.click());
+$("rail-toggle").addEventListener("click", () => {
+  document.querySelector(".app").classList.toggle("rail-open");
+});
+$("src-toggle").addEventListener("click", (e) => {
+  const open = document.querySelector(".src").classList.toggle("src-open");
+  e.currentTarget.textContent = open ? "Sembunyikan JSON" : "Tampilkan JSON";
 });
 
 $("reset-stats").addEventListener("click", () => {
