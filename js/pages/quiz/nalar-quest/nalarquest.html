@@ -550,8 +550,21 @@ function evalExpr(expr, scope){
     return Function(...keys, "return (" + expr + ");")(...keys.map(k => scope[k]));
   }catch(e){ return NaN; }
 }
-function render(tpl, scope){
+/* ---------- Kode simbol ----------
+   Data menyimpan KODE (mis. "triangle"); glif hanya tampil di layar.
+   Untuk mengubah tampilan simbol, ubah satu registri ini saja —
+   tanpa menyentuh data. Nilai yang tidak dikenal dilewatkan mentah,
+   jadi data lama berglif mentah tetap bisa dimainkan. */
+const SYMBOLS = {
+  triangle: "△", square: "□", circle: "○",
+  diamond: "◇", star: "☆", backspace: "⌫", enter: "⏎"
+};
+function renderSymbol(v){ return (v in SYMBOLS) ? SYMBOLS[v] : v; }
+function renderRaw(tpl, scope){
   return String(tpl).replace(/\{(\w+)\}/g, (m,k) => (k in scope ? scope[k] : m));
+}
+function render(tpl, scope){
+  return String(tpl).replace(/\{(\w+)\}/g, (m,k) => (k in scope ? renderSymbol(scope[k]) : m));
 }
 function normEq(a, b){
   const sa = String(a ?? "").trim();
@@ -613,11 +626,11 @@ const FALLBACK_TEMPLATES = [
     difficulty: 1,
     vars: {
       _: { kind:"pick", from: [
-        { a:"△", b:"□", c:"○" },
-        { a:"◇", b:"☆", c:"△" },
-        { a:"○", b:"△", c:"□" },
-        { a:"□", b:"◇", c:"☆" },
-        { a:"☆", b:"○", c:"◇" }
+        { a:"triangle", b:"square", c:"circle" },
+        { a:"diamond", b:"star", c:"triangle" },
+        { a:"circle", b:"triangle", c:"square" },
+        { a:"square", b:"diamond", c:"star" },
+        { a:"star", b:"circle", c:"diamond" }
       ]}
     },
     prompt: "Diketahui {a} > {b} dan {b} > {c}. Manakah kesimpulan yang pasti benar?",
@@ -845,16 +858,16 @@ const FALLBACK_TEMPLATES = [
     vars: {
       _: { kind:"pick", from: [
         /* v0.7.1: n = "{s2}" — sebelumnya "{s1}" (salah) */
-        { s1:"△", s2:"□", n:"□" },
-        { s1:"○", s2:"△", n:"△" },
-        { s1:"◇", s2:"○", n:"○" },
-        { s1:"☆", s2:"△", n:"△" }
+        { s1:"triangle", s2:"square", n:"square" },
+        { s1:"circle", s2:"triangle", n:"triangle" },
+        { s1:"diamond", s2:"circle", n:"circle" },
+        { s1:"star", s2:"triangle", n:"triangle" }
       ]}
     },
     prompt: "Perhatikan pola: {s1}, {s2}, {s1}, {s2}, {s1}, … Simbol berikutnya adalah?",
     input: {
       kind: "palette", maxLength: 1, canonical: "{n}",
-      keys: ["△","□","○","◇","☆","⌫","⏎"],
+      keys: ["triangle","square","circle","diamond","star","backspace","enter"],
       layout: [5,2]
     },
     explain: "Pola bergantian {s1} dan {s2}. Setelah {s1}, simbol berikutnya adalah {s2}."
@@ -1268,7 +1281,9 @@ const PANDUAN_MD = [
   '## 5. Bentuk jawaban (input)',
   '- choice: pilihan ganda; options minimal 2, tepat 1 correct, teks opsi tidak boleh duplikat; shuffle true/false',
   '- keypad: jawaban angka; wajib canonical',
-  '- palette: jawaban simbol; wajib canonical dan keys',
+  '- palette: jawaban simbol; wajib canonical dan keys; keys + canonical berisi KODE simbol (bukan glif)',
+  '- tabel kode simbol: triangle = △, square = □, circle = ○, diamond = ◇, star = ☆, backspace = ⌫, enter = ⏎',
+  '- glif hanya tampil di layar lewat registri SYMBOLS di halaman; ganti glif tanpa mengubah data. Keypad angka tidak memakai kode (tombol ⌫/⏎ literal).',
   '- fill: isian rumpang; wajib slots (tiap slot punya answer) dan parts',
   '',
   '## 6. Template atau statis, kapan pakai yang mana',
@@ -1556,24 +1571,24 @@ const PANDUAN_MD = [
   '      "kind": "pick",',
   '      "from": [',
   '        {',
-  '          "s1": "△",',
-  '          "s2": "□",',
-  '          "n": "□"',
+  '          "s1": "triangle",',
+  '          "s2": "square",',
+  '          "n": "square"',
   '        },',
   '        {',
-  '          "s1": "○",',
-  '          "s2": "△",',
-  '          "n": "△"',
+  '          "s1": "circle",',
+  '          "s2": "triangle",',
+  '          "n": "triangle"',
   '        },',
   '        {',
-  '          "s1": "◇",',
-  '          "s2": "○",',
-  '          "n": "○"',
+  '          "s1": "diamond",',
+  '          "s2": "circle",',
+  '          "n": "circle"',
   '        },',
   '        {',
-  '          "s1": "☆",',
-  '          "s2": "△",',
-  '          "n": "△"',
+  '          "s1": "star",',
+  '          "s2": "triangle",',
+  '          "n": "triangle"',
   '        }',
   '      ]',
   '    }',
@@ -1584,13 +1599,13 @@ const PANDUAN_MD = [
   '    "maxLength": 1,',
   '    "canonical": "{n}",',
   '    "keys": [',
-  '      "△",',
-  '      "□",',
-  '      "○",',
-  '      "◇",',
-  '      "☆",',
-  '      "⌫",',
-  '      "⏎"',
+  '      "triangle",',
+  '      "square",',
+  '      "circle",',
+  '      "diamond",',
+  '      "star",',
+  '      "backspace",',
+  '      "enter"',
   '    ],',
   '    "layout": [',
   '      5,',
@@ -1843,7 +1858,6 @@ const PANDUAN_MD = [
   '}',
   '```',
   '',
-  '',
   '## 9. Sistem prompt (untuk bantuan AI)',
   '[AKAN DIISI: teks prompt lengkap untuk AI pembuat soal, menyusul]',
   ''
@@ -2067,7 +2081,8 @@ function buildInput(spec, scope){
     return {
       kind: "palette",
       maxLength: spec.maxLength || 4,
-      canonical: render(spec.canonical, scope),
+      /* canonical + keys tetap KODE; glif hanya tampil di tombol & display */
+      canonical: renderRaw(spec.canonical, scope),
       keys: spec.keys.map(k => render(k, scope)),
       layout: spec.layout || [spec.keys.length]
     };
@@ -2619,12 +2634,16 @@ function mountKeypad(inp, isPalette){
   keys.forEach(k => {
     const b = document.createElement("button");
     b.className = "kp-key" + (isPalette ? " pal-key" : "");
-    b.textContent = k;
-    if(k === "⌫" || k === "⏎") b.classList.add("action");
+    /* palette: label = glif dari kode; nilai tetap kode */
+    b.textContent = isPalette ? renderSymbol(k) : k;
+    const isDel = (k === "⌫" || k === "backspace");
+    const isEnter = (k === "⏎" || k === "enter");
+    if(isDel || isEnter) b.classList.add("action");
     b.addEventListener("click", () => {
       if(state.answered) return;
-      if(k === "⌫"){ state.buffer = state.buffer.slice(0, -1); }
-      else if(k === "⏎"){ state.userAnswer = state.buffer; submit(); return; }
+      /* palette: buffer memegang satu kode utuh, hapus = kosongkan */
+      if(isDel){ state.buffer = isPalette ? "" : state.buffer.slice(0, -1); }
+      else if(isEnter){ state.userAnswer = state.buffer; submit(); return; }
       else if(state.buffer.length < (inp.maxLength || 6)){ state.buffer += k; }
       refreshBuffer();
     });
@@ -3130,7 +3149,8 @@ function drawBankStatus(){
 function refreshBuffer(){
   const disp = els.inputs.querySelector(".kp-display");
   if(!disp || !state.soal) return;
-  disp.querySelector(".kp-buf").textContent = state.buffer;
+  const isPal = state.soal.input.kind === "palette";
+  disp.querySelector(".kp-buf").textContent = isPal ? renderSymbol(state.buffer) : state.buffer;
   const cur = disp.querySelector(".cursor");
   const max = state.soal.input.maxLength || 6;
   cur.classList.toggle("hide", state.buffer.length >= max);

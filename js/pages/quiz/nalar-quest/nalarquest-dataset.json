@@ -75,29 +75,29 @@
           "kind": "pick",
           "from": [
             {
-              "a": "△",
-              "b": "□",
-              "c": "○"
+              "a": "triangle",
+              "b": "square",
+              "c": "circle"
             },
             {
-              "a": "◇",
-              "b": "☆",
-              "c": "△"
+              "a": "diamond",
+              "b": "star",
+              "c": "triangle"
             },
             {
-              "a": "○",
-              "b": "△",
-              "c": "□"
+              "a": "circle",
+              "b": "triangle",
+              "c": "square"
             },
             {
-              "a": "□",
-              "b": "◇",
-              "c": "☆"
+              "a": "square",
+              "b": "diamond",
+              "c": "star"
             },
             {
-              "a": "☆",
-              "b": "○",
-              "c": "◇"
+              "a": "star",
+              "b": "circle",
+              "c": "diamond"
             }
           ]
         }
@@ -637,24 +637,24 @@
           "kind": "pick",
           "from": [
             {
-              "s1": "△",
-              "s2": "□",
-              "n": "□"
+              "s1": "triangle",
+              "s2": "square",
+              "n": "square"
             },
             {
-              "s1": "○",
-              "s2": "△",
-              "n": "△"
+              "s1": "circle",
+              "s2": "triangle",
+              "n": "triangle"
             },
             {
-              "s1": "◇",
-              "s2": "○",
-              "n": "○"
+              "s1": "diamond",
+              "s2": "circle",
+              "n": "circle"
             },
             {
-              "s1": "☆",
-              "s2": "△",
-              "n": "△"
+              "s1": "star",
+              "s2": "triangle",
+              "n": "triangle"
             }
           ]
         }
@@ -665,13 +665,13 @@
         "maxLength": 1,
         "canonical": "{n}",
         "keys": [
-          "△",
-          "□",
-          "○",
-          "◇",
-          "☆",
-          "⌫",
-          "⏎"
+          "triangle",
+          "square",
+          "circle",
+          "diamond",
+          "star",
+          "backspace",
+          "enter"
         ],
         "layout": [
           5,
