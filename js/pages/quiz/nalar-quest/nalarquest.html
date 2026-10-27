@@ -469,6 +469,7 @@
       </div>
       <input type="file" id="ds-file" accept=".json,application/json" style="display:none">
       <div class="ds-list" id="ds-custom-list"></div>
+      <div id="ds-import-report" style="font-size:11px;line-height:1.6;margin-top:8px"></div>
     </section>
     <section>
       <button class="btn" id="next">Soal baru</button>
@@ -1136,8 +1137,9 @@ function guessKind(o){
 }
 
 function importDatasetObject(data){
-  /* Terima {templates:[], static:[]}, array, atau satu objek. */
-  let added = 0, failed = 0;
+  /* Terima {templates:[], static:[]}, array, atau satu objek.
+     MODE A (tolak-semua): bila SATU entri gagal, tidak ada yang
+     ditambahkan. Laporan kegagalan tampil di panel Dataset. */
   const items = [];
   if(data && typeof data === "object" && !Array.isArray(data) && (data.templates || data.static)){
     (data.templates || []).forEach(o => items.push(["template", o]));
@@ -1147,13 +1149,50 @@ function importDatasetObject(data){
   } else if(data && typeof data === "object"){
     items.push([guessKind(data), data]);
   }
+  /* Lintas 1: validasi semua, tanpa mengubah bank. */
+  const existingIds = new Set(TEMPLATES.map(t => t.id).concat(STATIC_BANK.map(s => s.id)));
+  const failures = [];
   items.forEach(([k, o]) => {
-    const r = addDatasetEntry(k, o, true);
-    if(r.ok) added++;
-    else { failed++; console.warn("[dataset] impor gagal:", o && o.id, r.errors); }
+    if(!o || typeof o !== "object" || Array.isArray(o)){
+      failures.push({ id: "(bukan objek)", kind: k, errors: ["JSON harus berupa satu objek (bukan array)"] });
+      return;
+    }
+    const errs = validateTemplate(o);
+    if(!o.id) errs.push("id kosong");
+    else if(existingIds.has(o.id)) errs.push("id sudah dipakai: " + o.id);
+    /* Uji render hanya bila cek field sudah lolos (hindari error turunan). */
+    if(k === "template" && !errs.length) errs.push(...testRender(o));
+    if(errs.length) failures.push({ id: o.id || "(tanpa id)", kind: k, errors: errs });
+    else existingIds.add(o.id);
   });
+  if(failures.length){
+    drawImportReport(failures, 0);
+    return { added: 0, failed: failures.length, rejected: true };
+  }
+  /* Lintas 2: semua lolos, baru ditambahkan. */
+  items.forEach(([k, o]) => addDatasetEntry(k, o, true));
   refreshAfterDatasetChange();
-  return { added, failed };
+  drawImportReport([], items.length);
+  return { added: items.length, failed: 0 };
+}
+
+function drawImportReport(failures, added){
+  const el = document.getElementById("ds-import-report");
+  if(!el) return;
+  if(!failures.length){
+    el.innerHTML = added
+      ? '<span style="color:#2e7d32">Impor berhasil: ' + added + ' entri ditambahkan.</span>'
+      : "";
+    return;
+  }
+  let html = '<div style="border:1px solid #c0392b;padding:8px">' +
+    '<b>Impor DITOLAK: ' + failures.length + ' entri tidak sesuai — tidak ada yang ditambahkan.</b>';
+  failures.forEach(f => {
+    html += '<div style="margin-top:6px"><b>' + escapeHtml(String(f.id)) + '</b> (' + escapeHtml(f.kind) + ')' +
+      '<br>' + f.errors.map(e => '&bull; ' + escapeHtml(e)).join('<br>') + '</div>';
+  });
+  html += '</div>';
+  el.innerHTML = html;
 }
 
 function refreshAfterDatasetChange(){
@@ -1309,6 +1348,8 @@ const PANDUAN_MD = [
   '- keypad/palette: canonical wajib; palette wajib keys.',
   '- fill: slots wajib punya answer; parts minimal sepanjang slots.',
   '- Entri yang gagal validasi tidak pernah masuk pool soal.',
+  '- Impor file bersifat menolak-semua (mode A): bila satu entri gagal, tidak ada entri yang ditambahkan; laporan menampilkan id entri + field + aturan yang dilanggar.',
+  '- Template di-render uji sebelum diterima: variasi pick diuji semua, int/expr diuji 20 render acak; render yang mengandung NaN/undefined ditolak.',
   '',
   '## 8. Contoh penulisan JSON',
   'Sampel di bawah disalin utuh (verbatim) dari bank soal v0.7.2.',
@@ -2248,8 +2289,10 @@ function initDatasetUI(){
       try { data = JSON.parse(rd.result); }
       catch(e){ alert("File bukan JSON valid: " + e.message); fileInput.value = ""; return; }
       const res = importDatasetObject(data);
-      alert("Impor selesai: " + res.added + " ditambahkan" +
-        (res.failed ? ", " + res.failed + " gagal (lihat konsol)" : ""));
+      if(res.rejected)
+        alert("Impor DITOLAK: " + res.failed + " entri tidak sesuai — tidak ada yang ditambahkan. Lihat laporan di panel Dataset.");
+      else
+        alert("Impor berhasil: " + res.added + " entri ditambahkan.");
       fileInput.value = "";
     };
     rd.readAsText(f);
@@ -2444,6 +2487,64 @@ function instantiate(tpl){
     };
   }
   return null;
+}
+
+/* ---------- Uji render impor (mode A: tolak-semua) ----------
+   Template yang lolos cek field belum tentu bisa dirender: expr yang
+   tidak valid menghasilkan NaN (kasus 'a+2d' 2026-10-27) dan lolos
+   validateTemplate. Fungsi ini me-render uji sebelum entri diterima:
+   - template pick-only: SEMUA set variasi diuji satu per satu
+   - template lain: 20 render acak
+   Render gagal bila: tidak bisa di-render, atau ada field hasil render
+   yang mengandung "NaN"/"undefined". */
+function checkRenderedField(name, value, errs){
+  if(value != null && /NaN|undefined/.test(String(value)))
+    errs.push("render: '" + name + "' mengandung NaN/undefined");
+}
+function checkRenderedInput(inp, errs){
+  if(!inp) return;
+  if(inp.kind === "choice"){
+    inp.options.forEach((o, i) => {
+      checkRenderedField("options[" + i + "].text", o.text, errs);
+      checkRenderedField("options[" + i + "].why", o.why, errs);
+    });
+  }
+  if(inp.kind === "keypad" || inp.kind === "palette")
+    checkRenderedField("canonical", inp.canonical, errs);
+  if(inp.kind === "fill"){
+    (inp.slots || []).forEach((s, i) => checkRenderedField("slots[" + i + "].answer", s.answer, errs));
+    (inp.parts || []).forEach((p, i) => checkRenderedField("parts[" + i + "]", p, errs));
+  }
+}
+function testRender(tpl){
+  const errs = [];
+  const vars = tpl.vars || {};
+  const keys = Object.keys(vars);
+  if(keys.length === 1 && vars[keys[0]] && vars[keys[0]].kind === "pick" && Array.isArray(vars[keys[0]].from)){
+    const k = keys[0];
+    let tested = 0;
+    vars[k].from.forEach(it => {
+      const scope = (it && typeof it === "object") ? { ...it } : { [k]: it };
+      if(!checkConstraints(tpl.constraints, scope)) return;
+      tested++;
+      const input = buildInput(tpl.input, scope);
+      if(!input){ errs.push("render: variasi " + JSON.stringify(scope) + " tidak bisa di-render"); return; }
+      checkRenderedField("prompt", render(tpl.prompt, scope), errs);
+      checkRenderedField("explain", render(tpl.explain || tpl.explanation || "", scope), errs);
+      checkRenderedInput(input, errs);
+    });
+    if(!tested) errs.push("render: tidak ada variasi yang lolos constraints");
+  } else {
+    for(let i = 0; i < 20; i++){
+      const s = instantiate(tpl);
+      if(!s){ errs.push("render: tidak bisa di-render"); break; }
+      checkRenderedField("prompt", s.prompt, errs);
+      checkRenderedField("explain", s.explanation, errs);
+      checkRenderedInput(s.input, errs);
+    }
+  }
+  /* Pesan yang sama dari banyak render cukup tampil sekali. */
+  return [...new Set(errs)];
 }
 
 /* ============================================================
