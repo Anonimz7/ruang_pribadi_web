@@ -464,12 +464,28 @@
         <button class="btn-sm" id="ds-add">Tambah manual</button>
         <button class="btn-sm" id="ds-load-file">Muat file JSON</button>
         <button class="btn-sm" id="ds-reload">Muat ulang dataset</button>
-        <button class="btn-sm" id="ds-api" disabled title="Nonaktif &mdash; backend belum disiapkan">API backend (nonaktif)</button>
+        <button class="btn-sm" id="ds-api" title="Muat bank dari API server">Muat dari API</button>
         <button class="btn-sm" id="ds-guide">Unduh panduan MD</button>
       </div>
       <input type="file" id="ds-file" accept=".json,application/json" style="display:none">
       <div class="ds-list" id="ds-custom-list"></div>
       <div id="ds-import-report" style="font-size:11px;line-height:1.6;margin-top:8px"></div>
+      <div style="margin-top:10px;border-top:1px solid #ddd;padding-top:8px">
+        <div style="font-size:11px;color:var(--muted)">Admin server (unggah &amp; review)</div>
+        <input id="ds-username" placeholder="Username admin" autocomplete="username" style="width:100%;box-sizing:border-box;margin-top:4px;font-size:12px;padding:6px">
+        <input id="ds-password" type="password" placeholder="Password" autocomplete="current-password" style="width:100%;box-sizing:border-box;margin-top:4px;font-size:12px;padding:6px">
+        <div style="display:flex;gap:6px;margin-top:6px;flex-wrap:wrap">
+          <button class="btn-sm" id="ds-login">Masuk</button>
+          <button class="btn-sm" id="ds-logout" style="display:none">Keluar</button>
+          <button class="btn-sm" id="ds-upload-server">Unggah ke server (draft)</button>
+        </div>
+        <div id="ds-auth-status" style="font-size:11px;line-height:1.6;margin-top:4px"></div>
+        <div id="ds-drafts-wrap" style="display:none;margin-top:8px">
+          <div style="font-size:11px;color:var(--muted)">Draft menunggu review</div>
+          <div id="ds-drafts-list" style="margin-top:4px"></div>
+        </div>
+      </div>
+      <input type="file" id="ds-file-server" accept=".json,application/json" style="display:none">
     </section>
     <section>
       <button class="btn" id="next">Soal baru</button>
@@ -1006,35 +1022,43 @@ const FALLBACK_STATIC = [
 ];
 
 /* ============================================================
-   2b. Dataset: file JSON eksternal, mode API (NONAKTIF), input manual
+   2b. Dataset: API server (utama), file JSON (cadangan), input manual
    v0.7.2: dataset dipisah ke nalarquest-dataset.json.
-   - Dibuka via http(s): dataset dimuat dari file JSON (fetch).
+   - Dibuka via http(s): bank dimuat dari API dulu; gagal -> file JSON.
    - Dibuka via file:// : fetch diblokir browser -> pakai data bawaan (fallback).
    ============================================================ */
 const DATASET_URL = "nalarquest-dataset.json";
 let TEMPLATES = [];      /* diisi saat boot */
 let STATIC_BANK = [];    /* diisi saat boot */
 
-/* ---------- Mode API backend: NONAKTIF ----------
-   Kode di bawah lengkap dan siap pakai, tetapi sengaja dimatikan
-   sampai backend disiapkan.
-   Kontrak REST JSON yang diharapkan dari backend:
-     GET {baseUrl}/api/dataset
+/* ---------- Mode API backend: AKTIF (fase 1) ----------
+   Kontrak REST JSON dari backend:
+     GET {baseUrl}/api/nalarquest/bank (publik, hanya published)
        -> { "version": "x.y.z",
             "templates": [ <entri template, format = nalarquest-dataset.json> ],
             "static":    [ <entri soal statis> ] }
+     POST {baseUrl}/api/nalarquest/upload (admin, mode A -> draft)
+     GET {baseUrl}/api/nalarquest/drafts (admin)
+     POST {baseUrl}/api/nalarquest/{id}/publish|reject (admin)
      (cadangan, belum dipakai)
      GET {baseUrl}/api/question?principle=..&type=..&difficulty=..
        -> satu objek entri template/statis
-   Cara mengaktifkan nanti:
-     API_CONFIG.enabled = true;
-     API_CONFIG.baseUrl = "https://api.milik-anda.id";
-     useApiDataset();
+   Backend fase 1 sudah live (2026-11-01): baca bank publik, unggah
+   admin (mode A -> draft), review draft (publish/reject). Token admin
+   disimpan di sessionStorage (hilang saat tab ditutup) + tombol logout.
 */
 const API_CONFIG = {
-  enabled: false,   /* <-- tetap false sampai backend siap */
-  baseUrl: "",      /* mis. "https://api.milik-anda.id" */
-  endpoints: { dataset: "/api/dataset", question: "/api/question" },
+  enabled: true,
+  baseUrl: "https://www.onix.my.id",
+  endpoints: {
+    dataset: "/api/nalarquest/bank",
+    question: "/api/question",
+    login: "/api/auth/login",
+    upload: "/api/nalarquest/upload",
+    drafts: "/api/nalarquest/drafts",
+    publish: "/api/nalarquest/{id}/publish",
+    reject: "/api/nalarquest/{id}/reject"
+  },
   timeoutMs: 8000
 };
 
@@ -1091,11 +1115,209 @@ async function fetchDatasetFromAPI(){
   return res.json();
 }
 async function useApiDataset(){
-  /* Dipakai nanti setelah backend siap dan API_CONFIG diaktifkan. */
   const data = await fetchDatasetFromAPI();
   applyDataset(data, "api");
   datasetState.note = API_CONFIG.baseUrl + API_CONFIG.endpoints.dataset;
   refreshAfterDatasetChange();
+}
+
+/* Muat dari API dulu; gagal -> file lokal (fallback lama). API yang
+   sukses tapi banknya kosong TETAP dipakai (bukan fallback): bank
+   kosong berarti belum ada yang published, bukan API rusak. */
+async function loadFromApiOrFile(){
+  try {
+    await useApiDataset();
+  } catch(e) {
+    await loadDataset();
+    datasetState.note += " (API gagal: " + e.message + ")";
+    refreshAfterDatasetChange();
+  }
+}
+
+/* ---------- API admin: login, unggah, review draft ---------- */
+function apiUrl(path){
+  return API_CONFIG.baseUrl.replace(/\/+$/, "") + path;
+}
+function nqToken(){
+  try { return sessionStorage.getItem("nq-admin-token") || ""; }
+  catch(e){ return ""; }
+}
+function authHeaders(){
+  const t = nqToken();
+  return t ? { "Authorization": "Bearer " + t } : {};
+}
+async function apiFetch(path, opts){
+  opts = opts || {};
+  const ctl = new AbortController();
+  const t = setTimeout(() => ctl.abort(), API_CONFIG.timeoutMs);
+  try {
+    const res = await fetch(apiUrl(path), {
+      method: opts.method || "GET",
+      headers: Object.assign(
+        { "Content-Type": "application/json" },
+        authHeaders(), opts.headers || {}),
+      body: opts.body !== undefined ? JSON.stringify(opts.body) : undefined,
+      signal: ctl.signal
+    });
+    let data = null;
+    try { data = await res.json(); } catch(e) { data = null; }
+    if(!res.ok){
+      const err = new Error("API HTTP " + res.status);
+      err.status = res.status; err.data = data;
+      throw err;
+    }
+    return data;
+  } finally { clearTimeout(t); }
+}
+function refreshAuthUI(){
+  const logged = !!nqToken();
+  document.getElementById("ds-logout").style.display = logged ? "" : "none";
+  document.getElementById("ds-login").style.display = logged ? "none" : "";
+  document.getElementById("ds-drafts-wrap").style.display = logged ? "" : "none";
+  if(!logged) document.getElementById("ds-drafts-list").innerHTML = "";
+}
+function dsLogout(){
+  try { sessionStorage.removeItem("nq-admin-token"); } catch(e) {}
+  document.getElementById("ds-auth-status").textContent = "Keluar.";
+  refreshAuthUI();
+}
+async function dsLogin(){
+  const u = document.getElementById("ds-username").value.trim();
+  const p = document.getElementById("ds-password").value;
+  const st = document.getElementById("ds-auth-status");
+  if(!u || !p){ st.textContent = "Isi username dan password."; return; }
+  st.textContent = "Menghubungi server…";
+  try {
+    const data = await apiFetch(API_CONFIG.endpoints.login,
+      { method: "POST", body: { username: u, password: p } });
+    try { sessionStorage.setItem("nq-admin-token", data.access_token); }
+    catch(e) {}
+    document.getElementById("ds-password").value = "";
+    st.textContent = "Masuk sebagai " +
+      (data.user && data.user.username ? data.user.username : u) + ".";
+    refreshAuthUI();
+    await loadDrafts();
+  } catch(e) {
+    st.textContent = "Gagal masuk: " +
+      (e.status === 401 ? "username/password salah"
+                        : "API HTTP " + (e.status || "?"));
+  }
+}
+function normalizeUploadBody(data){
+  /* Server membaca provenance dari kunci top-level "source"; entri
+     statis tunggal membawa source:"static" (kontrak file) yang BUKAN
+     provenance dan akan ditolak server (422). Normalisasi semua
+     unggahan ke {templates, static, source:"import"} di sisi klien. */
+  const templates = [], staticArr = [];
+  if(data && typeof data === "object" && !Array.isArray(data)
+     && (data.templates || data.static)){
+    (data.templates || []).forEach(o => templates.push(o));
+    (data.static || []).forEach(o => staticArr.push(o));
+  } else if(Array.isArray(data)){
+    data.forEach(o => (guessKind(o) === "static" ? staticArr : templates).push(o));
+  } else if(data && typeof data === "object"){
+    (guessKind(data) === "static" ? staticArr : templates).push(data);
+  }
+  return { templates: templates, static: staticArr, source: "import" };
+}
+async function uploadToServer(data){
+  if(!nqToken()){ alert("Masuk dulu sebagai admin."); return; }
+  const body = normalizeUploadBody(data);
+  if(!body.templates.length && !body.static.length){
+    alert("Tidak ada entri untuk diunggah.");
+    return;
+  }
+  try {
+    const res = await apiFetch(API_CONFIG.endpoints.upload,
+      { method: "POST", body: body });
+    drawUploadReport([], res.added);
+    await loadDrafts();
+  } catch(e) {
+    const det = e.data && e.data.detail;
+    if(e.status === 422 && det && Array.isArray(det.failures)){
+      drawUploadReport(det.failures, 0);
+      alert("Unggah DITOLAK: " + det.failures.length +
+        " entri tidak sesuai — tidak ada yang ditambahkan. Lihat laporan di panel Dataset.");
+    } else if(e.status === 401 || e.status === 403){
+      alert("Sesi admin habis atau tidak berhak. Masuk lagi.");
+      dsLogout();
+    } else if(e.status === 422 && typeof det === "string"){
+      alert("Unggah ditolak: " + det);
+    } else {
+      alert("Unggah gagal: API HTTP " + (e.status || "?"));
+    }
+  }
+}
+async function loadDrafts(){
+  const list = document.getElementById("ds-drafts-list");
+  const st = document.getElementById("ds-auth-status");
+  if(!nqToken()){ list.innerHTML = ""; return; }
+  list.innerHTML = '<div style="font-size:11px">Memuat draft…</div>';
+  try {
+    const data = await apiFetch(API_CONFIG.endpoints.drafts);
+    const drafts = data.drafts || [];
+    if(!drafts.length){
+      list.innerHTML = '<div style="font-size:11px">Tidak ada draft.</div>';
+      return;
+    }
+    let html = '<button class="btn-sm" id="ds-publish-all">Terbitkan semua (' +
+      drafts.length + ')</button>';
+    drafts.forEach(d => {
+      html += '<div style="margin-top:6px;font-size:11px"><b>' +
+        escapeHtml(d.id) + '</b> (' + escapeHtml(d.type || "?") + ", " +
+        escapeHtml(d.source_provenance || "?") + ")" +
+        '<br><button class="btn-sm" data-pub="' + escapeHtml(d.id) +
+        '">Terbitkan</button> ' +
+        '<button class="btn-sm" data-rej="' + escapeHtml(d.id) +
+        '">Tolak</button></div>';
+    });
+    list.innerHTML = html;
+    list.querySelectorAll("[data-pub]").forEach(b =>
+      b.addEventListener("click", () =>
+        reviewDraft(b.getAttribute("data-pub"), "publish")));
+    list.querySelectorAll("[data-rej]").forEach(b =>
+      b.addEventListener("click", () =>
+        reviewDraft(b.getAttribute("data-rej"), "reject")));
+    document.getElementById("ds-publish-all").addEventListener("click",
+      publishAllDrafts);
+  } catch(e) {
+    if(e.status === 401 || e.status === 403){
+      dsLogout();
+      st.textContent = "Sesi habis, masuk lagi.";
+    } else {
+      list.innerHTML = '<div style="font-size:11px">Gagal memuat draft: API HTTP ' +
+        (e.status || "?") + '</div>';
+    }
+  }
+}
+async function reviewDraft(id, action){
+  try {
+    await apiFetch(API_CONFIG.endpoints[action].replace("{id}",
+      encodeURIComponent(id)), { method: "POST" });
+  } catch(e) {
+    alert("Gagal " + (action === "publish" ? "menerbitkan" : "menolak") +
+      ": API HTTP " + (e.status || "?"));
+    return;
+  }
+  await loadDrafts();
+  try { await useApiDataset(); } catch(e) { /* pool lama dipertahankan */ }
+}
+async function publishAllDrafts(){
+  const btn = document.getElementById("ds-publish-all");
+  if(btn) btn.disabled = true;
+  try {
+    const data = await apiFetch(API_CONFIG.endpoints.drafts);
+    for(const d of (data.drafts || [])){
+      await apiFetch(API_CONFIG.endpoints.publish.replace("{id}",
+        encodeURIComponent(d.id)), { method: "POST" });
+    }
+  } catch(e) {
+    alert("Terbitkan semua berhenti: API HTTP " + (e.status || "?") +
+      ". Sebagian mungkin sudah terbit; muat ulang draft.");
+  }
+  if(btn) btn.disabled = false;
+  await loadDrafts();
+  try { await useApiDataset(); } catch(e) { /* pool lama dipertahankan */ }
 }
 
 /* ---------- Tambah / hapus manual ---------- */
@@ -1176,6 +1398,14 @@ function importDatasetObject(data){
   return { added: items.length, failed: 0 };
 }
 
+function reportFailuresHtml(failures){
+  let html = "";
+  failures.forEach(f => {
+    html += '<div style="margin-top:6px"><b>' + escapeHtml(String(f.id)) + '</b> (' + escapeHtml(f.kind) + ')' +
+      '<br>' + f.errors.map(e => '&bull; ' + escapeHtml(e)).join('<br>') + '</div>';
+  });
+  return html;
+}
 function drawImportReport(failures, added){
   const el = document.getElementById("ds-import-report");
   if(!el) return;
@@ -1185,14 +1415,22 @@ function drawImportReport(failures, added){
       : "";
     return;
   }
-  let html = '<div style="border:1px solid #c0392b;padding:8px">' +
-    '<b>Impor DITOLAK: ' + failures.length + ' entri tidak sesuai — tidak ada yang ditambahkan.</b>';
-  failures.forEach(f => {
-    html += '<div style="margin-top:6px"><b>' + escapeHtml(String(f.id)) + '</b> (' + escapeHtml(f.kind) + ')' +
-      '<br>' + f.errors.map(e => '&bull; ' + escapeHtml(e)).join('<br>') + '</div>';
-  });
-  html += '</div>';
-  el.innerHTML = html;
+  el.innerHTML = '<div style="border:1px solid #c0392b;padding:8px">' +
+    '<b>Impor DITOLAK: ' + failures.length + ' entri tidak sesuai — tidak ada yang ditambahkan.</b>' +
+    reportFailuresHtml(failures) + '</div>';
+}
+function drawUploadReport(failures, added){
+  const el = document.getElementById("ds-import-report");
+  if(!el) return;
+  if(!failures.length){
+    el.innerHTML = added
+      ? '<span style="color:#2e7d32">Unggah berhasil: ' + added + ' entri masuk draft (menunggu review).</span>'
+      : "";
+    return;
+  }
+  el.innerHTML = '<div style="border:1px solid #c0392b;padding:8px">' +
+    '<b>Unggah DITOLAK: ' + failures.length + ' entri tidak sesuai — tidak ada yang ditambahkan (server).</b>' +
+    reportFailuresHtml(failures) + '</div>';
 }
 
 function refreshAfterDatasetChange(){
@@ -1214,7 +1452,7 @@ function drawDatasetPanel(){
     "Template: " + TEMPLATES.length + " &middot; Statis: " + STATIC_BANK.length +
     " &middot; Valid: " + v.validCount +
     (datasetState.note ? "<br>" + escapeHtml(datasetState.note) : "") +
-    "<br>Mode API backend: <b>nonaktif</b>";
+    "<br>Mode API backend: <b>" + (API_CONFIG.enabled ? "aktif" : "nonaktif") + "</b>";
   const list = document.getElementById("ds-custom-list");
   if(!list) return;
   if(!datasetState.customIds.length){ list.innerHTML = ""; return; }
@@ -1350,6 +1588,7 @@ const PANDUAN_MD = [
   '- Entri yang gagal validasi tidak pernah masuk pool soal.',
   '- Impor file bersifat menolak-semua (mode A): bila satu entri gagal, tidak ada entri yang ditambahkan; laporan menampilkan id entri + field + aturan yang dilanggar.',
   '- Template di-render uji sebelum diterima: variasi pick diuji semua, int/expr diuji 20 render acak; render yang mengandung NaN/undefined ditolak.',
+  '- Unggah ke server: entri masuk sebagai draft (server memvalidasi ulang dengan mode yang sama); entri baru masuk pool soal setelah diterbitkan dari panel review, bukan saat diunggah.',
   '',
   '## 8. Contoh penulisan JSON',
   'Sampel di bawah disalin utuh (verbatim) dari bank soal v0.7.2.',
@@ -2300,9 +2539,35 @@ function initDatasetUI(){
 
   document.getElementById("ds-reload").addEventListener("click", async () => {
     datasetState.source = "memuat\u2026"; datasetState.note = ""; drawDatasetPanel();
-    await loadDataset();
+    await loadFromApiOrFile();
     refreshAfterDatasetChange();
   });
+  document.getElementById("ds-api").addEventListener("click", async () => {
+    try { await useApiDataset(); }
+    catch(e){ alert("Gagal memuat dari API: " + e.message); }
+  });
+  document.getElementById("ds-login").addEventListener("click", dsLogin);
+  document.getElementById("ds-logout").addEventListener("click", dsLogout);
+  document.getElementById("ds-password").addEventListener("keydown", e => {
+    if(e.key === "Enter") dsLogin();
+  });
+  const fileServerInput = document.getElementById("ds-file-server");
+  document.getElementById("ds-upload-server").addEventListener("click", () => fileServerInput.click());
+  fileServerInput.addEventListener("change", () => {
+    const f = fileServerInput.files[0];
+    if(!f) return;
+    const rd = new FileReader();
+    rd.onload = async () => {
+      let data;
+      try { data = JSON.parse(rd.result); }
+      catch(e){ alert("File bukan JSON valid: " + e.message); fileServerInput.value = ""; return; }
+      await uploadToServer(data);
+      fileServerInput.value = "";
+    };
+    rd.readAsText(f);
+  });
+  refreshAuthUI();
+  if(nqToken()) loadDrafts();
   document.getElementById("ds-guide").addEventListener("click", downloadPanduanMD);
 }
 
@@ -3805,7 +4070,7 @@ document.addEventListener("keydown", e => {
    13. Boot
    ============================================================ */
 initDatasetUI();
-loadDataset().then(() => {
+loadFromApiOrFile().then(() => {
   runValidation();
   drawStats();
   drawPrincipleList();
