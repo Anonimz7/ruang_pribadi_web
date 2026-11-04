@@ -1,0 +1,166 @@
+{
+  "version": "0.7.2",
+  "templates": [],
+  "static": [
+    {
+      "id": "hlr.teks.001",
+      "source": "static",
+      "template_id": null,
+      "type": "hlr",
+      "domain": "teks",
+      "principle": "hlr",
+      "surface_domain": "teks",
+      "surface_distance": null,
+      "contrast_with": [],
+      "difficulty": 1,
+      "prompt": "Di sebuah kantor kecil ada empat staf: Ani, Budi, Citra, dan Dodi. Setiap orang memegang tepat satu tugas: arsip, kasir, kurir, atau resepsionis. Diketahui: (1) Ani tidak memegang arsip maupun kasir. (2) Budi memegang kasir bila Citra memegang arsip, dan sebaliknya Budi bukan kasir bila Citra bukan arsip. (3) Dodi bukan kurir. (4) Citra memegang arsip. Siapakah yang memegang kurir?",
+      "input": {
+        "kind": "choice",
+        "shuffle": true,
+        "options": [
+          {
+            "text": "Ani",
+            "correct": true,
+            "why": "Citra arsip membuat Budi kasir (aturan 2); Ani bukan arsip/kasir; Dodi bukan kurir; tersisa kurir untuk Ani."
+          },
+          {
+            "text": "Budi",
+            "correct": false,
+            "why": "Budi kasir karena Citra arsip, jadi bukan kurir."
+          },
+          {
+            "text": "Citra",
+            "correct": false,
+            "why": "Citra sudah memegang arsip."
+          },
+          {
+            "text": "Dodi",
+            "correct": false,
+            "why": "Dodi dinyatakan bukan kurir."
+          }
+        ]
+      },
+      "explanation": "Dari (4) Citra arsip; dari (2) Budi kasir; dari (1) Ani tersisa kurir/resepsionis; dari (3) Dodi bukan kurir, jadi kurir jatuh ke Ani dan Dodi resepsionis."
+    },
+    {
+      "id": "hlr.teks.002",
+      "source": "static",
+      "template_id": null,
+      "type": "hlr",
+      "domain": "teks",
+      "principle": "hlr",
+      "surface_domain": "teks",
+      "surface_distance": null,
+      "contrast_with": [],
+      "difficulty": 2,
+      "prompt": "Lima kotak berlabel A, B, C, D, E disusun berjajar. Setiap kotak berisi tepat satu warna: merah, biru, hijau, kuning, atau putih, tanpa pengulangan. Petunjuk: (1) Kotak merah tidak bersebelahan dengan kotak biru. (2) Kotak hijau berada di antara kotak kuning dan kotak putih (posisi hijau di antara posisi kuning dan posisi putih). (3) Kotak A bukan merah dan bukan di ujung. (4) Kotak E bersebelahan dengan kotak biru. (5) Kotak C adalah kuning. Manakah pernyataan yang PASTI benar?",
+      "input": {
+        "kind": "choice",
+        "shuffle": true,
+        "options": [
+          {
+            "text": "Kotak E bukan merah",
+            "correct": true,
+            "why": "E bersebelahan dengan kotak biru (petunjuk 4), sedangkan merah tidak boleh bersebelahan dengan biru (petunjuk 1) — jadi E tidak mungkin merah, di susunan valid mana pun."
+          },
+          {
+            "text": "Kotak B bukan merah",
+            "correct": false,
+            "why": "Terlihat meyakinkan, tetapi ada susunan valid di mana B memegang merah."
+          },
+          {
+            "text": "Kotak A adalah biru",
+            "correct": false,
+            "why": "A bukan merah dan bukan di ujung, tetapi warnanya tidak dapat dipastikan."
+          },
+          {
+            "text": "Kotak D adalah putih",
+            "correct": false,
+            "why": "Putih hanya diketahui berada di salah satu sisi hijau, bukan pasti di D."
+          }
+        ]
+      },
+      "explanation": "Gabungkan petunjuk 4 dan 1: E bersebelahan dengan biru, dan merah tidak boleh bersebelahan dengan biru, jadi E bukan merah — ini berlaku di semua 68 susunan yang memenuhi kelima petunjuk (diperiksa dengan enumerasi lengkap). Opsi lain gagal di sebagian susunan."
+    },
+    {
+      "id": "hlr.mat.001",
+      "source": "static",
+      "template_id": null,
+      "type": "hlr",
+      "domain": "angka",
+      "principle": "hlr",
+      "surface_domain": "matematis",
+      "surface_distance": null,
+      "contrast_with": [],
+      "difficulty": 1,
+      "prompt": "Seorang pedagang membeli 3 kardus apel. Setiap kardus berisi 24 apel. Ia menjual apel-apel itu dalam kantong berisi 8 apel dengan harga Rp16.000 per kantong. Sebanyak 4 apel rusak sehingga tidak dijual, dan di akhir hari tersisa 2 kantong yang tidak terjual. Berapakah total uang yang ia peroleh hari itu?",
+      "input": {
+        "kind": "choice",
+        "shuffle": true,
+        "options": [
+          {
+            "text": "Rp96.000",
+            "correct": true,
+            "why": "Total 72 apel, rusak 4, tersisa 68 apel = 8 kantong penuh (64 apel) + 4 apel sisa. Dari 8 kantong, 2 tidak terjual, jadi terjual 6 kantong x Rp16.000 = Rp96.000."
+          },
+          {
+            "text": "Rp128.000",
+            "correct": false,
+            "why": "Itu harga 8 kantong; 2 kantong tidak terjual."
+          },
+          {
+            "text": "Rp112.000",
+            "correct": false,
+            "why": "Itu harga 7 kantong; yang terjual hanya 6."
+          },
+          {
+            "text": "Rp144.000",
+            "correct": false,
+            "why": "Itu harga 9 kantong; kantong yang dibuat hanya 8."
+          }
+        ]
+      },
+      "explanation": "Total apel 3 x 24 = 72. Rusak 4, tersisa 68 apel. 68 apel hanya cukup untuk 8 kantong penuh (8 x 8 = 64 apel), sisa 4 apel tidak cukup sekantong. Dari 8 kantong, 2 tidak terjual, jadi terjual 6 kantong. 6 x Rp16.000 = Rp96.000."
+    },
+    {
+      "id": "hlr.campur.001",
+      "source": "static",
+      "template_id": null,
+      "type": "hlr",
+      "domain": "teks",
+      "principle": "hlr",
+      "surface_domain": "teks",
+      "surface_distance": null,
+      "contrast_with": [],
+      "difficulty": 3,
+      "prompt": "Sebuah tim proyek terdiri dari 6 orang. Setiap orang menguasai tepat dua dari empat keterampilan: desain (D), data (A), tulis (T), dan presentasi (P). Diketahui: (1) Setiap keterampilan dikuasai oleh tepat tiga orang. (2) Tidak ada dua orang yang menguasai pasangan keterampilan yang sama. Berapa banyak orang yang menguasai pasangan D dan T?",
+      "input": {
+        "kind": "choice",
+        "shuffle": true,
+        "options": [
+          {
+            "text": "1 orang",
+            "correct": true,
+            "why": "Ada 6 pasangan dari 4 keterampilan dan 6 orang; aturan 2 memaksa setiap pasangan dipakai tepat satu orang. Jadi pasangan DT dipakai tepat satu orang — dan aturan 1 terpenuhi otomatis karena tiap keterampilan muncul di 3 pasangan."
+          },
+          {
+            "text": "2 orang",
+            "correct": false,
+            "why": "Dua orang tidak boleh memakai pasangan yang sama (aturan 2)."
+          },
+          {
+            "text": "3 orang",
+            "correct": false,
+            "why": "Itu jumlah penguasa satu keterampilan, bukan jumlah pemegang pasangan DT."
+          },
+          {
+            "text": "Tidak dapat ditentukan",
+            "correct": false,
+            "why": "Aturan 1 dan 2 cukup mengunci struktur pasangan."
+          }
+        ]
+      },
+      "explanation": "Jumlah pasangan dari 4 keterampilan adalah C(4,2) = 6, sama dengan jumlah orang (6). Aturan 2 melarang dua orang memakai pasangan yang sama, jadi keenam pasangan masing-masing dipakai tepat satu orang — termasuk DT. Periksa aturan 1: tiap keterampilan muncul di 3 pasangan (mis. D di DT, DA, DP), jadi tiap keterampilan dikuasai tepat 3 orang. Konsisten. Jawaban: 1 orang."
+    }
+  ]
+}

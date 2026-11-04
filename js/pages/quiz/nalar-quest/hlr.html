@@ -1,0 +1,262 @@
+<!doctype html>
+<html lang="id">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1">
+<title>HLR — High Level Reasoning</title><link rel="stylesheet" href="nq-core.css">
+</head>
+<body>
+
+<header class="top">
+  <div class="brand">
+    <span class="mark">HLR</span>
+    <span class="name">High Level Reasoning</span>
+    <span class="tag">prototipe</span>
+  </div>
+  <nav class="tabs" id="tabs"><span style="font-size:12px;letter-spacing:.08em">HIGH LEVEL REASONING</span></nav>
+  <div class="hint">Input menyesuaikan JSON</div>
+</header>
+
+<main class="app">
+  <aside class="rail">
+    <section id="sec-diff">
+      <h2 class="lbl">Tingkat</h2>
+      <div class="seg" id="diff">
+        <button data-d="0" class="on">Semua</button>
+        <button data-d="1">1</button>
+        <button data-d="2">2</button>
+        <button data-d="3">3</button>
+      </div>
+    </section>
+                <section>
+      <h2 class="lbl">Total</h2>
+      <dl class="ledger">
+        <div><dt>Benar</dt><dd id="s-ok">0</dd></div>
+        <div><dt>Salah</dt><dd id="s-no">0</dd></div>
+        <div><dt>Akurasi</dt><dd class="acc" id="s-acc">—</dd></div>
+        <div><dt>Streak</dt><dd id="s-st">0</dd></div>
+        <div><dt>Terbaik</dt><dd id="s-best">0</dd></div>
+      </dl>
+      <div class="calib-list" id="calib-total"></div>
+      <button class="btn-sm danger" id="reset-stats" style="margin-top:6px">Reset statistik</button>
+    </section>
+    <section id="sec-queue">
+      <h2 class="lbl">Antrean HLR</h2>
+      <div id="hlr-queue" style="font-size:11px;line-height:1.6;color:var(--muted)"></div>
+      <button class="btn-sm" id="hlr-reshuffle" style="margin-top:6px">Kocok ulang</button>
+    </section>
+    <section id="sec-bank">
+      <h2 class="lbl">Bank</h2>
+      <div id="bank-status"></div>
+    </section>
+    <section id="sec-dataset">
+      <h2 class="lbl">Dataset</h2>
+      <div id="dataset-status" style="font-size:11px;line-height:1.6;color:var(--muted)">memuat&hellip;</div>
+      <div style="display:flex;flex-direction:column;gap:6px;margin-top:8px">
+        <button class="btn-sm" id="ds-add">Tambah manual</button>
+        <button class="btn-sm" id="ds-load-file">Muat file JSON</button>
+        <button class="btn-sm" id="ds-reload">Muat ulang dataset</button>
+        <button class="btn-sm" id="ds-api" title="Muat bank dari API server">Muat dari API</button>
+        <button class="btn-sm" id="ds-guide">Unduh panduan MD</button>
+      </div>
+      <input type="file" id="ds-file" accept=".json,application/json" style="display:none">
+      <div class="ds-list" id="ds-custom-list"></div>
+      <div id="ds-import-report" style="font-size:11px;line-height:1.6;margin-top:8px"></div>
+      <div style="margin-top:10px;border-top:1px solid #ddd;padding-top:8px">
+        <div style="font-size:11px;color:var(--muted)">Admin server (unggah &amp; review)</div>
+        <input id="ds-username" placeholder="Username admin" autocomplete="username" style="width:100%;box-sizing:border-box;margin-top:4px;font-size:12px;padding:6px">
+        <input id="ds-password" type="password" placeholder="Password" autocomplete="current-password" style="width:100%;box-sizing:border-box;margin-top:4px;font-size:12px;padding:6px">
+        <div style="display:flex;gap:6px;margin-top:6px;flex-wrap:wrap">
+          <button class="btn-sm" id="ds-login">Masuk</button>
+          <button class="btn-sm" id="ds-logout" style="display:none">Keluar</button>
+          <button class="btn-sm" id="ds-upload-server">Unggah ke server (draft)</button>
+        </div>
+        <div id="ds-auth-status" style="font-size:11px;line-height:1.6;margin-top:4px"></div>
+        <div id="ds-drafts-wrap" style="display:none;margin-top:8px">
+          <div style="font-size:11px;color:var(--muted)">Draft menunggu review</div>
+          <div id="ds-drafts-list" style="margin-top:4px"></div>
+        </div>
+      </div>
+      <input type="file" id="ds-file-server" accept=".json,application/json" style="display:none">
+    </section>
+    <section>
+      <button class="btn" id="next">Soal baru</button>
+    </section>
+  </aside>
+
+  <section class="stage">
+    <div class="mobile-bar">
+      <button class="btn-sm" id="rail-toggle">Pengaturan &amp; Statistik</button>
+    </div>
+    <div class="meta">
+      <span id="m-id">—</span>
+      <span><b id="m-tpl">—</b></span>
+      <span id="m-dom">—</span>
+      <span id="m-dif">—</span>
+      <span id="m-kind">—</span>
+      <span id="m-principle">—</span>
+      <span id="m-dist">—</span>
+      <span><span class="src-tag template" id="m-src">template</span></span>
+      <span id="m-session"></span>
+    </div>
+    <article>
+      <p class="prompt serif" id="prompt">Memuat…</p>
+      <div class="inputs" id="inputs"></div>
+      <div class="conf-slot" id="conf-slot"></div>
+      <div class="explain" id="explain" hidden></div>
+      <button class="btn" id="next-inline" style="display:none;margin-top:20px;max-width:660px">Soal berikutnya</button>
+    </article>
+  </section>
+
+  <aside class="src">
+    <div class="src-head">
+      <h2 class="lbl">Sumber soal</h2>
+      <div class="seg small" id="srctabs">
+        <button data-t="soal" class="on">soal.json</button>
+        <button data-t="tpl">template</button>
+      </div>
+      <button class="btn-sm src-toggle" id="src-toggle">Tampilkan JSON</button>
+    </div>
+    <div class="redact-note" id="redact-note">
+      Field jawaban (<span style="color:var(--ink)">correct</span>,
+      <span style="color:var(--ink)">canonical</span>,
+      <span style="color:var(--ink)">answer</span>) disamarkan sebagai
+      <span style="color:var(--ink)">"…"</span> sampai soal dijawab.
+    </div>
+    <pre class="code" id="code"></pre>
+  </aside>
+</main>
+
+<footer class="foot">
+  <span class="foot-ver">NalarQuest v0.7.2</span>
+  <span class="foot-sep">/</span>
+  <span>2026-10-04</span>
+  <span class="foot-spacer"></span>
+  <span class="foot-note">redaksi explanation · reveal setelah commit · 80/20 vs lastKey</span>
+</footer>
+<script>
+/* Konfigurasi + data halaman HLR. WAJIB dimuat SEBELUM nq-core.js. */
+const DATASET_URL = "hlr-dataset.json";
+const FALLBACK_TEMPLATES = [];
+const FALLBACK_STATIC = [{"id": "hlr.teks.001", "source": "static", "template_id": null, "type": "hlr", "domain": "teks", "principle": "hlr", "surface_domain": "teks", "surface_distance": null, "contrast_with": [], "difficulty": 1, "prompt": "Di sebuah kantor kecil ada empat staf: Ani, Budi, Citra, dan Dodi. Setiap orang memegang tepat satu tugas: arsip, kasir, kurir, atau resepsionis. Diketahui: (1) Ani tidak memegang arsip maupun kasir. (2) Budi memegang kasir bila Citra memegang arsip, dan sebaliknya Budi bukan kasir bila Citra bukan arsip. (3) Dodi bukan kurir. (4) Citra memegang arsip. Siapakah yang memegang kurir?", "input": {"kind": "choice", "shuffle": true, "options": [{"text": "Ani", "correct": true, "why": "Citra arsip membuat Budi kasir (aturan 2); Ani bukan arsip/kasir; Dodi bukan kurir; tersisa kurir untuk Ani."}, {"text": "Budi", "correct": false, "why": "Budi kasir karena Citra arsip, jadi bukan kurir."}, {"text": "Citra", "correct": false, "why": "Citra sudah memegang arsip."}, {"text": "Dodi", "correct": false, "why": "Dodi dinyatakan bukan kurir."}]}, "explanation": "Dari (4) Citra arsip; dari (2) Budi kasir; dari (1) Ani tersisa kurir/resepsionis; dari (3) Dodi bukan kurir, jadi kurir jatuh ke Ani dan Dodi resepsionis."}, {"id": "hlr.teks.002", "source": "static", "template_id": null, "type": "hlr", "domain": "teks", "principle": "hlr", "surface_domain": "teks", "surface_distance": null, "contrast_with": [], "difficulty": 2, "prompt": "Lima kotak berlabel A, B, C, D, E disusun berjajar. Setiap kotak berisi tepat satu warna: merah, biru, hijau, kuning, atau putih, tanpa pengulangan. Petunjuk: (1) Kotak merah tidak bersebelahan dengan kotak biru. (2) Kotak hijau berada di antara kotak kuning dan kotak putih (posisi hijau di antara posisi kuning dan posisi putih). (3) Kotak A bukan merah dan bukan di ujung. (4) Kotak E bersebelahan dengan kotak biru. (5) Kotak C adalah kuning. Manakah pernyataan yang PASTI benar?", "input": {"kind": "choice", "shuffle": true, "options": [{"text": "Kotak E bukan merah", "correct": true, "why": "E bersebelahan dengan kotak biru (petunjuk 4), sedangkan merah tidak boleh bersebelahan dengan biru (petunjuk 1) — jadi E tidak mungkin merah, di susunan valid mana pun."}, {"text": "Kotak B bukan merah", "correct": false, "why": "Terlihat meyakinkan, tetapi ada susunan valid di mana B memegang merah."}, {"text": "Kotak A adalah biru", "correct": false, "why": "A bukan merah dan bukan di ujung, tetapi warnanya tidak dapat dipastikan."}, {"text": "Kotak D adalah putih", "correct": false, "why": "Putih hanya diketahui berada di salah satu sisi hijau, bukan pasti di D."}]}, "explanation": "Gabungkan petunjuk 4 dan 1: E bersebelahan dengan biru, dan merah tidak boleh bersebelahan dengan biru, jadi E bukan merah — ini berlaku di semua 68 susunan yang memenuhi kelima petunjuk (diperiksa dengan enumerasi lengkap). Opsi lain gagal di sebagian susunan."}, {"id": "hlr.mat.001", "source": "static", "template_id": null, "type": "hlr", "domain": "angka", "principle": "hlr", "surface_domain": "matematis", "surface_distance": null, "contrast_with": [], "difficulty": 1, "prompt": "Seorang pedagang membeli 3 kardus apel. Setiap kardus berisi 24 apel. Ia menjual apel-apel itu dalam kantong berisi 8 apel dengan harga Rp16.000 per kantong. Sebanyak 4 apel rusak sehingga tidak dijual, dan di akhir hari tersisa 2 kantong yang tidak terjual. Berapakah total uang yang ia peroleh hari itu?", "input": {"kind": "choice", "shuffle": true, "options": [{"text": "Rp96.000", "correct": true, "why": "Total 72 apel, rusak 4, tersisa 68 apel = 8 kantong penuh (64 apel) + 4 apel sisa. Dari 8 kantong, 2 tidak terjual, jadi terjual 6 kantong x Rp16.000 = Rp96.000."}, {"text": "Rp128.000", "correct": false, "why": "Itu harga 8 kantong; 2 kantong tidak terjual."}, {"text": "Rp112.000", "correct": false, "why": "Itu harga 7 kantong; yang terjual hanya 6."}, {"text": "Rp144.000", "correct": false, "why": "Itu harga 9 kantong; kantong yang dibuat hanya 8."}]}, "explanation": "Total apel 3 x 24 = 72. Rusak 4, tersisa 68 apel. 68 apel hanya cukup untuk 8 kantong penuh (8 x 8 = 64 apel), sisa 4 apel tidak cukup sekantong. Dari 8 kantong, 2 tidak terjual, jadi terjual 6 kantong. 6 x Rp16.000 = Rp96.000."}, {"id": "hlr.campur.001", "source": "static", "template_id": null, "type": "hlr", "domain": "teks", "principle": "hlr", "surface_domain": "teks", "surface_distance": null, "contrast_with": [], "difficulty": 3, "prompt": "Sebuah tim proyek terdiri dari 6 orang. Setiap orang menguasai tepat dua dari empat keterampilan: desain (D), data (A), tulis (T), dan presentasi (P). Diketahui: (1) Setiap keterampilan dikuasai oleh tepat tiga orang. (2) Tidak ada dua orang yang menguasai pasangan keterampilan yang sama. Berapa banyak orang yang menguasai pasangan D dan T?", "input": {"kind": "choice", "shuffle": true, "options": [{"text": "1 orang", "correct": true, "why": "Ada 6 pasangan dari 4 keterampilan dan 6 orang; aturan 2 memaksa setiap pasangan dipakai tepat satu orang. Jadi pasangan DT dipakai tepat satu orang — dan aturan 1 terpenuhi otomatis karena tiap keterampilan muncul di 3 pasangan."}, {"text": "2 orang", "correct": false, "why": "Dua orang tidak boleh memakai pasangan yang sama (aturan 2)."}, {"text": "3 orang", "correct": false, "why": "Itu jumlah penguasa satu keterampilan, bukan jumlah pemegang pasangan DT."}, {"text": "Tidak dapat ditentukan", "correct": false, "why": "Aturan 1 dan 2 cukup mengunci struktur pasangan."}]}, "explanation": "Jumlah pasangan dari 4 keterampilan adalah C(4,2) = 6, sama dengan jumlah orang (6). Aturan 2 melarang dua orang memakai pasangan yang sama, jadi keenam pasangan masing-masing dipakai tepat satu orang — termasuk DT. Periksa aturan 1: tiap keterampilan muncul di 3 pasangan (mis. D di DT, DA, DP), jadi tiap keterampilan dikuasai tepat 3 orang. Konsisten. Jawaban: 1 orang."}];
+const DS_EXAMPLE_TEMPLATE = {"id": "manual-tpl-001", "type": "deductive", "domain": "teks", "principle": "prinsip_baru", "surface_domain": "teks", "surface_distance": 0, "difficulty": 1, "vars": {}, "prompt": "Contoh template (tidak masuk antrean HLR).", "input": {"kind": "choice", "shuffle": true, "options": [{"text": "A", "correct": true, "why": ""}, {"text": "B", "correct": false, "why": ""}]}, "explain": "Contoh."};
+const DS_EXAMPLE_STATIC = {"id": "hlr.teks.001", "source": "static", "template_id": null, "type": "hlr", "domain": "teks", "principle": "hlr", "surface_domain": "teks", "surface_distance": null, "contrast_with": [], "difficulty": 1, "prompt": "Di sebuah kantor kecil ada empat staf: Ani, Budi, Citra, dan Dodi. Setiap orang memegang tepat satu tugas: arsip, kasir, kurir, atau resepsionis. Diketahui: (1) Ani tidak memegang arsip maupun kasir. (2) Budi memegang kasir bila Citra memegang arsip, dan sebaliknya Budi bukan kasir bila Citra bukan arsip. (3) Dodi bukan kurir. (4) Citra memegang arsip. Siapakah yang memegang kurir?", "input": {"kind": "choice", "shuffle": true, "options": [{"text": "Ani", "correct": true, "why": "Citra arsip membuat Budi kasir (aturan 2); Ani bukan arsip/kasir; Dodi bukan kurir; tersisa kurir untuk Ani."}, {"text": "Budi", "correct": false, "why": "Budi kasir karena Citra arsip, jadi bukan kurir."}, {"text": "Citra", "correct": false, "why": "Citra sudah memegang arsip."}, {"text": "Dodi", "correct": false, "why": "Dodi dinyatakan bukan kurir."}]}, "explanation": "Dari (4) Citra arsip; dari (2) Budi kasir; dari (1) Ani tersisa kurir/resepsionis; dari (3) Dodi bukan kurir, jadi kurir jatuh ke Ani dan Dodi resepsionis."};
+const PANDUAN_MD = ["PANDUAN PENULIS SOAL HLR (High Level Reasoning) v0.1", "", "HLR adalah soal penalaran tingkat tinggi yang LINTAS DISIPLIN: satu soal boleh menuntut beberapa macam penalaran sekaligus (deduktif, induktif, abduktif, kuantitatif). HLR bukan jenis logika keempat.", "HLR hanya memakai soal STATIS (soal jadi, tanpa template): bank soal besar yang terus bertambah, diacak urutannya setiap kali program dimulai, lalu dimainkan berurutan.", "", "MENU AI (cabang HLR) — jangan langsung membuat soal, tampilkan menu ini dan tunggu jawaban:", "  1. Mode: statis (terkunci — HLR tidak memakai template)", "  2. Jenis: lintas disiplin (bukan satu jenis logika)", "  3. Prinsip: penanda \"hlr\" (bukan satu prinsip)", "  4. Bentuk jawaban: choice (opsi seperti yang sudah ada)", "  5. Permukaan: teks / matematis / campuran (pilih per batch sesuai permintaan)", "  6. Kesulitan: 1 / 2 / 3", "  7. Jumlah soal: (angka)", "Untuk setiap baris, pengguna boleh memilih sendiri atau menulis \"acak\".", "Setelah pengguna menjawab menu, tulis konfigurasi yang dipakai di field description (satu baris), lalu keluarkan HANYA JSON sesuai ATURAN KELUARAN.", "", "ATURAN KELUARAN", "- Keluarkan HANYA satu objek JSON, tanpa teks di luar JSON:", "  {\"version\": \"0.7.2\", \"description\": \"...\", \"templates\": [], \"static\": [...]}", "- Array templates SELALU kosong untuk HLR.", "", "FIELD STATIS HLR", "- id: pola hlr.<ciri>, mis. \"hlr.teks.001\"", "- type: \"hlr\"", "- principle: \"hlr\"", "- domain: \"teks\" | \"angka\"", "- surface_domain: \"teks\" | \"matematis\"", "- surface_distance: null (tidak berlaku untuk HLR)", "- difficulty: 1, 2, atau 3", "- prompt: soal/pernyataan PANJANG dan MANDIRI — semua informasi yang dibutuhkan untuk menjawab harus ada di prompt; pemain tidak boleh diminta menebak informasi yang tidak diberikan", "- input: kind \"choice\", shuffle true, TEPAT 1 opsi benar, setiap opsi memakai why", "- explanation: alur penalaran langkah demi langkah, bukan sekadar \"karena jawabannya X\"", "- Tambah source: \"static\" dan template_id: null", "", "ANTI-SLOP HLR", "- Soal harus menuntut penalaran MULTI-LANGKAH, bukan satu pola yang langsung terlihat.", "- Pengecoh harus menangkap kesalahan penalaran yang umum, bukan sekadar jawaban ngawur.", "- Jangan menyalin struktur soal yang sudah ada di bank; ubah konteks DAN struktur penalarannya.", "- Periksa sendiri sebelum menjawab: hitung/nalar ulang sampai ke jawaban benar; bila opsi benar dan explanation tidak cocok, perbaiki soalnya, jangan memaksakan opsi.", "- Setiap entri harus lolos seluruh aturan validasi. Periksa sendiri sebelum menjawab."];
+function downloadPanduanMD(){
+  const blob = new Blob([PANDUAN_MD.join("\n")], {type: "text/markdown"});
+  const a = document.createElement("a");
+  a.href = URL.createObjectURL(blob);
+  a.download = "panduan-hlr.md";
+  a.click();
+  setTimeout(() => URL.revokeObjectURL(a.href), 1000);
+}
+</script>
+<script src="nq-core.js"></script>
+<script>
+
+/* Logika khas halaman HLR: antrean kocok, tanpa sesi/tangga. */
+Object.assign(state, { diff: 0, queue: [], queuePos: 0, bankKey: "" });
+
+function hlrCandidates(){
+  return STATIC_BANK.filter(s =>
+    state.validation.validIds.has(s.id) && s.type === "hlr" &&
+    (state.diff === 0 || s.difficulty === state.diff));
+}
+function buildQueue(){
+  state.queue = shuffle(hlrCandidates().slice());
+  state.queuePos = 0;
+  drawQueueStatus();
+}
+function drawQueueStatus(){
+  const el = document.getElementById("hlr-queue");
+  if(!el) return;
+  if(!state.queue.length){
+    el.textContent = "Belum ada soal HLR untuk filter ini.";
+    return;
+  }
+  /* queuePos = jumlah soal yang sudah ditarik = nomor soal yang tampil. */
+  if(state.queuePos >= state.queue.length){
+    el.textContent = "Antrean habis — tekan \u201cKocok ulang\u201d untuk mulai lagi.";
+    return;
+  }
+  if(state.queuePos === 0){
+    el.textContent = "Antrean siap: " + state.queue.length + " soal — dikocok saat dibangun.";
+    return;
+  }
+  el.textContent = "Soal ke " + state.queuePos + " dari " + state.queue.length +
+    " — antrean dikocok saat dibangun.";
+}
+function nextSoal(){
+  if(state.awaitingConfidence) return;
+  if(state.queuePos >= state.queue.length){
+    const empty = !state.queue.length;
+    els.prompt.textContent = empty
+      ? "Belum ada soal HLR untuk filter ini."
+      : "Antrean HLR habis. Tekan \u201cKocok ulang\u201d untuk mulai lagi.";
+    els.inputs.innerHTML = "";
+    els.confSlot.innerHTML = "";
+    els.explain.hidden = true;
+    els.nextInline.style.display = "none";
+    state.soal = null;
+    els.mId.textContent = "—"; els.mTpl.textContent = "—";
+    els.mDom.textContent = "—"; els.mDif.textContent = "—";
+    els.mKind.textContent = "—"; els.mPrinciple.textContent = "—";
+    els.mDist.textContent = "—"; els.mSession.textContent = "";
+    drawQueueStatus();
+    return;
+  }
+  const s = instantiateStatic(state.queue[state.queuePos++]);
+  if(!s){ nextSoal(); return; }
+  state.lastKey = s.template_id || s.id;
+  state.soal = s;
+  state.soalStartedAt = Date.now();
+  state.answered = false;
+  state.awaitingConfidence = false;
+  state.userAnswer = null;
+  state.buffer = "";
+  state.pending = null;
+  draw();
+  drawQueueStatus();
+}
+/* Dipanggil inti setiap bank berubah: bangun ulang antrean hanya bila
+   isi bank HLR benar-benar berubah (klik "Muat ulang" dua kali tidak
+   mengocok ulang antrean yang sedang dimainkan). */
+function onDatasetChanged(){
+  const key = STATIC_BANK.filter(s => s.type === "hlr").map(s => s.id).join(",");
+  if(key === state.bankKey) return;
+  state.bankKey = key;
+  buildQueue();
+  nextSoal();
+}
+$("diff").addEventListener("click", e => {
+  const b = e.target.closest("button"); if(!b) return;
+  [...e.currentTarget.children].forEach(x => x.classList.toggle("on", x === b));
+  state.diff = Number(b.dataset.d);
+  state.lastKey = null;
+  buildQueue();
+  nextSoal();
+});
+document.getElementById("hlr-reshuffle").addEventListener("click", () => {
+  buildQueue();
+  nextSoal();
+});
+$("reset-stats").addEventListener("click", () => {
+  if(!confirm("Hapus semua statistik?")) return;
+  state.stats = { ok:0, no:0, streak:0, best:0, byPrinciple: {} };
+  drawStats();
+  drawBankStatus();
+  buildQueue();
+  nextSoal();
+});
+initCoreEvents();
+initDatasetUI();
+loadFromApiOrFile().then(() => {
+  runValidation();
+  drawStats();
+  drawBankStatus();
+  drawDatasetPanel();
+});
+</script>
+
+</body>
+</html>

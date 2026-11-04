@@ -358,6 +358,7 @@ const stockState = {
   foreignOwn: null,
   foreignAnchor: null,
   foreignTypes: null,
+  shareHolders: null,
   financials: null,
   compareMode: false, compareTickers: [], compareData: {}, compareLoading: false,
   charts: [],
@@ -392,6 +393,7 @@ async function loadAnalysis(ticker, { keepCompare = false } = {}) {
   stockState.foreignOwn = null;
   stockState.foreignAnchor = null;
   stockState.foreignTypes = null;
+  stockState.shareHolders = null;
   stockState.financials = null;
   if (!keepCompare) clearCompare();
   renderStatusPencarian();
@@ -406,6 +408,8 @@ async function loadAnalysis(ticker, { keepCompare = false } = {}) {
     stockState.foreignAnchor = (fa && (fa.data || fa)) || null;
     const ft = await Api.get(`/idx/stocks/${t}/ownership-by-type`).catch(() => null);
     stockState.foreignTypes = (ft && (ft.data || ft)) || null;
+    const sh = await Api.get(`/idx/stocks/${t}/share-holders`).catch(() => null);
+    stockState.shareHolders = (sh && (sh.data || sh)) || null;
     const fin = await Api.get(`/idx/stocks/${t}/financials`).catch(() => null);
     stockState.financials = (fin && (fin.data || fin)) || null;
     for (const ct of stockState.compareTickers) { await refreshCompare(ct); }
@@ -786,6 +790,8 @@ function renderAnalysis() {
       const ft = stockState.foreignTypes;
       if (ft && ft.series && ft.series.length) chartsWrap.appendChild(buildByTypeSection(ft));
     }
+    const sh = stockState.shareHolders;
+    if (sh && sh.holders && sh.holders.length) chartsWrap.appendChild(buildShareHoldersSection(sh));
     chartsWrap.appendChild(chartPanel('BII Score (Buying Intensity Index)', 'Accumulation score', [{ label: 'BII Score', color: '#7B61FF' }], 210));
     chartsWrap.appendChild(chartPanel('ATV (Avg Transaction Value)', 'Average transaction size', [{ label: 'ATV', color: '#9270CA' }], 200));
     chartsWrap.appendChild(chartPanel('Nego Value (Non-Regular)', 'Negotiated transactions', [{ label: 'Nego Value', color: '#F6C022' }], 200));
@@ -1003,6 +1009,37 @@ function buildByTypeSectionHtml(ft) {
 function buildByTypeSection(ft) {
   const wrap = createEl('div', { style: { marginBottom: 'var(--s-6)' } });
   wrap.innerHTML = buildByTypeSectionHtml(ft);
+  return wrap;
+}
+
+function escHtml(s) {
+  return String(s ?? '').replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/>/g, '&gt;').replace(/"/g, '&quot;');
+}
+
+function buildShareHoldersSectionHtml(sh) {
+  const lf = (v) => v === 'L' ? 'Local' : v === 'F' ? 'Foreign' : '—';
+  const ctrl = (v) => v === 'CONTROLLER' ? 'Controller' : v === 'AFFILIATE OF THE CONTROLLER' ? 'Affiliate' : (v ? escHtml(v) : '—');
+  const rows = (sh.holders || []).map(h => {
+    const pct = h.percentage == null ? '—' : h.percentage.toFixed(2) + '%';
+    const shares = h.total_holding_shares == null ? '—' : formatNilaiSingkat(h.total_holding_shares) + ' shares';
+    return `<tr><td>${escHtml(h.investor_name || '—')}</td><td style="text-align:right;">${pct}</td><td style="text-align:right;">${shares}</td><td>${lf(h.local_foreign)}</td><td>${escHtml(h.investor_classification || '—')}</td><td>${ctrl(h.controller_or_affiliate)}</td></tr>`;
+  }).join('');
+  const snaps = sh.snapshots || [];
+  const range = snaps.length ? `${snaps[0]} → ${snaps[snaps.length - 1]}` : '';
+  return `
+    <div style="font-size:var(--text-md);font-weight:700;margin-bottom:2px;">Major Shareholders (≥1%)</div>
+    <div style="font-size:var(--text-xs);color:var(--c-text-3);margin-bottom:var(--s-3);">KSEI shareholder announcements · snapshot ${dateLabelYear(sh.snapshot_date)} · ${sh.holder_count} holders${range ? ` · ${snaps.length} months available (${range})` : ''}</div>
+    <div style="overflow-x:auto;">
+      <table class="table">
+        <thead><tr><th>Investor</th><th style="text-align:right;">% Owned</th><th style="text-align:right;">Shares</th><th>Local / Foreign</th><th>Classification</th><th>Controller</th></tr></thead>
+        <tbody>${rows}</tbody>
+      </table>
+    </div>`;
+}
+
+function buildShareHoldersSection(sh) {
+  const wrap = createEl('div', { style: { marginBottom: 'var(--s-6)' } });
+  wrap.innerHTML = buildShareHoldersSectionHtml(sh);
   return wrap;
 }
 
