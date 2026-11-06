@@ -148,7 +148,8 @@ async function fetchDatasetFromAPI(){
 async function useApiDataset(){
   const data = await fetchDatasetFromAPI();
   applyDataset(data, "api");
-  datasetState.note = API_CONFIG.baseUrl + API_CONFIG.endpoints.dataset;
+  /* Catatan URL API tidak ditampilkan di panel (hanya sumber + jumlah). */
+  datasetState.note = "";
   refreshAfterDatasetChange();
 }
 
@@ -232,9 +233,11 @@ function refreshDatasetPanelVisibility(){
 }
 function refreshAuthUI(){
   const s = appSession();
+  /* Baris "Masuk sebagai ..." tidak ditampilkan — login sudah jelas
+     dari aplikasi. Elemen ds-auth-status hanya dipakai untuk pesan
+     error sesi (onAdminSessionExpired). */
   const st = document.getElementById("ds-auth-status");
-  if(st) st.textContent = s.token
-    ? ("Masuk sebagai " + (s.username || "?") + " (login aplikasi).") : "";
+  if(st) st.textContent = "";
   const wrap = document.getElementById("ds-drafts-wrap");
   if(wrap) wrap.style.display = s.token ? "" : "none";
   if(!s.token){
@@ -504,8 +507,7 @@ function drawDatasetPanel(){
     "Sumber: <b>" + escapeHtml(String(datasetState.source)) + "</b><br>" +
     "Template: " + TEMPLATES.length + " &middot; Statis: " + STATIC_BANK.length +
     " &middot; Valid: " + v.validCount +
-    (datasetState.note ? "<br>" + escapeHtml(datasetState.note) : "") +
-    "<br>Mode API backend: <b>" + (API_CONFIG.enabled ? "aktif" : "nonaktif") + "</b>";
+    (datasetState.note ? "<br>" + escapeHtml(datasetState.note) : "");
   const list = document.getElementById("ds-custom-list");
   if(!list) return;
   if(!datasetState.customIds.length){ list.innerHTML = ""; return; }
