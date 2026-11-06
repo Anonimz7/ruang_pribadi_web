@@ -248,6 +248,21 @@ $("reset-stats").addEventListener("click", () => {
   buildQueue();
   nextSoal();
 });
+/* HLR: bank API yang sukses tapi tidak berisi entri hlr BUKAN keadaan
+   valid — isinya hanya ada di file lokal sampai ada yang menerbitkan
+   entri hlr ke bank. Aturan inti ("API sukses walau kosong tetap
+   dipakai") benar untuk NQ, jadi fallback ini hanya di halaman HLR;
+   bila API sudah berisi entri hlr, API tetap dipakai. Dibungkus di sini
+   (bukan di inti) supaya berlaku di semua pemanggilan loadFromApiOrFile
+   — boot halaman maupun tombol "Muat dari API". */
+const _coreLoadFromApiOrFile = loadFromApiOrFile;
+loadFromApiOrFile = async function(){
+  await _coreLoadFromApiOrFile();
+  if(!STATIC_BANK.some(s => s.type === "hlr")){
+    await loadDataset();
+    refreshAfterDatasetChange();
+  }
+};
 initCoreEvents();
 initDatasetUI();
 loadFromApiOrFile().then(() => {
