@@ -595,10 +595,6 @@ function initDatasetUI(){
     await loadFromApiOrFile();
     refreshAfterDatasetChange();
   });
-  document.getElementById("ds-api").addEventListener("click", async () => {
-    try { await useApiDataset(); }
-    catch(e){ alert("Gagal memuat dari API: " + e.message); }
-  });
   const fileServerInput = document.getElementById("ds-file-server");
   document.getElementById("ds-upload-server").addEventListener("click", () => fileServerInput.click());
   fileServerInput.addEventListener("change", () => {
