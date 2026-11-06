@@ -58,6 +58,13 @@
       "minTier": 1
     },
     {
+      "key": "hlr",
+      "icon": "Icons.account_tree",
+      "label": "High Level Reasoning",
+      "section": "quiz",
+      "minTier": 1
+    },
+    {
       "key": "news",
       "icon": "Icons.article",
       "label": "News",

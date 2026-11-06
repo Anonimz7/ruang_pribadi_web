@@ -21,6 +21,7 @@ const QUIZ = [
   { route: '/math-dasar', icon: 'calculate', label: 'Math Dasar', desc: 'Tabel matematika interaktif' },
   { route: '/bahasa', icon: 'globe', label: 'Bahasa', desc: 'Terjemahan & belajar bahasa' },
   { href: 'js/pages/quiz/nalar-quest/nalarquest.html', key: 'nalarquest', icon: 'target', label: 'NalarQuest', desc: 'Latihan penalaran — prinsip sama, permukaan berbeda' },
+  { href: 'js/pages/quiz/nalar-quest/hlr.html', key: 'hlr', icon: 'git-branch', label: 'High Level Reasoning', desc: 'Penalaran tingkat tinggi — soal panjang lintas disiplin' },
 ];
 
 export function render() {

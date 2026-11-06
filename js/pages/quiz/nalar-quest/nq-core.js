@@ -169,7 +169,30 @@ async function loadFromApiOrFile(){
 function apiUrl(path){
   return API_CONFIG.baseUrl.replace(/\/+$/, "") + path;
 }
+/* Sesi login aplikasi (ruang_pribadi): token + user tersimpan di
+   localStorage oleh SPA (auth.js) — satu origin dengan halaman ini,
+   jadi panel tidak perlu login sendiri. */
+function appSession(){
+  try {
+    const token = localStorage.getItem("jwt_token") || "";
+    const raw = localStorage.getItem("user_data") || "";
+    if(!token || !raw) return { token: "", username: "", rank: 3 };
+    const user = JSON.parse(raw);
+    let rank = Number.isFinite(user.rank) ? user.rank : 3;
+    if(!Number.isFinite(user.rank)){
+      rank = user.tier === "admin" ? 0 : user.tier === "premium" ? 1
+        : user.tier === "member" ? 2 : 3;
+    }
+    return { token: token, username: user.username || "", rank: rank };
+  } catch(e){ return { token: "", username: "", rank: 3 }; }
+}
 function nqToken(){
+  /* Token aplikasi dulu; token panel lama (sessionStorage) hanya
+     fallback — form login panel sudah dihapus. */
+  try {
+    const app = localStorage.getItem("jwt_token");
+    if(app) return app;
+  } catch(e){}
   try { return sessionStorage.getItem("nq-admin-token") || ""; }
   catch(e){ return ""; }
 }
@@ -200,39 +223,35 @@ async function apiFetch(path, opts){
     return data;
   } finally { clearTimeout(t); }
 }
+/* Panel Dataset hanya untuk admin aplikasi (opsi B): bukan admin
+   tidak perlu melihatnya. Form login panel dihapus — status admin
+   dibaca dari sesi login aplikasi. */
+function refreshDatasetPanelVisibility(){
+  const sec = document.getElementById("sec-dataset");
+  if(sec) sec.style.display = appSession().rank === 0 ? "" : "none";
+}
 function refreshAuthUI(){
-  const logged = !!nqToken();
-  document.getElementById("ds-logout").style.display = logged ? "" : "none";
-  document.getElementById("ds-login").style.display = logged ? "none" : "";
-  document.getElementById("ds-drafts-wrap").style.display = logged ? "" : "none";
-  if(!logged) document.getElementById("ds-drafts-list").innerHTML = "";
-}
-function dsLogout(){
-  try { sessionStorage.removeItem("nq-admin-token"); } catch(e) {}
-  document.getElementById("ds-auth-status").textContent = "Keluar.";
-  refreshAuthUI();
-}
-async function dsLogin(){
-  const u = document.getElementById("ds-username").value.trim();
-  const p = document.getElementById("ds-password").value;
+  const s = appSession();
   const st = document.getElementById("ds-auth-status");
-  if(!u || !p){ st.textContent = "Isi username dan password."; return; }
-  st.textContent = "Menghubungi server…";
-  try {
-    const data = await apiFetch(API_CONFIG.endpoints.login,
-      { method: "POST", body: { username: u, password: p } });
-    try { sessionStorage.setItem("nq-admin-token", data.access_token); }
-    catch(e) {}
-    document.getElementById("ds-password").value = "";
-    st.textContent = "Masuk sebagai " +
-      (data.user && data.user.username ? data.user.username : u) + ".";
-    refreshAuthUI();
-    await loadDrafts();
-  } catch(e) {
-    st.textContent = "Gagal masuk: " +
-      (e.status === 401 ? "username/password salah"
-                        : "API HTTP " + (e.status || "?"));
+  if(st) st.textContent = s.token
+    ? ("Masuk sebagai " + (s.username || "?") + " (login aplikasi).") : "";
+  const wrap = document.getElementById("ds-drafts-wrap");
+  if(wrap) wrap.style.display = s.token ? "" : "none";
+  if(!s.token){
+    const list = document.getElementById("ds-drafts-list");
+    if(list) list.innerHTML = "";
   }
+  refreshDatasetPanelVisibility();
+}
+/* Sesi ditolak server (401/403): token milik aplikasi — panel TIDAK
+   boleh menghapusnya (itu akan mengeluarkan user dari aplikasi). */
+function onAdminSessionExpired(){
+  const st = document.getElementById("ds-auth-status");
+  if(st) st.textContent = "Sesi aplikasi habis — login ulang di aplikasi.";
+  const wrap = document.getElementById("ds-drafts-wrap");
+  if(wrap) wrap.style.display = "none";
+  const list = document.getElementById("ds-drafts-list");
+  if(list) list.innerHTML = "";
 }
 function normalizeUploadBody(data){
   /* Server membaca provenance dari kunci top-level "source"; entri
@@ -252,7 +271,7 @@ function normalizeUploadBody(data){
   return { templates: templates, static: staticArr, source: "import" };
 }
 async function uploadToServer(data){
-  if(!nqToken()){ alert("Masuk dulu sebagai admin."); return; }
+  if(!nqToken()){ alert("Masuk dulu ke aplikasi sebagai admin."); return; }
   const body = normalizeUploadBody(data);
   if(!body.templates.length && !body.static.length){
     alert("Tidak ada entri untuk diunggah.");
@@ -270,8 +289,8 @@ async function uploadToServer(data){
       alert("Unggah DITOLAK: " + det.failures.length +
         " entri tidak sesuai — tidak ada yang ditambahkan. Lihat laporan di panel Dataset.");
     } else if(e.status === 401 || e.status === 403){
-      alert("Sesi admin habis atau tidak berhak. Masuk lagi.");
-      dsLogout();
+      alert("Sesi aplikasi habis atau tidak berhak. Login ulang di aplikasi.");
+      onAdminSessionExpired();
     } else if(e.status === 422 && typeof det === "string"){
       alert("Unggah ditolak: " + det);
     } else {
@@ -313,8 +332,8 @@ async function loadDrafts(){
       publishAllDrafts);
   } catch(e) {
     if(e.status === 401 || e.status === 403){
-      dsLogout();
-      st.textContent = "Sesi habis, masuk lagi.";
+      onAdminSessionExpired();
+      st.textContent = "Sesi aplikasi habis — login ulang di aplikasi.";
     } else {
       list.innerHTML = '<div style="font-size:11px">Gagal memuat draft: API HTTP ' +
         (e.status || "?") + '</div>';
@@ -577,11 +596,6 @@ function initDatasetUI(){
   document.getElementById("ds-api").addEventListener("click", async () => {
     try { await useApiDataset(); }
     catch(e){ alert("Gagal memuat dari API: " + e.message); }
-  });
-  document.getElementById("ds-login").addEventListener("click", dsLogin);
-  document.getElementById("ds-logout").addEventListener("click", dsLogout);
-  document.getElementById("ds-password").addEventListener("keydown", e => {
-    if(e.key === "Enter") dsLogin();
   });
   const fileServerInput = document.getElementById("ds-file-server");
   document.getElementById("ds-upload-server").addEventListener("click", () => fileServerInput.click());
