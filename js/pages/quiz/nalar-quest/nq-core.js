@@ -503,8 +503,9 @@ function drawDatasetPanel(){
   const el = document.getElementById("dataset-status");
   if(!el) return;
   const v = state.validation || { validCount: 0 };
+  /* Baris "Sumber:" tidak ditampilkan — arahnya full API, sumber
+     sudah jelas; catatan kegagalan tetap tampil bila API gagal. */
   el.innerHTML =
-    "Sumber: <b>" + escapeHtml(String(datasetState.source)) + "</b><br>" +
     "Template: " + TEMPLATES.length + " &middot; Statis: " + STATIC_BANK.length +
     " &middot; Valid: " + v.validCount +
     (datasetState.note ? "<br>" + escapeHtml(datasetState.note) : "");
