@@ -20,7 +20,7 @@ const chartPanel = createChartPanel('market-data-page');
 
 /* ─── Seri default saat halaman dibuka / pindah kind ─── */
 const PRIORITY = {
-  commodity: { source: 'WB', series_code: 'Nickel', frequency: 'M' },
+  commodity: { source: 'WB', series_code: 'Gold', frequency: 'M' },
   fx: { source: 'IMF', series_code: 'IDN.XDC_USD.PA_RT.M', frequency: 'M' },
 };
 
@@ -30,7 +30,7 @@ const KIND_LABEL = { commodity: 'Commodity', fx: 'FX' };
 const LIST_LIMIT = 20;
 
 const mdState = {
-  kind: 'commodity', q: '', series: [], total: 0, offset: 0,
+  kind: 'commodity', series: [], total: 0, offset: 0,
   selected: null, points: [], status: {}, loading: false,
   charts: [], statusEpoch: 0, seriesEpoch: 0, pricesEpoch: 0,
   chartRange: '5y',
@@ -112,11 +112,7 @@ async function loadSeries(reset) {
   mdState.loading = true;
   renderSeriesList();
   try {
-    // Jangan kirim q saat kosong: URLSearchParams mengubah undefined
-    // menjadi string "undefined", dan server lalu mencari "%undefined%"
-    // -> 0 hasil ("No series found" padahal daftar seharusnya penuh).
     const params = { kind: mdState.kind, limit: LIST_LIMIT, offset: mdState.offset };
-    if (mdState.q) params.q = mdState.q;
     const res = await Api.get('/market-data/series', params);
     if (epoch !== mdState.seriesEpoch) return;
     if (!res) { mdState.loading = false; return; } // 401 -> auto-logout
@@ -133,7 +129,12 @@ async function loadSeries(reset) {
 
 async function selectSeries(identity) {
   const epoch = ++mdState.pricesEpoch;
-  mdState.selected = identity;
+  // Nama tampilan (display_name) dari daftar kurasi, bila ada.
+  const listed = mdState.series.find((s) => s.source === identity.source
+    && s.series_code === identity.series_code
+    && s.frequency === identity.frequency);
+  mdState.selected = { ...identity,
+    display_name: listed?.display_name || identity.display_name || null };
   mdState.points = [];
   renderSeriesList();
   renderDetail();
@@ -231,11 +232,8 @@ function renderTabs() {
   el.querySelectorAll('button').forEach((b) => b.addEventListener('click', () => {
     if (mdState.kind === b.dataset.kind) return;
     mdState.kind = b.dataset.kind;
-    mdState.q = '';
     mdState.selected = null;
     mdState.points = [];
-    const input = mdRootEl.querySelector('.market-data-page__search');
-    if (input) input.value = '';
     renderTabs();
     renderDetail();
     loadSeries(true);
@@ -265,7 +263,7 @@ function renderSeriesList() {
     return `
     <tr class="market-data-page__summary-row ${active ? 'market-data-page__summary-row--active' : ''}" data-source="${s.source}" data-code="${s.series_code}" data-freq="${s.frequency}">
       <td>
-        <div style="font-weight:600;">${s.indicator || s.series_code}</div>
+        <div style="font-weight:600;">${s.display_name || s.indicator || s.series_code}</div>
         <div style="color:var(--c-text-3);font-size:var(--text-xs);">${s.source} · ${s.series_code} · ${s.frequency}${s.unit ? ` · ${s.unit}` : ''}</div>
       </td>
       <td style="text-align:right;">${fmtValue(s.current)}</td>
@@ -322,7 +320,7 @@ function renderDetail() {
       <div style="font-size:var(--text-lg);font-weight:700;">${fmtValue(value)}</div>
       ${sub ? `<div style="font-size:var(--text-xs);color:var(--c-text-3);">${sub}</div>` : ''}
     </div>`;
-  const panel = chartPanel(meta.indicator || mdState.selected.series_code,
+  const panel = chartPanel(mdState.selected.display_name || meta.indicator || mdState.selected.series_code,
     `${meta.source || ''} · ${meta.frequency || ''}${meta.unit ? ` · ${meta.unit}` : ''}${meta.currency ? ` · ${meta.currency}` : ''}`,
     [], 260);
   el.innerHTML = '';
@@ -330,7 +328,7 @@ function renderDetail() {
   head.innerHTML = `
     <div style="display:flex;align-items:baseline;justify-content:space-between;flex-wrap:wrap;gap:var(--s-3);margin-bottom:var(--s-4);">
       <div>
-        <div style="font-size:var(--text-lg);font-weight:700;">${meta.indicator || mdState.selected.series_code}</div>
+        <div style="font-size:var(--text-lg);font-weight:700;">${mdState.selected.display_name || meta.indicator || mdState.selected.series_code}</div>
         <div style="font-size:var(--text-xs);color:var(--c-text-3);margin-top:2px;">${meta.source || ''} · ${meta.series_code || mdState.selected.series_code} · ${meta.frequency || ''}${meta.unit ? ` · ${meta.unit}` : ''}</div>
       </div>
       <div style="display:flex;gap:var(--s-5);text-align:right;">
@@ -369,13 +367,6 @@ export function render() {
   const tabs = createEl('div', { class: 'market-data-page__tabs', style: { display: 'flex', gap: 'var(--s-2)', margin: 'var(--s-4) 0' } });
   page.appendChild(tabs);
 
-  const search = createEl('input', {
-    class: 'market-data-page__search', type: 'search',
-    placeholder: 'Search series…', autocomplete: 'off',
-    style: { width: '100%', marginBottom: 'var(--s-4)' },
-  });
-  page.appendChild(search);
-
   const series = createEl('div', { class: 'market-data-page__series', style: { marginBottom: 'var(--s-5)' } });
   page.appendChild(series);
 
@@ -383,23 +374,7 @@ export function render() {
   page.appendChild(detail);
 
   mdRootEl = page;
-  mdRefs = { head, tabs, search, series, detail };
-
-  let debounce = null;
-  search.addEventListener('input', () => {
-    clearTimeout(debounce);
-    debounce = setTimeout(() => {
-      mdState.q = search.value.trim();
-      loadSeries(true);
-    }, 300);
-  });
-  // 'change' juga memicu pencarian (Enter/blur, dan bila nilai diisi
-  // lewat skrip tanpa event input).
-  search.addEventListener('change', () => {
-    clearTimeout(debounce);
-    mdState.q = search.value.trim();
-    loadSeries(true);
-  });
+  mdRefs = { head, tabs, series, detail };
 
   renderHeader();
   renderTabs();
