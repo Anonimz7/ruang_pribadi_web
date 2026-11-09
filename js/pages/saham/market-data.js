@@ -123,13 +123,17 @@ async function loadSeries(reset) {
     mdState.loading = false;
     // Segarkan display_name seri terpilih dari daftar yang baru
     // dimuat (menutup race saat selectSeries jalan duluan).
+    // JANGAN renderDetail() bila grafik sudah terpasang (points terisi):
+    // renderDetail mengganti seluruh isi detail, termasuk wadah grafik,
+    // sehingga grafik yang baru dipasang mountChart() ikut terhapus
+    // bila /series selesai sesudah /prices (bug pindah FX->Commodity).
     if (mdState.selected) {
       const listed = mdState.series.find((s) => s.source === mdState.selected.source
         && s.series_code === mdState.selected.series_code
         && s.frequency === mdState.selected.frequency);
       if (listed?.display_name) {
         mdState.selected = { ...mdState.selected, display_name: listed.display_name };
-        renderDetail();
+        if (mdState.points.length === 0) renderDetail();
       }
     }
     renderSeriesList();
