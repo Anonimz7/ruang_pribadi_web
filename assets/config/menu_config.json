@@ -277,6 +277,14 @@
       "section": "admin",
       "portal": "saham",
       "minTier": 0
+    },
+    {
+      "key": "scenario",
+      "icon": "Icons.show_chart",
+      "label": "Scenario",
+      "section": "market",
+      "portal": "saham",
+      "minTier": 2
     }
   ],
   "landing": [
