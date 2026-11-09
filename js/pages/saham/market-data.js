@@ -19,9 +19,11 @@ import { spinnerCardHtml } from '../../ui/loading.js';
 const chartPanel = createChartPanel('market-data-page');
 
 /* ─── Seri default saat halaman dibuka / pindah kind ─── */
+/* display_name ikut dibawa: selectSeries jalan sebelum loadSeries
+   selesai, jadi nama tampilan tidak bisa mengandalkan lookup daftar. */
 const PRIORITY = {
-  commodity: { source: 'WB', series_code: 'Gold', frequency: 'M' },
-  fx: { source: 'IMF', series_code: 'IDN.XDC_USD.PA_RT.M', frequency: 'M' },
+  commodity: { source: 'WB', series_code: 'Gold', frequency: 'M', display_name: 'Gold' },
+  fx: { source: 'IMF', series_code: 'IDN.XDC_USD.PA_RT.M', frequency: 'M', display_name: 'USD/IDR' },
 };
 
 const KIND_LABEL = { commodity: 'Commodity', fx: 'FX' };
@@ -119,6 +121,17 @@ async function loadSeries(reset) {
     mdState.total = res.total || 0;
     mdState.series = reset ? (res.items || []) : mdState.series.concat(res.items || []);
     mdState.loading = false;
+    // Segarkan display_name seri terpilih dari daftar yang baru
+    // dimuat (menutup race saat selectSeries jalan duluan).
+    if (mdState.selected) {
+      const listed = mdState.series.find((s) => s.source === mdState.selected.source
+        && s.series_code === mdState.selected.series_code
+        && s.frequency === mdState.selected.frequency);
+      if (listed?.display_name) {
+        mdState.selected = { ...mdState.selected, display_name: listed.display_name };
+        renderDetail();
+      }
+    }
     renderSeriesList();
   } catch (e) {
     mdState.loading = false;
