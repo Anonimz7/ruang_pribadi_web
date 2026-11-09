@@ -14,6 +14,7 @@ const iconMap = {
   'Icons.calculate': 'calculate',
   'Icons.password': 'key',
   'Icons.casino': 'dice',
+  'Icons.dice': 'dice',
   'Icons.change_circle': 'target',
   'Icons.account_tree': 'git-branch',
   'Icons.translate': 'globe',

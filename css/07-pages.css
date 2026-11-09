@@ -2703,3 +2703,51 @@ button.admin-sitemaps__lang:hover { filter: brightness(0.92); }
   .pemantauan-page__summary { grid-template-columns: repeat(2, minmax(0, 1fr)); }
   .pemantauan-page__total { margin-left: 0; }
 }
+
+/* ── Market Data page ─────────────────────────────── */
+/* Chip (tab, rentang grafik): pil dengan status aktif yang jelas.
+   Kelas "chip" polos TIDAK ada di CSS — tanpa .btn + gaya ini tombol tampil
+   sebagai teks biasa tanpa penanda klik/aktif. */
+.market-data-page__chip {
+  border: 1px solid var(--c-border);
+  border-radius: 16px;
+  background: transparent;
+  transition: all var(--dur-fast) var(--ease);
+}
+.market-data-page__chip:hover {
+  border-color: var(--c-accent);
+  color: var(--c-accent);
+}
+.market-data-page__chip--active {
+  background: var(--c-accent);
+  border-color: var(--c-accent);
+  color: #fff;
+}
+.market-data-page__chip--active:hover {
+  opacity: 0.9;
+  color: #fff;
+}
+/* Baris daftar ringkas (tabel Current/High/Low): bisa diklik, baris
+   seri yang sedang dipilih ditandai dengan latar + nama aksen. */
+.market-data-page__summary-row {
+  cursor: pointer;
+}
+.market-data-page__summary-row:hover {
+  background: var(--c-surface-2);
+}
+.market-data-page__summary-row--active {
+  background: var(--c-surface-2);
+}
+.market-data-page__summary-row--active td:first-child div:first-child {
+  color: var(--c-accent);
+}
+.market-data-page__more {
+  margin-top: var(--s-2);
+}
+/* Tabel ringkas: .table global memakai min-width 600px — di layar 390px
+   kolom Low (rata kanan, ujung kanan) jatuh di luar viewport dan hanya
+   terlihat bila tabel di-scroll horizontal. Tabel ini hanya 4 kolom
+   ringkas, jadi min-width dihapus khusus halaman ini. */
+.market-data-page .table {
+  min-width: 0;
+}
