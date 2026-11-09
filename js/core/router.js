@@ -43,6 +43,7 @@ const routes = {
   '/saham/monte-carlo': () => import('../pages/saham/monte-carlo.js'),
   '/saham/simulasi-iseng': () => import('../pages/saham/simulasi-iseng.js'),
   '/saham/pemantauan': () => import('../pages/saham/pemantauan.js'),
+  '/saham/market-data': () => import('../pages/saham/market-data.js'),
   '/saham/admin/dashboard': () => import('../pages/saham/admin/dashboard.js'),
   '/saham/admin/users': () => import('../pages/saham/admin/users.js'),
   '/saham/admin/backup': () => import('../pages/saham/admin/backup.js'),

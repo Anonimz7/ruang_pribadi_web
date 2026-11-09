@@ -36,6 +36,7 @@ const iconMap = {
   'Icons.grid': 'grid',
   'Icons.book_open': 'book-open',
   'Icons.layers': 'layers',
+  'Icons.show_chart': 'trending-up',
 };
 
 /** Portal registry — single source of truth for portal ids */
@@ -139,6 +140,7 @@ export const ROUTE_MAP = {
   monte_carlo: '/saham/monte-carlo',
   simulasi_iseng: '/saham/simulasi-iseng',
   pemantauan: '/saham/pemantauan',
+  market_data: '/saham/market-data',
   video_downloader: '/video',
   user_permissions: '/saham/admin/users',
   server_dashboard: '/saham/admin/dashboard',

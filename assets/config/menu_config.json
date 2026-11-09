@@ -145,6 +145,14 @@
       "minTier": 2
     },
     {
+      "key": "market_data",
+      "icon": "Icons.show_chart",
+      "label": "Market Data",
+      "section": "market",
+      "portal": "saham",
+      "minTier": 2
+    },
+    {
       "key": "video_downloader",
       "icon": "Icons.download",
       "label": "Video Downloader",
