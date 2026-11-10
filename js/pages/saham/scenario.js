@@ -46,6 +46,53 @@ function fmtBeta(v) {
   return (n >= 0 ? '+' : '') + n.toFixed(3);
 }
 
+function fmtSignedPct(v, digits = 0) {
+  if (v == null || Number.isNaN(Number(v))) return '-';
+  const n = Number(v);
+  return (n >= 0 ? '+' : '') + n.toFixed(digits) + '%';
+}
+
+/* Alasan "tidak dijangkar" versi pendek untuk sel tabel (alasan mentah
+   dari API seperti "|corr|=0.219 < 0.3" membingungkan di layar kecil). */
+function shortReason(reason) {
+  const r = String(reason || '');
+  const n = r.match(/n\s*=\s*(\d+)/);
+  if (n && Number(n[1]) < 36) return `data ${n[1]} bln (< 36)`;
+  const c = r.match(/\|corr\|\s*=\s*([0-9.]+)/);
+  if (c) return `corr ${c[1]}`;
+  if (/tidak ada data/.test(r)) return 'tidak ada data harga';
+  const m = r.match(/hanya (\d+) bulan/);
+  if (m) return `data ${m[1]} bln`;
+  return r || 'korelasi lemah';
+}
+
+/* Segmented control: tombol-tombol pil (aktif = btn--primary, sisanya
+   btn--secondary). Mengembalikan { el, set(value) }; set() hanya
+   mengubah tampilan, tanpa memanggil onChange (dipakai saat preset
+   mengisi form). */
+function segmentedControl(options, current, onChange) {
+  const wrap = createEl('div', { style: { display: 'flex', gap: 'var(--s-1)', flexWrap: 'wrap' } });
+  const btns = {};
+  function paint() {
+    Object.entries(btns).forEach(([v, b]) => {
+      b.className = 'btn btn--sm ' + (v === current ? 'btn--primary' : 'btn--secondary');
+    });
+  }
+  options.forEach(([value, label]) => {
+    const b = createEl('button', { class: 'btn btn--sm btn--secondary', type: 'button' }, [label]);
+    b.addEventListener('click', () => {
+      if (value === current) return;
+      current = value;
+      paint();
+      onChange(value);
+    });
+    btns[value] = b;
+    wrap.appendChild(b);
+  });
+  paint();
+  return { el: wrap, set(v) { current = v; paint(); } };
+}
+
 /* ─── API ─── */
 
 async function loadFactors() {
@@ -97,16 +144,68 @@ async function suggestFactors() {
   return keys;
 }
 
+/* Terapkan saran Sub-Sector ke checkbox faktor. */
+async function runSuggest() {
+  const keys = await suggestFactors();
+  if (!keys.size) {
+    toast('Tidak ada saran faktor untuk target ini.', 'danger');
+    return;
+  }
+  Object.entries(scRefs.factorRows || {}).forEach(([k, row]) => {
+    row.check.checked = keys.has(k);
+  });
+}
+
+function setTargetKind(kind, focus) {
+  scState.targetKind = kind;
+  if (scRefs.targetSeg) scRefs.targetSeg.set(kind);
+  if (scRefs.indexSelect) scRefs.indexSelect.disabled = (kind !== 'index');
+  if (scRefs.tickerInput) {
+    scRefs.tickerInput.disabled = (kind !== 'tickers');
+    if (kind === 'tickers' && focus) scRefs.tickerInput.focus();
+  }
+}
+
+function setFactorMode(mode, autoSuggest) {
+  scState.factorMode = mode;
+  if (scRefs.modeSeg) scRefs.modeSeg.set(mode);
+  if (scRefs.suggestBtn) scRefs.suggestBtn.disabled = (mode !== 'sub_sector');
+  if (mode === 'sub_sector' && autoSuggest) runSuggest();
+}
+
+/* Isi form dari preset sebelum jalan: yang tampil = yang dijalankan,
+   dan pengguna bisa mengubahnya lalu Run ulang. */
+function applyPresetToForm(preset) {
+  const t = preset.target || {};
+  if (t.index_id != null) {
+    setTargetKind('index');
+    if (scRefs.indexSelect) scRefs.indexSelect.value = String(t.index_id);
+  } else if (t.tickers && t.tickers.length) {
+    setTargetKind('tickers');
+    if (scRefs.tickerInput) scRefs.tickerInput.value = t.tickers[0];
+  }
+  setFactorMode('manual');
+  Object.entries(scRefs.factorRows || {}).forEach(([k, row]) => {
+    const pf = (preset.factors || []).find((f) => f.key === k);
+    row.check.checked = !!pf;
+    row.pct.value = pf ? String(pf.total_change_pct) : '';
+  });
+  if (scRefs.horizonInput) scRefs.horizonInput.value = String(preset.horizon_months ?? 6);
+}
+
 function collectFactors() {
   const out = [];
+  const zero = [];
   for (const f of scState.factors) {
     const row = scRefs.factorRows?.[f.key];
     if (!row || !row.check.checked) continue;
     const pct = parseFloat(row.pct.value);
-    if (Number.isNaN(pct)) continue;
+    // Dicentang tapi 0%/kosong = tidak ada efek; jangan diam-diam
+    // diikutkan, laporkan sebagai zero.
+    if (Number.isNaN(pct) || pct === 0) { zero.push(f.display_name); continue; }
     out.push({ key: f.key, total_change_pct: pct });
   }
-  return out;
+  return { factors: out, zero };
 }
 
 function collectTarget() {
@@ -124,6 +223,8 @@ async function runScenario(preset) {
   if (scState.running) return;
   let target; let factors; let horizon;
   if (preset) {
+    // Isi form dari preset dulu: yang tampil = yang dijalankan.
+    applyPresetToForm(preset);
     target = preset.target;
     factors = preset.factors;
     horizon = preset.horizon_months;
@@ -133,10 +234,16 @@ async function runScenario(preset) {
       toast('Pilih index atau isi ticker dulu.', 'danger');
       return;
     }
-    factors = collectFactors();
+    const collected = collectFactors();
+    factors = collected.factors;
     if (!factors.length) {
-      toast('Centang minimal satu faktor.', 'danger');
+      toast(collected.zero.length
+        ? 'Faktor yang dicentang masih 0% — isi % perubahannya dulu (mis. +20).'
+        : 'Centang minimal satu faktor dan isi % perubahannya.', 'danger');
       return;
+    }
+    if (collected.zero.length) {
+      toast(`${collected.zero.join(', ')} 0% — tidak diikutkan (tidak ada efek).`, 'warn');
     }
     horizon = parseInt(scRefs.horizonInput?.value, 10) || 6;
   }
@@ -192,17 +299,26 @@ function renderFactorList() {
     const label = createEl('label', { style: { flex: '1', fontSize: 'var(--text-sm)' } },
       [`${f.display_name} `, createEl('span', { style: { color: 'var(--c-text-3)' } },
         [`(${f.source} ${f.series_code})`])]);
-    const pct = createEl('input', {
-      type: 'number', step: '1', value: '0',
-      class: 'field__input',
-      style: { width: '90px', textAlign: 'right' },
-      title: 'Total % perubahan faktor selama horizon',
+    // % di DALAM kotak (suffix absolut) + placeholder contoh, supaya
+    // jelas kotaknya persen dan berapa yang diisi.
+    const pctWrap = createEl('span', {
+      style: { position: 'relative', display: 'inline-block', flex: '0 0 auto' },
     });
-    const pctLabel = createEl('span', { style: { fontSize: 'var(--text-sm)', color: 'var(--c-text-2)' } }, ['%']);
+    const pct = createEl('input', {
+      type: 'number', step: '1', value: '',
+      class: 'field__input',
+      style: { width: '92px', textAlign: 'right', paddingRight: '26px' },
+      placeholder: '+20',
+      title: 'Total % perubahan faktor selama horizon (+20 = naik 20%, -20 = turun 20%)',
+    });
+    pctWrap.appendChild(pct);
+    pctWrap.appendChild(createEl('span', {
+      style: { position: 'absolute', right: '9px', top: '50%', transform: 'translateY(-50%)',
+               fontSize: 'var(--text-sm)', color: 'var(--c-text-3)', pointerEvents: 'none' },
+    }, ['%']));
     row.appendChild(check);
     row.appendChild(label);
-    row.appendChild(pct);
-    row.appendChild(pctLabel);
+    row.appendChild(pctWrap);
     wrap.appendChild(row);
     scRefs.factorRows[f.key] = { check, pct };
   });
@@ -236,6 +352,16 @@ function renderResult() {
   const head = createEl('div', { style: { marginBottom: 'var(--s-3)' } });
   head.appendChild(createEl('h3', { class: 'card__title', style: { marginBottom: 'var(--s-2)' } },
     [`Hasil — ${r.target?.label || ''}`]));
+  // Ringkasan input yang dijalankan (supaya hasil bisa dibaca tanpa
+  // menebak: faktor + % apa, horizon + simulasi berapa).
+  const runBits = (r.factors || []).map((f) =>
+    `${f.display_name || f.key} ${fmtSignedPct(f.total_change_pct)}`);
+  if (r.horizon_months != null) runBits.push(`Horizon ${r.horizon_months} bulan`);
+  if (r.n_sims != null) runBits.push(`${r.n_sims} simulasi`);
+  if (runBits.length) {
+    head.appendChild(createEl('p', { style: { fontSize: 'var(--text-sm)', color: 'var(--c-text-2)', margin: '0 0 var(--s-2)' } },
+      [runBits.join(' · ')]));
+  }
   const stats = createEl('div', {
     style: { display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(140px, 1fr))', gap: 'var(--s-2)' },
   });
@@ -295,7 +421,7 @@ function renderResult() {
     attrBody.appendChild(tr);
   });
   attrTable.appendChild(attrBody);
-  attrCard.appendChild(attrTable);
+  attrCard.appendChild(createEl('div', { class: 'table-wrap' }, [attrTable]));
   attrCard.appendChild(createEl('p', { style: { fontSize: 'var(--text-xs)', color: 'var(--c-text-3)', margin: 'var(--s-1) 0 0' } },
     ['Kontribusi = aproksimasi linear (beta agregat × perubahan faktor); tidak persis menjumlah ke median karena compounding + noise.']));
   wrap.appendChild(attrCard);
@@ -306,7 +432,7 @@ function renderResult() {
   const tickTable = createEl('table', { class: 'table' });
   const tickHead = createEl('thead', {});
   const tickHeadRow = createEl('tr', {});
-  ['Ticker', 'Weight', 'Median', 'P5', 'P95', 'Factors (beta / R²)'].forEach((h) => {
+  ['Ticker', 'Median', 'Range (P5–P95)', 'Factors (beta / R²)'].forEach((h) => {
     tickHeadRow.appendChild(createEl('th', {}, [h]));
   });
   tickHead.appendChild(tickHeadRow);
@@ -315,42 +441,48 @@ function renderResult() {
   (r.tickers || []).forEach((t) => {
     const tr = createEl('tr', {});
     tr.appendChild(createEl('td', {}, [t.ticker]));
-    tr.appendChild(createEl('td', {}, [t.weight != null ? `${(t.weight * 100).toFixed(1)}%` : '-']));
     tr.appendChild(createEl('td', {}, [fmtPct(t.median_pct)]));
-    tr.appendChild(createEl('td', {}, [fmtPct(t.p5_pct)]));
-    tr.appendChild(createEl('td', {}, [fmtPct(t.p95_pct)]));
+    tr.appendChild(createEl('td', {}, [`${fmtPct(t.p5_pct)} – ${fmtPct(t.p95_pct)}`]));
     const fcell = createEl('td', {});
     (t.factors || []).forEach((f) => {
       const line = f.usable
         ? `${f.factor}: β ${fmtBeta(f.beta)}, R² ${(f.r2 != null ? (f.r2 * 100).toFixed(1) : '-')}%`
-        : `${f.factor}: tidak dijangkar (${f.reason || ''})`;
+        : `${f.factor}: tidak dijangkar (${shortReason(f.reason)})`;
       fcell.appendChild(createEl('div', { style: { fontSize: 'var(--text-sm)' } }, [line]));
     });
     tr.appendChild(fcell);
     tickBody.appendChild(tr);
   });
   tickTable.appendChild(tickBody);
-  tickCard.appendChild(tickTable);
+  tickCard.appendChild(createEl('div', { class: 'table-wrap' }, [tickTable]));
   wrap.appendChild(tickCard);
 
   // Warning labels (W1–W4) di dekat angka.
   const warnCard = createEl('div', { class: 'card', style: { marginBottom: 'var(--s-3)' } });
   warnCard.appendChild(createEl('h3', { class: 'card__title', style: { marginBottom: 'var(--s-2)' } }, ['Notes']));
+  // Catatan ditulis polos (tanpa kode W1/W3/W4); W3 jadi satu baris
+  // ringkasan, daftar lengkap disembunyikan di balik "Lihat daftar
+  // lengkap" (alasan per-ticker juga sudah ada di tabel per-ticker).
   const labels = r.labels || {};
-  if (labels.W1) warnCard.appendChild(createEl('p', { style: { fontSize: 'var(--text-sm)', margin: '0 0 var(--s-1)' } }, ['W1 — ' + labels.W1]));
-  if (labels.W4) warnCard.appendChild(createEl('p', { style: { fontSize: 'var(--text-sm)', margin: '0 0 var(--s-1)' } }, ['W4 — ' + labels.W4]));
+  const noteP = (text, top) => createEl('p', { style: { fontSize: 'var(--text-sm)', margin: (top ? 'var(--s-2) 0 0' : '0 0 var(--s-1)') } }, [text]);
+  if (labels.W1) warnCard.appendChild(noteP(labels.W1));
+  if (labels.W4) warnCard.appendChild(noteP(labels.W4));
   const w3 = (r.warnings || []).filter((w) => w);
   if (w3.length) {
-    warnCard.appendChild(createEl('p', { style: { fontSize: 'var(--text-sm)', margin: 'var(--s-2) 0 var(--s-1)' } },
-      ['W3 — Beta tidak dihitung (data < 36 bulan / korelasi lemah) — saham ini tidak dijangkar faktor:']));
-    const ul = createEl('ul', { style: { fontSize: 'var(--text-sm)', margin: '0', paddingLeft: 'var(--s-4)' } });
+    const unanchored = new Set(w3.map((w) => w.ticker));
+    const total = (r.tickers || []).length;
+    warnCard.appendChild(noteP(
+      `${unanchored.size} dari ${total} saham tidak terpengaruh faktor yang dipilih (korelasi terlalu lemah atau data kurang dari 36 bulan). Alasannya ada di kolom Factors pada tabel per-ticker.`, true));
+    const det = createEl('details', { style: { fontSize: 'var(--text-sm)', marginTop: 'var(--s-1)' } });
+    det.appendChild(createEl('summary', { style: { cursor: 'pointer', color: 'var(--c-text-2)' } }, ['Lihat daftar lengkap']));
+    const ul = createEl('ul', { style: { margin: 'var(--s-1) 0 0', paddingLeft: 'var(--s-4)' } });
     w3.forEach((w) => {
       ul.appendChild(createEl('li', {}, [`${w.ticker} / ${w.factor}: ${w.reason || ''}`]));
     });
-    warnCard.appendChild(ul);
+    det.appendChild(ul);
+    warnCard.appendChild(det);
   } else {
-    warnCard.appendChild(createEl('p', { style: { fontSize: 'var(--text-sm)', margin: '0' } },
-      ['Semua ticker lolos ambang beta (tidak ada warning W3).']));
+    warnCard.appendChild(noteP('Semua saham terpengaruh faktor yang dipilih.', true));
   }
   wrap.appendChild(warnCard);
 }
@@ -388,14 +520,10 @@ export function render() {
   const targetCard = createEl('div', { class: 'card', style: { marginBottom: 'var(--s-3)' } });
   targetCard.appendChild(createEl('h3', { class: 'card__title', style: { marginBottom: 'var(--s-2)' } }, ['Target']));
   const targetRow = createEl('div', { style: { display: 'flex', gap: 'var(--s-3)', flexWrap: 'wrap', alignItems: 'flex-end' } });
-  const kindWrap = createEl('div', {});
-  const kindIndex = createEl('input', { type: 'radio', name: 'sc-target-kind', value: 'index', checked: true });
-  const kindTick = createEl('input', { type: 'radio', name: 'sc-target-kind', value: 'tickers' });
-  kindWrap.appendChild(kindIndex);
-  kindWrap.appendChild(createEl('span', { style: { fontSize: 'var(--text-sm)', marginRight: 'var(--s-2)' } }, [' Index']));
-  kindWrap.appendChild(kindTick);
-  kindWrap.appendChild(createEl('span', { style: { fontSize: 'var(--text-sm)' } }, [' Single stock']));
-  targetRow.appendChild(kindWrap);
+  const targetSeg = segmentedControl(
+    [['index', 'Index'], ['tickers', 'Single stock']],
+    scState.targetKind, (v) => setTargetKind(v, true));
+  targetRow.appendChild(targetSeg.el);
   const idxSel = createEl('select', { class: 'field__select', style: { minWidth: '220px' } });
   targetRow.appendChild(idxSel);
   const tickerInput = createEl('input', {
@@ -403,64 +531,26 @@ export function render() {
     style: { minWidth: '160px', textTransform: 'uppercase' }, disabled: true,
   });
   targetRow.appendChild(tickerInput);
-  kindIndex.addEventListener('change', () => {
-    scState.targetKind = 'index';
-    idxSel.disabled = false;
-    tickerInput.disabled = true;
-  });
-  kindTick.addEventListener('change', () => {
-    scState.targetKind = 'tickers';
-    idxSel.disabled = true;
-    tickerInput.disabled = false;
-    tickerInput.focus();
-  });
   targetCard.appendChild(targetRow);
   container.appendChild(targetCard);
 
   // Faktor + mode.
   const factorCard = createEl('div', { class: 'card', style: { marginBottom: 'var(--s-3)' } });
   factorCard.appendChild(createEl('h3', { class: 'card__title', style: { marginBottom: 'var(--s-2)' } }, ['Factors']));
-  const modeRow = createEl('div', { style: { display: 'flex', gap: 'var(--s-3)', alignItems: 'center', marginBottom: 'var(--s-2)', flexWrap: 'wrap' } });
-  const modeManual = createEl('input', { type: 'radio', name: 'sc-factor-mode', value: 'manual', checked: true });
-  const modeSub = createEl('input', { type: 'radio', name: 'sc-factor-mode', value: 'sub_sector' });
-  modeRow.appendChild(modeManual);
-  modeRow.appendChild(createEl('span', { style: { fontSize: 'var(--text-sm)', marginRight: 'var(--s-2)' } }, [' Manual (centang sendiri)']));
-  modeRow.appendChild(modeSub);
-  modeRow.appendChild(createEl('span', { style: { fontSize: 'var(--text-sm)' } }, [' Sub-Sector (sistem menyarankan)']));
+  // Penjelasan cara isi % — di ATAS daftar, bukan catatan kaki kecil.
+  factorCard.appendChild(createEl('p', { style: { fontSize: 'var(--text-sm)', color: 'var(--c-text-2)', margin: '0 0 var(--s-2)' } },
+    ['Isi total perubahan tiap faktor selama horizon. +20 = naik 20%, −20 = turun 20%. Faktor yang dicentang tapi 0% tidak berpengaruh.']));
+  const modeRow = createEl('div', { style: { display: 'flex', gap: 'var(--s-2)', alignItems: 'center', marginBottom: 'var(--s-2)', flexWrap: 'wrap' } });
+  const modeSeg = segmentedControl(
+    [['manual', 'Manual'], ['sub_sector', 'Sub-Sector']],
+    scState.factorMode, (v) => setFactorMode(v, true));
+  modeRow.appendChild(modeSeg.el);
   const suggestBtn = createEl('button', { class: 'btn btn--secondary btn--sm', type: 'button', disabled: true }, ['Suggest from Sub-Sector']);
   modeRow.appendChild(suggestBtn);
-  modeManual.addEventListener('change', () => {
-    scState.factorMode = 'manual';
-    suggestBtn.disabled = true;
-  });
-  modeSub.addEventListener('change', async () => {
-    scState.factorMode = 'sub_sector';
-    suggestBtn.disabled = false;
-    const keys = await suggestFactors();
-    if (keys.size) {
-      Object.entries(scRefs.factorRows || {}).forEach(([k, row]) => {
-        row.check.checked = keys.has(k);
-      });
-    } else {
-      toast('Tidak ada saran faktor untuk target ini.', 'danger');
-    }
-  });
-  suggestBtn.addEventListener('click', async () => {
-    const keys = await suggestFactors();
-    if (keys.size) {
-      Object.entries(scRefs.factorRows || {}).forEach(([k, row]) => {
-        row.check.checked = keys.has(k);
-      });
-    } else {
-      toast('Tidak ada saran faktor untuk target ini.', 'danger');
-    }
-  });
+  suggestBtn.addEventListener('click', runSuggest);
   factorCard.appendChild(modeRow);
   const factorList = createEl('div', {});
   factorCard.appendChild(factorList);
-  const factorHint = createEl('p', { style: { fontSize: 'var(--text-xs)', color: 'var(--c-text-3)', margin: 'var(--s-1) 0 0' } },
-    ['% = total perubahan faktor selama horizon (mis. +20 berarti naik 20%).']);
-  factorCard.appendChild(factorHint);
   container.appendChild(factorCard);
 
   // Horizon + sims + run.
@@ -489,7 +579,7 @@ export function render() {
   container.appendChild(resultWrap);
 
   scRootEl = container;
-  scRefs = { indexSelect: idxSel, tickerInput, factorList, horizonInput, simsInput, runBtn, runLabel, resultWrap, factorRows: {} };
+  scRefs = { indexSelect: idxSel, tickerInput, factorList, horizonInput, simsInput, runBtn, runLabel, resultWrap, factorRows: {}, targetSeg, modeSeg, suggestBtn };
   loadFactors();
   loadIndices();
   return container;
