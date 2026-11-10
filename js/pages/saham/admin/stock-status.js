@@ -164,6 +164,9 @@ export function render() {
 
   function buildRow(s) {
     const delisted = s.label_delisted === 1;
+    // Blacklist by sistem (red flag) tidak bisa diubah manual — kuncinya
+    // juga ditegakkan di backend (set/reset_stock_status menolaknya).
+    const systemLocked = s.stock_status === 'blacklist' && s.status_set_by === 'system';
     const tr = createEl('tr', {});
 
     const goAnalysis = () => {
@@ -251,10 +254,12 @@ export function render() {
     // Action — bungkus div agar td tetap table-cell (garis tabel tidak patah)
     const tdAction = createEl('td');
     const actionsWrap = createEl('div', { class: 'table__actions' });
-    if (delisted) {
+    if (delisted || systemLocked) {
       const lock = createEl('span', {
         class: 'btn btn--ghost btn--sm',
-        title: 'Delisted stock',
+        title: delisted
+          ? 'Delisted stock'
+          : 'Blacklist by system (red flag) — cannot be changed manually',
         style: { color: 'var(--c-text-3)', opacity: 0.45, pointerEvents: 'none' },
       }, []);
       lock.innerHTML = icons['lock'];
@@ -275,6 +280,10 @@ export function render() {
   function openStatusModal(stock) {
     if (stock.label_delisted === 1) {
       toast('Delisted stocks cannot have their status set', { type: 'error' });
+      return;
+    }
+    if (stock.stock_status === 'blacklist' && stock.status_set_by === 'system') {
+      toast('Blacklist by system (red flag) — cannot be changed manually', { type: 'error' });
       return;
     }
 
