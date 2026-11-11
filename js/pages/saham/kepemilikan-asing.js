@@ -3,9 +3,56 @@
  * investor. Halaman ini menampung seksi KSEI yang sebelumnya menumpuk di
  * market.js (dipindah 2026-10-21, RENCANA_BEDAH_GOLONGAN §8). */
 import { on, createEl } from '../../utils/dom.js';
-import { icons } from '../../ui/icons.js';
 import Api from '../../core/api.js';
 import { toast } from '../../ui/toast.js';
+
+/* ─── Bootstrap trial (branch coba-bootstrap) ──────────────────────────────
+ * CSS-only, lingkup halaman ini saja — pola yang sama dengan stocks.js /
+ * scenario.js (stylesheet dimuat di render(), dilepas di cleanup();
+ * data-bs-theme disinkronkan dari data-theme). Bila Bootstrap diadopsi
+ * menyeluruh, loader ini pindah ke app.js/index.html agar tidak
+ * diduplikasi per halaman. Versi di-pin dan DI-VENDOR LOKAL
+ * (css/vendor/): Bootstrap 5.3.8 + Bootstrap Icons 1.13.2 (stylesheet
+ * CDN tidak teraplikasi di Firefox uji VM — terdiagnosis 2026-11-11).
+ * Backend tidak disentuh. Halaman ini dominan grafik + ubin KPI + bar
+ * inline-style (bespoke, dipertahankan) — Bootstrap dipakai di tombol
+ * Refresh, chip mode, dan tombol detail.
+ */
+const BS_CSS_URL = 'css/vendor/bootstrap.min.css';
+const BS_ICONS_URL = 'css/vendor/bootstrap-icons.min.css';
+let bsThemeObserver = null;
+
+function syncBsTheme() {
+  const dark = document.documentElement.getAttribute('data-theme') === 'dark';
+  document.documentElement.setAttribute('data-bs-theme', dark ? 'dark' : 'light');
+}
+
+function ensureBootstrap() {
+  if (!document.getElementById('bs-trial-css')) {
+    const l = document.createElement('link');
+    l.id = 'bs-trial-css'; l.rel = 'stylesheet'; l.href = BS_CSS_URL;
+    document.head.appendChild(l);
+  }
+  if (!document.getElementById('bs-trial-icons')) {
+    const l = document.createElement('link');
+    l.id = 'bs-trial-icons'; l.rel = 'stylesheet'; l.href = BS_ICONS_URL;
+    document.head.appendChild(l);
+  }
+  syncBsTheme();
+  if (!bsThemeObserver) {
+    bsThemeObserver = new MutationObserver((muts) => {
+      if (muts.some((m) => m.attributeName === 'data-theme')) syncBsTheme();
+    });
+    bsThemeObserver.observe(document.documentElement, { attributes: true });
+  }
+}
+
+function removeBootstrap() {
+  document.getElementById('bs-trial-css')?.remove();
+  document.getElementById('bs-trial-icons')?.remove();
+  document.documentElement.removeAttribute('data-bs-theme');
+  if (bsThemeObserver) { bsThemeObserver.disconnect(); bsThemeObserver = null; }
+}
 import { loadApexCharts, buildBaseOptions, renderChart, destroyChart, toTs, buildPositionChartApex, createChartPanel } from '../../ui/chart.js';
 const chartPanel = createChartPanel('kepemilikan-page');
 import { formatNilaiSingkat, dateLabelYear } from '../../utils/format.js';
@@ -70,7 +117,7 @@ function renderHeader() {
         <p style="color:var(--c-text-2);font-size:var(--text-sm);">Cumulative foreign position, official KSEI ownership, and investor-group breakdown.</p>
       </div>
       <div style="display:flex;gap:var(--s-2);">
-        <button class="btn btn--secondary btn--sm" id="kepemilikan-refresh" aria-label="Refresh">${icons['refresh']} <span>Refresh</span></button>
+        <button class="btn btn-outline-secondary btn-sm" id="kepemilikan-refresh" aria-label="Refresh"><i class="bi bi-arrow-clockwise"></i> <span>Refresh</span></button>
       </div>
     </div>
   `;
@@ -254,7 +301,9 @@ function fillDecomposition(wrap) {
   };
   const chips = DEC_MODES.map(([m, lbl]) => {
     const on = decState.mode === m;
-    return `<button data-decmode="${m}" style="padding:4px 12px;border:1px solid ${on ? '#E8A33D' : 'var(--c-border)'};border-radius:999px;font-size:var(--text-xs);cursor:pointer;background:${on ? '#E8A33D' : 'var(--c-surface-2)'};color:${on ? '#fff' : 'var(--c-text-2)'};font-weight:${on ? '700' : '400'};">${lbl}</button>`;
+    // Pil Bootstrap; warna aktif tetap oranye aksen halaman (#E8A33D),
+    // bukan biru btn-primary — warna itu identitas seksi ini.
+    return `<button data-decmode="${m}" class="btn btn-sm rounded-pill" style="border:1px solid ${on ? '#E8A33D' : 'var(--c-border)'};background:${on ? '#E8A33D' : 'var(--c-surface-2)'};color:${on ? '#fff' : 'var(--c-text-2)'};font-weight:${on ? '700' : '400'};">${lbl}</button>`;
   }).join('');
   const maxEff = Math.max(Math.abs(d.effect_price), Math.abs(d.effect_shares), Math.abs(d.effect_events), 1);
   const evTags = (d.events || []).map(e =>
@@ -534,7 +583,7 @@ function buildByTypeHtml(res) {
     <div style="font-size:var(--text-sm);color:var(--c-text-2);line-height:1.55;">The <b>sticky</b> group (pension funds, insurance, foundations) now holds <b>${(res.sticky_pct_end || 0).toFixed(1)}%</b> of foreign value, ${naik ? 'up' : 'down'} from ${(res.sticky_pct_start || 0).toFixed(1)}% at the window start — the most patient money ${naik ? 'held and grew its share' : 'shrank along in share'}.</div>
     <div style="margin-top:var(--s-2);">${bars}</div>
     <div style="font-size:var(--text-sm);color:var(--c-text-2);line-height:1.55;">From the Others bucket (${formatBertanda(lainEff)}), the Others group (OT) itself contributed ${formatBertanda(otEff)} — this bucket covers nominee and omnibus accounts, so it is not a single investor type.</div>
-    <button data-typedetail style="margin-top:var(--s-3);padding:4px 12px;border:1px solid var(--c-border);border-radius:999px;font-size:var(--text-xs);cursor:pointer;background:var(--c-surface-2);color:var(--c-text-2);">Show details of 9 groups</button>
+    <button data-typedetail class="btn btn-sm rounded-pill btn-outline-secondary" style="margin-top:var(--s-3);">Show details of 9 groups</button>
     <div id="kepemilikan-rincian-golongan" style="display:none;margin-top:var(--s-2);">${detailRows}</div>
     <div style="margin-top:var(--s-2);font-size:var(--text-xs);color:var(--c-text-3);line-height:1.5;">Δ between snapshots is an ownership change — including off-market transfers and reclassifications — not pure exchange flow.</div>
   </div>`;
@@ -575,6 +624,7 @@ function fillByTypeSection(wrap) {
 
 /* ─── Cleanup ─── */
 function cleanup() {
+  removeBootstrap();
   clearCharts();
   pageState.loadEpoch++;
   pageRootEl = null; pageRefs = {}; typeWrapEl = null;
@@ -582,6 +632,7 @@ function cleanup() {
 
 /* ─── Export render ─── */
 export function render() {
+  ensureBootstrap();
   pageState.loading = false; pageState.data = null; pageState.charts = [];
   decState.mode = 'peak'; decState.data = null; decState.loading = false;
   typeState.data = null;
