@@ -14,6 +14,51 @@ import { createEl } from '../../utils/dom.js';
 import Api from '../../core/api.js';
 import { toast } from '../../ui/toast.js';
 
+/* ─── Bootstrap trial (branch coba-bootstrap) ──────────────────────────────
+ * CSS-only, lingkup halaman ini saja — pola yang sama dengan stocks.js
+ * (stylesheet dimuat di render(), dilepas di cleanup(); data-bs-theme
+ * disinkronkan dari data-theme). Bila Bootstrap diadopsi menyeluruh,
+ * loader ini pindah ke app.js/index.html agar tidak diduplikasi per
+ * halaman. Versi di-pin dan DI-VENDOR LOKAL (css/vendor/): Bootstrap
+ * 5.3.8 + Bootstrap Icons 1.13.2 (stylesheet CDN tidak teraplikasi di
+ * Firefox uji VM — terdiagnosis 2026-11-11). Backend tidak disentuh.
+ */
+const BS_CSS_URL = 'css/vendor/bootstrap.min.css';
+const BS_ICONS_URL = 'css/vendor/bootstrap-icons.min.css';
+let bsThemeObserver = null;
+
+function syncBsTheme() {
+  const dark = document.documentElement.getAttribute('data-theme') === 'dark';
+  document.documentElement.setAttribute('data-bs-theme', dark ? 'dark' : 'light');
+}
+
+function ensureBootstrap() {
+  if (!document.getElementById('bs-trial-css')) {
+    const l = document.createElement('link');
+    l.id = 'bs-trial-css'; l.rel = 'stylesheet'; l.href = BS_CSS_URL;
+    document.head.appendChild(l);
+  }
+  if (!document.getElementById('bs-trial-icons')) {
+    const l = document.createElement('link');
+    l.id = 'bs-trial-icons'; l.rel = 'stylesheet'; l.href = BS_ICONS_URL;
+    document.head.appendChild(l);
+  }
+  syncBsTheme();
+  if (!bsThemeObserver) {
+    bsThemeObserver = new MutationObserver((muts) => {
+      if (muts.some((m) => m.attributeName === 'data-theme')) syncBsTheme();
+    });
+    bsThemeObserver.observe(document.documentElement, { attributes: true });
+  }
+}
+
+function removeBootstrap() {
+  document.getElementById('bs-trial-css')?.remove();
+  document.getElementById('bs-trial-icons')?.remove();
+  document.documentElement.removeAttribute('data-bs-theme');
+  if (bsThemeObserver) { bsThemeObserver.disconnect(); bsThemeObserver = null; }
+}
+
 const PRESETS = [
   { key: 'coal-boom', label: 'Batubara boom', desc: 'Batubara +20% dalam 6 bulan',
     target: { index_id: 11 }, factors: [{ key: 'coal', total_change_pct: 20 }],
@@ -69,8 +114,8 @@ function shortReason(reason) {
   return r || 'korelasi lemah';
 }
 
-/* Segmented control: tombol-tombol pil (aktif = btn--primary, sisanya
-   btn--secondary). Mengembalikan { el, set(value) }; set() hanya
+/* Segmented control: tombol-tombol pil (aktif = btn-primary, sisanya
+   btn-outline-secondary). Mengembalikan { el, set(value) }; set() hanya
    mengubah tampilan, tanpa memanggil onChange (dipakai saat preset
    mengisi form). */
 function segmentedControl(options, current, onChange) {
@@ -78,11 +123,11 @@ function segmentedControl(options, current, onChange) {
   const btns = {};
   function paint() {
     Object.entries(btns).forEach(([v, b]) => {
-      b.className = 'btn btn--sm ' + (v === current ? 'btn--primary' : 'btn--secondary');
+      b.className = 'btn btn-sm ' + (v === current ? 'btn-primary' : 'btn-outline-secondary');
     });
   }
   options.forEach(([value, label]) => {
-    const b = createEl('button', { class: 'btn btn--sm btn--secondary', type: 'button' }, [label]);
+    const b = createEl('button', { class: 'btn btn-sm btn-outline-secondary', type: 'button' }, [label]);
     b.addEventListener('click', () => {
       if (value === current) return;
       current = value;
@@ -297,7 +342,10 @@ function renderFactorList() {
       style: { display: 'flex', gap: 'var(--s-2)', alignItems: 'center',
                padding: 'var(--s-1) 0', borderBottom: '1px solid var(--c-border)' },
     });
-    const check = createEl('input', { type: 'checkbox' });
+    const check = createEl('input', {
+      type: 'checkbox', class: 'form-check-input',
+      style: { marginTop: '0', flexShrink: '0' },
+    });
     check.checked = false;
     const label = createEl('label', { style: { flex: '1', fontSize: 'var(--text-sm)' } },
       [`${f.display_name} `, createEl('span', { style: { color: 'var(--c-text-3)' } },
@@ -309,7 +357,7 @@ function renderFactorList() {
     });
     const pct = createEl('input', {
       type: 'number', step: '1', value: '',
-      class: 'field__input',
+      class: 'form-control',
       style: { width: '92px', textAlign: 'right', paddingRight: '26px' },
       placeholder: '+20',
       title: 'Total % perubahan faktor selama jangka waktu (+20 = naik 20%, -20 = turun 20%)',
@@ -411,7 +459,7 @@ function renderResult() {
   // Kontribusi tiap faktor.
   const attrCard = createEl('div', { class: 'card', style: { marginBottom: 'var(--s-3)' } });
   attrCard.appendChild(createEl('h3', { class: 'card__title', style: { marginBottom: 'var(--s-2)' } }, ['Kontribusi faktor']));
-  const attrTable = createEl('table', { class: 'table' });
+  const attrTable = createEl('table', { class: 'table table-sm' });
   const attrHead = createEl('thead', {});
   const attrHeadRow = createEl('tr', {});
   ['Faktor', 'Beta gabungan', 'Perubahan faktor', 'Perkiraan kontribusi'].forEach((h) => {
@@ -437,7 +485,7 @@ function renderResult() {
   // Daftar per saham.
   const tickCard = createEl('div', { class: 'card', style: { marginBottom: 'var(--s-3)' } });
   tickCard.appendChild(createEl('h3', { class: 'card__title', style: { marginBottom: 'var(--s-2)' } }, ['Per saham']));
-  const tickTable = createEl('table', { class: 'table' });
+  const tickTable = createEl('table', { class: 'table table-sm' });
   const tickHead = createEl('thead', {});
   const tickHeadRow = createEl('tr', {});
   ['Saham', 'Nilai tengah', 'Rentang hasil', 'Pengaruh faktor'].forEach((h) => {
@@ -470,6 +518,7 @@ function renderResult() {
 /* ─── Halaman ─── */
 
 export function render() {
+  ensureBootstrap();
   const container = createEl('div', { class: 'scenario-page' });
   const head = createEl('div', { style: { marginBottom: 'var(--s-3)' } });
   head.appendChild(createEl('h2', {}, ['Scenario']));
@@ -486,8 +535,14 @@ export function render() {
     style: { display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(240px, 1fr))', gap: 'var(--s-2)' },
   });
   PRESETS.forEach((p) => {
-    const card = createEl('button', { class: 'btn btn--secondary', type: 'button',
-      style: { textAlign: 'left', padding: 'var(--s-2)' } }, []);
+    // d-inline-flex: tombol preset berisi 2 div (label + deskripsi) —
+    // .btn Bootstrap itu inline-block (akan menumpuk vertikal), sementara
+    // tampilan saat ini label + deskripsi sebaris; pertahankan sebaris.
+    // whiteSpace normal + flexWrap: tombol tidak luber keluar kartu bila
+    // teks lebih lebar dari kolom grid (font Bootstrap 16px > 14px lama);
+    // bila sempit, deskripsi turun ke baris kedua, bukan terpotong.
+    const card = createEl('button', { class: 'btn btn-outline-secondary d-inline-flex', type: 'button',
+      style: { textAlign: 'left', padding: 'var(--s-2)', whiteSpace: 'normal', flexWrap: 'wrap' } }, []);
     card.appendChild(createEl('div', { style: { fontWeight: '600' } }, [p.label]));
     card.appendChild(createEl('div', { style: { fontSize: 'var(--text-sm)', color: 'var(--c-text-2)' } }, [p.desc]));
     card.addEventListener('click', () => runScenario(p));
@@ -504,10 +559,10 @@ export function render() {
     [['index', 'Index'], ['tickers', 'Satu saham']],
     scState.targetKind, (v) => setTargetKind(v, true));
   targetRow.appendChild(targetSeg.el);
-  const idxSel = createEl('select', { class: 'field__select', style: { minWidth: '220px' } });
+  const idxSel = createEl('select', { class: 'form-select', style: { minWidth: '220px' } });
   targetRow.appendChild(idxSel);
   const tickerInput = createEl('input', {
-    type: 'text', placeholder: 'Kode saham, mis. ITMG', class: 'field__input',
+    type: 'text', placeholder: 'Kode saham, mis. ITMG', class: 'form-control',
     style: { minWidth: '160px', textTransform: 'uppercase' }, disabled: true,
   });
   targetRow.appendChild(tickerInput);
@@ -525,7 +580,7 @@ export function render() {
     [['manual', 'Manual'], ['sub_sector', 'Sub-Sector']],
     scState.factorMode, (v) => setFactorMode(v, true));
   modeRow.appendChild(modeSeg.el);
-  const suggestBtn = createEl('button', { class: 'btn btn--secondary btn--sm', type: 'button', disabled: true }, ['Sarankan faktor']);
+  const suggestBtn = createEl('button', { class: 'btn btn-outline-secondary btn-sm', type: 'button', disabled: true }, ['Sarankan faktor']);
   modeRow.appendChild(suggestBtn);
   suggestBtn.addEventListener('click', runSuggest);
   factorCard.appendChild(modeRow);
@@ -538,15 +593,15 @@ export function render() {
   const runRow = createEl('div', { style: { display: 'flex', gap: 'var(--s-3)', flexWrap: 'wrap', alignItems: 'flex-end' } });
   const horizonWrap = createEl('div', {});
   horizonWrap.appendChild(createEl('label', { style: { fontSize: 'var(--text-sm)', display: 'block' } }, ['Jangka waktu (bulan)']));
-  const horizonInput = createEl('input', { type: 'number', value: '6', min: '1', max: '60', class: 'field__input', style: { width: '90px' } });
+  const horizonInput = createEl('input', { type: 'number', value: '6', min: '1', max: '60', class: 'form-control', style: { width: '90px' } });
   horizonWrap.appendChild(horizonInput);
   runRow.appendChild(horizonWrap);
   const simsWrap = createEl('div', {});
   simsWrap.appendChild(createEl('label', { style: { fontSize: 'var(--text-sm)', display: 'block' } }, ['Jumlah simulasi']));
-  const simsInput = createEl('input', { type: 'number', value: '1000', min: '1', max: '10000', class: 'field__input', style: { width: '110px' } });
+  const simsInput = createEl('input', { type: 'number', value: '1000', min: '1', max: '10000', class: 'form-control', style: { width: '110px' } });
   simsWrap.appendChild(simsInput);
   runRow.appendChild(simsWrap);
-  const runBtn = createEl('button', { class: 'btn btn--primary', type: 'button' }, ['Jalankan simulasi']);
+  const runBtn = createEl('button', { class: 'btn btn-primary', type: 'button' }, ['Jalankan simulasi']);
   runBtn.addEventListener('click', () => runScenario(null));
   runRow.appendChild(runBtn);
   const runLabel = createEl('span', { style: { fontSize: 'var(--text-sm)', color: 'var(--c-text-2)' } }, ['']);
@@ -560,12 +615,17 @@ export function render() {
 
   scRootEl = container;
   scRefs = { indexSelect: idxSel, tickerInput, factorList, horizonInput, simsInput, runBtn, runLabel, resultWrap, factorRows: {}, targetSeg, modeSeg, suggestBtn };
+  // Router hanya memanggil element._cleanup saat pindah halaman (bukan
+  // export cleanup()) — tanpa ini stylesheet Bootstrap bocor ke halaman
+  // lain. Pola yang sama dipakai market.js, stock-list.js, dsb.
+  container._cleanup = cleanup;
   loadFactors();
   loadIndices();
   return container;
 }
 
 export function cleanup() {
+  removeBootstrap();
   scRootEl = null;
   scRefs = {};
   scState.result = null;
