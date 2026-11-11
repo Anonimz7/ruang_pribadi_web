@@ -1,6 +1,5 @@
 /* pages/stocks.js — Stock Analysis (Anti-Slop, ApexCharts) */
 import { $, on, createEl } from '../../utils/dom.js';
-import { icons } from '../../ui/icons.js';
 import Api from '../../core/api.js';
 import { toast } from '../../ui/toast.js';
 import { loadApexCharts, buildBaseOptions, renderChart, destroyChart, normalizeDate, toTs, buildLineChartApex, buildBarChartApex, buildPositionChartApex, createChartPanel } from '../../ui/chart.js';
@@ -9,6 +8,54 @@ import { fmtPrice, formatNilaiSingkat, dateLabel, dateLabelYear } from '../../ut
 import { StockSectorBadge, DelistedBadge } from '../../ui/stock-widgets.js';
 import { StockListItem, StockDataPoint, StockSummary, StockAnalysis } from '../../models/stocks.js';
 import { spinnerCardHtml } from '../../ui/loading.js';
+
+/* ─── Bootstrap trial (branch coba-bootstrap) ──────────────────────────────
+ * CSS-only, lingkup halaman ini saja: stylesheet Bootstrap + Icons
+ * dimuat saat halaman dibuka dan dilepas saat halaman ditutup, supaya
+ * halaman lain tidak berubah. Tidak ada Bootstrap JS (interaksi tetap
+ * memakai JS halaman ini); backend tidak disentuh.
+ * Versi di-pin dan DI-VENDOR LOKAL (css/vendor/): Bootstrap 5.3.8 +
+ * Bootstrap Icons 1.13.2. Alasan: stylesheet lintas-origin dari CDN
+ * tidak teraplikasi di Firefox uji VM ini (link terpasang tapi 0 aturan
+ * aktif — terdiagnosis 2026-11-11), sementara salinan same-origin yang
+ * identik langsung bekerja; vendor lokal juga menghilangkan dependensi
+ * runtime CDN untuk styling inti.
+ */
+const BS_CSS_URL = 'css/vendor/bootstrap.min.css';
+const BS_ICONS_URL = 'css/vendor/bootstrap-icons.min.css';
+let bsThemeObserver = null;
+
+function syncBsTheme() {
+  const dark = document.documentElement.getAttribute('data-theme') === 'dark';
+  document.documentElement.setAttribute('data-bs-theme', dark ? 'dark' : 'light');
+}
+
+function ensureBootstrap() {
+  if (!document.getElementById('bs-trial-css')) {
+    const l = document.createElement('link');
+    l.id = 'bs-trial-css'; l.rel = 'stylesheet'; l.href = BS_CSS_URL;
+    document.head.appendChild(l);
+  }
+  if (!document.getElementById('bs-trial-icons')) {
+    const l = document.createElement('link');
+    l.id = 'bs-trial-icons'; l.rel = 'stylesheet'; l.href = BS_ICONS_URL;
+    document.head.appendChild(l);
+  }
+  syncBsTheme();
+  if (!bsThemeObserver) {
+    bsThemeObserver = new MutationObserver((muts) => {
+      if (muts.some((m) => m.attributeName === 'data-theme')) syncBsTheme();
+    });
+    bsThemeObserver.observe(document.documentElement, { attributes: true });
+  }
+}
+
+function removeBootstrap() {
+  document.getElementById('bs-trial-css')?.remove();
+  document.getElementById('bs-trial-icons')?.remove();
+  document.documentElement.removeAttribute('data-bs-theme');
+  if (bsThemeObserver) { bsThemeObserver.disconnect(); bsThemeObserver = null; }
+}
 
 /* Kartu info saham khusus halaman ini (fork dari StockInfoCard di
    ui/stock-widgets.js) — memuat seksi Remarks + Riwayat Remarks yang
@@ -20,7 +67,7 @@ function StockInfoCardRemarks(stock) {
   if (!hasSector && !hasCore && !hasRemarks && stock.labelDelisted == null) return null;
   const card = createEl('div', { class: 'card', style: { marginTop: 'var(--s-3)', background: 'var(--c-surface-2)' } });
   let html = `<div style="display:flex;align-items:center;gap:var(--s-2);margin-bottom:var(--s-3);">
-    <span style="color:var(--c-primary);">${icons['globe']}</span>
+    <span style="color:var(--c-primary);"><i class="bi bi-globe"></i></span>
     <span style="font-size:var(--text-sm);font-weight:700;">Sector Info</span>
     <span style="margin-left:auto;"></span>
   </div>`;
@@ -34,7 +81,7 @@ function StockInfoCardRemarks(stock) {
       <span style="min-width:0;">
         <button type="button" class="stocks-page__remarks-history-btn" aria-expanded="false"
           aria-label="Show remarks change history">
-          <span>Remarks History</span>${icons['chevron-right']}
+          <span>Remarks History</span><i class="bi bi-chevron-right"></i>
         </button>
         <div class="stocks-page__remarks-history-list" style="display:none;margin-top:var(--s-2);"></div>
       </span>
@@ -53,7 +100,7 @@ function StockInfoCardRemarks(stock) {
       <p style="font-size:var(--text-sm);line-height:1.5;color:var(--c-text-2);">${stock.coreBusiness}</p>
     </div>`;
     const query = encodeURIComponent(`What is ${stock.ticker} stock (${stock.companyName})?`);
-    html += `<a href="https://www.google.com/search?udm=50&q=${query}" target="_blank" rel="noopener" class="btn btn--secondary stocks-page__learn-btn" style="margin-top:var(--s-3);font-size:var(--text-sm);">Learn about ${stock.companyName}</a>`;
+    html += `<a href="https://www.google.com/search?udm=50&q=${query}" target="_blank" rel="noopener" class="btn btn-outline-secondary stocks-page__learn-btn" style="margin-top:var(--s-3);font-size:var(--text-sm);">Learn about ${stock.companyName}</a>`;
   }
   card.innerHTML = html;
   if (hasRemarks) wireRemarksHistory(card, stock.ticker);
@@ -121,9 +168,9 @@ function renderRemarksHistory(res, start = 0) {
   if (all.length > REMARKS_HISTORY_PAGE) {
     html += `
       <div class="stocks-page__remarks-history-nav">
-        <button type="button" class="stocks-page__remarks-nav-btn" data-nav="prev"${start > 0 ? '' : ' disabled'}>‹ Previous</button>
+        <button type="button" class="btn btn-sm btn-outline-secondary" data-nav="prev"${start > 0 ? '' : ' disabled'}>‹ Previous</button>
         <span class="stocks-page__remarks-nav-info">${start + 1}–${end} of ${total}</span>
-        <button type="button" class="stocks-page__remarks-nav-btn" data-nav="next"${end < all.length ? '' : ' disabled'}>Next ›</button>
+        <button type="button" class="btn btn-sm btn-outline-secondary" data-nav="next"${end < all.length ? '' : ' disabled'}>Next ›</button>
       </div>`;
   } else if (total > all.length) {
     // cadangan bila server membatasi jumlah item yang dikirim
@@ -133,7 +180,7 @@ function renderRemarksHistory(res, start = 0) {
 }
 
 function setRemarksHistoryBtn(btn, open) {
-  btn.innerHTML = `<span>Remarks History</span>${open ? icons['chevron-down'] : icons['chevron-right']}`;
+  btn.innerHTML = `<span>Remarks History</span>${open ? '<i class="bi bi-chevron-down"></i>' : '<i class="bi bi-chevron-right"></i>'}`;
   btn.setAttribute('aria-expanded', String(open));
   btn.setAttribute('aria-label',
     (open ? 'Hide' : 'Show') + ' remarks change history');
@@ -484,10 +531,10 @@ function renderStatusPencarian() {
 function renderToolbarOnce() {
   const toolbar = createEl('div', { class: 'stocks-page__toolbar' });
   const row = createEl('div', { style: { position: 'relative', flex: '1 1 300px' } });
-  const searchWrap = createEl('div', { class: 'search', style: { width: '100%' } });
-  searchWrap.innerHTML = `<span class="search__icon">${icons['search']}</span>`;
+  const searchWrap = createEl('div', { class: 'input-group', style: { width: '100%' } });
+  searchWrap.innerHTML = `<span class="input-group-text"><i class="bi bi-search"></i></span>`;
   const input = createEl('input', {
-    type: 'text', class: 'search__input stocks-page__search-input',
+    type: 'text', class: 'form-control stocks-page__search-input',
     placeholder: 'Search ticker (BBCA, GOTO...)', value: stockState.searchTerm,
     'aria-label': 'Search stock', autocomplete: 'off',
   });
@@ -520,13 +567,7 @@ function renderToolbarOnce() {
   });
   PERIODS.forEach(d => {
     const chip = createEl('button', {
-      class: `btn btn--sm stocks-page__chip ${stockState.days === d ? 'stocks-page__chip--active' : ''}`,
-      style: {
-        padding: 'var(--s-1) var(--s-3)', fontSize: 'var(--text-xs)', fontWeight: 600,
-        borderRadius: '16px', border: '1px solid var(--c-border)',
-        background: stockState.days === d ? 'var(--c-accent)' : 'transparent',
-        color: stockState.days === d ? '#fff' : 'var(--c-text-2)',
-      }
+      class: `btn btn-sm rounded-pill stocks-page__chip ${stockState.days === d ? 'btn-primary' : 'btn-outline-secondary'}${stockState.days === d ? ' stocks-page__chip--active' : ''}`,
     });
     chip.textContent = d + 'D';
     on(chip, 'click', () => { stockState.days = d; updatePeriodChips(); if (stockState.selectedTicker) loadAnalysis(stockState.selectedTicker, { keepCompare: true }); });
@@ -542,8 +583,8 @@ function updatePeriodChips() {
   Array.from(stockRefs.periodChips.children).forEach((chip, i) => {
     const d = PERIODS[i];
     const active = stockState.days === d;
-    chip.style.background = active ? 'var(--c-accent)' : 'transparent';
-    chip.style.color = active ? '#fff' : 'var(--c-text-2)';
+    chip.classList.toggle('btn-primary', active);
+    chip.classList.toggle('btn-outline-secondary', !active);
     chip.classList.toggle('stocks-page__chip--active', active);
   });
 }
@@ -566,7 +607,7 @@ function renderSearchDropdown() {
       : null;
     return `
       <div class="stocks-page__result-item" data-ticker="${s.ticker}" style="padding:var(--s-2) var(--s-3);cursor:pointer;display:flex;align-items:center;gap:var(--s-2);border-bottom:1px solid var(--c-border);" onmouseover="this.style.background='var(--c-surface-2)'" onmouseout="this.style.background='transparent'">
-        <span style="color:var(--c-accent);flex-shrink:0;">${icons['trending-up']}</span>
+        <span style="color:var(--c-accent);flex-shrink:0;"><i class="bi bi-graph-up-arrow"></i></span>
         <div style="flex:1;min-width:0;">
           <div style="display:flex;align-items:center;gap:var(--s-1);flex-wrap:wrap;">
             <span style="font-weight:600;font-size:var(--text-sm);">${s.ticker}</span>
@@ -594,17 +635,17 @@ function renderCompareBar() {
   }
   let html = `<div style="display:flex;align-items:center;gap:var(--s-2);flex-wrap:wrap;">
     <span style="font-size:var(--text-xs);font-weight:600;color:var(--c-text-3);display:flex;align-items:center;gap:var(--s-1);">
-      <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M16 3h3v3h-3zM8 3h3v3H8zM5 8h14v12a2 2 0 0 1-2 2H7a2 2 0 0 1-2-2V8zM12 12v4"/></svg>
+      <i class="bi bi-arrow-left-right"></i>
       Compare
     </span>
-    <button class="btn btn--secondary btn--sm stocks-page__add-compare" style="padding:var(--s-1) var(--s-2);font-size:var(--text-xs);">${icons['plus']} Add</button>
+    <button class="btn btn-outline-secondary btn-sm stocks-page__add-compare" style="padding:var(--s-1) var(--s-2);font-size:var(--text-xs);"><i class="bi bi-plus"></i> Add</button>
   </div>`;
   if (stockState.compareTickers.length) {
     html += `<div style="display:flex;gap:var(--s-1);flex-wrap:wrap;margin-top:var(--s-2);">`;
     html += `<span style="display:inline-flex;align-items:center;gap:4px;padding:2px 8px;background:${COMPARE_COLORS[0]}1A;border:1px solid ${COMPARE_COLORS[0]}66;border-radius:16px;font-size:var(--text-xs);font-weight:600;color:${COMPARE_COLORS[0]};"><span style="width:8px;height:8px;border-radius:50%;background:${COMPARE_COLORS[0]};display:inline-block;"></span>${stockState.analysis.ticker}</span>`;
     stockState.compareTickers.forEach((t, i) => {
       const c = COMPARE_COLORS[(i + 1) % COMPARE_COLORS.length];
-      html += `<span style="display:inline-flex;align-items:center;gap:4px;padding:2px 8px;background:${c}1A;border:1px solid ${c}66;border-radius:16px;font-size:var(--text-xs);font-weight:600;color:${c};"><span style="width:8px;height:8px;border-radius:50%;background:${c};display:inline-block;"></span>${t}<button class="btn btn--ghost btn--sm stocks-page__remove-compare" data-ticker="${t}" style="padding:0;width:16px;height:16px;min-width:16px;min-height:16px;color:var(--c-text-3);margin-left:2px;" aria-label="Remove ${t}">${icons['x']}</button></span>`;
+      html += `<span style="display:inline-flex;align-items:center;gap:4px;padding:2px 8px;background:${c}1A;border:1px solid ${c}66;border-radius:16px;font-size:var(--text-xs);font-weight:600;color:${c};"><span style="width:8px;height:8px;border-radius:50%;background:${c};display:inline-block;"></span>${t}<button class="btn btn-sm stocks-page__remove-compare" data-ticker="${t}" style="padding:0;width:16px;height:16px;min-width:16px;min-height:16px;color:var(--c-text-3);margin-left:2px;" aria-label="Remove ${t}"><i class="bi bi-x"></i></button></span>`;
     });
     html += `</div>`;
   }
@@ -629,9 +670,9 @@ function showCompareModal() {
     <div class="stocks-page__compare-handle"></div>
     <div class="stocks-page__compare-head">
       <h3>Add Stock to Compare</h3>
-      <button type="button" class="btn btn--ghost stocks-page__compare-close" aria-label="Close">${icons['x']}</button>
+      <button type="button" class="btn-close stocks-page__compare-close" aria-label="Close"></button>
     </div>
-    <div class="search stocks-page__compare-search"><span class="search__icon">${icons['search']}</span><input type="text" class="search__input stocks-page__compare-input" placeholder="Search ticker (BBCA, GOTO...)" autofocus></div>
+    <div class="input-group stocks-page__compare-search"><span class="input-group-text"><i class="bi bi-search"></i></span><input type="text" class="form-control stocks-page__compare-input" placeholder="Search ticker (BBCA, GOTO...)" autofocus></div>
     <div class="stocks-page__compare-results"></div>
   `;
   overlay.appendChild(sheet);
@@ -659,7 +700,7 @@ function showCompareModal() {
           const already = stockState.compareTickers.includes(s.ticker.toUpperCase());
           const sectorBadge = s.sector ? StockSectorBadge(s.sector, true) : null;
           return `<div class="stocks-page__compare-item" data-ticker="${s.ticker}" style="padding:var(--s-2) var(--s-3);cursor:pointer;display:flex;align-items:center;gap:var(--s-2);border-bottom:1px solid var(--c-border);opacity:${already ? 0.5 : 1};pointer-events:${already ? 'none' : 'auto'};" onmouseover="this.style.background='var(--c-surface-2)'" onmouseout="this.style.background='transparent'">
-            <span style="color:${already ? 'var(--c-accent)' : 'var(--c-text-3)'};flex-shrink:0;">${already ? icons['check'] : icons['plus']}</span>
+            <span style="color:${already ? 'var(--c-accent)' : 'var(--c-text-3)'};flex-shrink:0;">${already ? '<i class="bi bi-check-lg"></i>' : '<i class="bi bi-plus"></i>'}</span>
             <div style="flex:1;min-width:0;">
               <div style="display:flex;align-items:center;gap:var(--s-1);flex-wrap:wrap;"><span style="font-weight:600;font-size:var(--text-sm);">${s.ticker}</span>${sectorBadge ? sectorBadge.outerHTML : ''}</div>
               <div style="font-size:var(--text-xs);color:var(--c-text-3);overflow:hidden;text-overflow:ellipsis;white-space:nowrap;">${s.companyName}</div>
@@ -820,7 +861,7 @@ async function mountCharts(rawData) {
     console.error('[Stocks] Failed to load chart library:', e);
     stockRootEl.querySelectorAll('.stocks-page__chart').forEach(c => {
       c.innerHTML = `<div style="display:flex;align-items:center;justify-content:center;height:100%;color:var(--c-text-3);font-size:var(--text-sm);">
-        <span style="margin-right:var(--s-2);">${icons['alert-circle']}</span> Failed to load chart library
+        <span style="margin-right:var(--s-2);"><i class="bi bi-exclamation-circle"></i></span> Failed to load chart library
       </div>`;
     });
     return;
@@ -871,7 +912,7 @@ async function mountCharts(rawData) {
     } catch (e) {
       console.error(`[Stocks] Chart "${type}" failed:`, e);
       container.innerHTML = `<div style="display:flex;align-items:center;justify-content:center;height:100%;color:var(--c-text-3);font-size:var(--text-sm);">
-        <span style="margin-right:var(--s-2);">${icons['alert-circle']}</span> Chart error
+        <span style="margin-right:var(--s-2);"><i class="bi bi-exclamation-circle"></i></span> Chart error
       </div>`;
     }
   });
@@ -1030,7 +1071,7 @@ function buildShareHoldersSectionHtml(sh) {
     <div style="font-size:var(--text-md);font-weight:700;margin-bottom:2px;">Major Shareholders (≥1%)</div>
     <div style="font-size:var(--text-xs);color:var(--c-text-3);margin-bottom:var(--s-3);">KSEI shareholder announcements · snapshot ${dateLabelYear(sh.snapshot_date)} · ${sh.holder_count} holders${range ? ` · ${snaps.length} months available (${range})` : ''}</div>
     <div style="overflow-x:auto;">
-      <table class="table">
+      <table class="table table-sm">
         <thead><tr><th>Investor</th><th style="text-align:right;">% Owned</th><th style="text-align:right;">Shares</th><th>Local / Foreign</th><th>Classification</th><th>Controller</th></tr></thead>
         <tbody>${rows}</tbody>
       </table>
@@ -1106,7 +1147,7 @@ function finTableHtml(fin, mode) {
   const rows = finTableRows(fin, mode);
   if (!rows.length) return `<div style="font-size:var(--text-sm);color:var(--c-text-3);padding:var(--s-3);">No data in this mode.</div>`;
   return `<div style="overflow-x:auto;">
-    <table class="table">
+    <table class="table table-sm">
       <thead><tr><th>Period</th><th>Revenue</th><th>Gross Profit</th><th>Net Profit</th><th>EPS</th></tr></thead>
       <tbody>
         ${rows.map(p => `<tr>
@@ -1150,9 +1191,9 @@ function buildFinancialSection(fin) {
     <div class="fin-lk-head" style="display:flex;align-items:center;gap:var(--s-2);flex-wrap:wrap;margin:var(--s-4) 0 var(--s-3);">
       <div style="font-size:var(--text-sm);font-weight:700;">Summary Statements</div>
       <div class="fin-lk-toggle" style="display:flex;gap:var(--s-1);">
-        <button class="btn btn--sm btn--secondary" data-mode="Q">Quarterly</button>
-        <button class="btn btn--sm btn--secondary" data-mode="A">Annual</button>
-        <button class="btn btn--sm btn--primary" data-mode="TTM">TTM</button>
+        <button class="btn btn-sm btn-outline-secondary" data-mode="Q">Quarterly</button>
+        <button class="btn btn-sm btn-outline-secondary" data-mode="A">Annual</button>
+        <button class="btn btn-sm btn-primary" data-mode="TTM">TTM</button>
       </div>
       <div style="font-size:var(--text-xs);color:var(--c-text-3);">Quarter = pure quarter (YTD de-cumulated) · values in Rp (M = billion, T = trillion)</div>
     </div>
@@ -1162,7 +1203,7 @@ function buildFinancialSection(fin) {
   const btns = wrap.querySelectorAll('.fin-lk-toggle button');
   const setMode = (mode) => {
     body.innerHTML = finTableHtml(fin, mode);
-    btns.forEach(b => { b.className = `btn btn--sm ${b.dataset.mode === mode ? 'btn--primary' : 'btn--secondary'}`; });
+    btns.forEach(b => { b.className = `btn btn-sm ${b.dataset.mode === mode ? 'btn-primary' : 'btn-outline-secondary'}`; });
   };
   btns.forEach(b => on(b, 'click', () => setMode(b.dataset.mode)));
   setMode('TTM');
@@ -1218,7 +1259,7 @@ function buildSummaryTable(rawData) {
     <div style="font-size:var(--text-md);font-weight:700;margin-bottom:2px;">Data Summary</div>
     <div style="font-size:var(--text-xs);color:var(--c-text-3);margin-bottom:var(--s-3);">${rows.length} latest days</div>
     <div style="overflow-x:auto;">
-      <table class="table">
+      <table class="table table-sm">
         <thead><tr><th>Date</th><th>Price</th><th>Change %</th><th>Net Foreign</th><th>ATV</th><th>BII</th><th>Foreign %</th></tr></thead>
         <tbody>
           ${rows.slice().reverse().map(r => {
@@ -1253,6 +1294,7 @@ function buildSummaryTable(rawData) {
 /* ─── Cleanup ─── */
 function cleanup() {
   clearCharts();
+  removeBootstrap();
   if (stockState._searchDebounce) clearTimeout(stockState._searchDebounce);
   if (stockState._compareDebounce) clearTimeout(stockState._compareDebounce);
   stockState.loadEpoch++;
@@ -1261,6 +1303,7 @@ function cleanup() {
 
 /* ─── Export render ─── */
 export function render() {
+  ensureBootstrap();
   Object.assign(stockState, {
     searchTerm: '', searchResults: [], searching: false,
     selectedTicker: '', days: 30, analysis: null, loading: false,
