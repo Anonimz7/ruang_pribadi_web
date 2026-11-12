@@ -254,16 +254,28 @@ export function render() {
     // Action — bungkus div agar td tetap table-cell (garis tabel tidak patah)
     const tdAction = createEl('td');
     const actionsWrap = createEl('div', { class: 'table__actions' });
-    if (delisted || systemLocked) {
+    if (delisted) {
       const lock = createEl('span', {
         class: 'btn btn--ghost btn--sm',
-        title: delisted
-          ? 'Delisted stock'
-          : 'Blacklist by system (red flag) — cannot be changed manually',
+        title: 'Delisted stock',
         style: { color: 'var(--c-text-3)', opacity: 0.45, pointerEvents: 'none' },
       }, []);
       lock.innerHTML = icons['lock'];
       actionsWrap.appendChild(lock);
+    } else if (systemLocked) {
+      // Baris sistem: gembok tetap menandai asal sistem, tapi admin boleh
+      // membukanya untuk AMBIL ALIH sebagai blacklist manual.
+      const lock = createEl('span', {
+        class: 'btn btn--ghost btn--sm',
+        title: 'Blacklist by system (red flag)',
+        style: { color: 'var(--c-text-3)', opacity: 0.45, pointerEvents: 'none' },
+      }, []);
+      lock.innerHTML = icons['lock'];
+      actionsWrap.appendChild(lock);
+      const takeoverBtn = createEl('button', { class: 'btn btn--ghost btn--sm', title: 'Ambil alih sebagai blacklist manual' }, []);
+      takeoverBtn.innerHTML = icons['edit'];
+      takeoverBtn.addEventListener('click', () => openStatusModal(s));
+      actionsWrap.appendChild(takeoverBtn);
     } else {
       const editBtn = createEl('button', { class: 'btn btn--ghost btn--sm', title: 'Set Status' }, []);
       editBtn.innerHTML = icons['edit'];
@@ -282,28 +294,39 @@ export function render() {
       toast('Delisted stocks cannot have their status set', { type: 'error' });
       return;
     }
-    if (stock.stock_status === 'blacklist' && stock.status_set_by === 'system') {
-      toast('Blacklist by system (red flag) — cannot be changed manually', { type: 'error' });
-      return;
-    }
+    // Baris sistem tidak lagi diblokir total: admin boleh AMBIL ALIH
+    // sebagai blacklist manual (hanya ke blacklist, tidak ke whitelist).
+    const isSystem = stock.stock_status === 'blacklist'
+      && stock.status_set_by === 'system';
 
     const select = createEl('select', { class: 'field__select' });
-    [['whitelist', 'Whitelist'], ['blacklist', 'Blacklist']].forEach(([v, l]) => {
+    // Baris sistem: hanya Blacklist yang ditawarkan — whitelist saham
+    // ber-flag merah tetap dilarang (BE juga menolaknya).
+    const statusOptions = isSystem
+      ? [['blacklist', 'Blacklist']]
+      : [['whitelist', 'Whitelist'], ['blacklist', 'Blacklist']];
+    statusOptions.forEach(([v, l]) => {
       select.appendChild(createEl('option', { value: v }, [l]));
     });
-    select.value = stock.stock_status || 'whitelist';
+    select.value = isSystem ? 'blacklist' : (stock.stock_status || 'whitelist');
 
     const reasonInput = createEl('textarea', {
       class: 'field__textarea',
       rows: 4,
       placeholder: 'Enter the reason for the status change...',
     }, []);
-    reasonInput.value = stock.status_reason || '';
+    reasonInput.value = isSystem ? '' : (stock.status_reason || '');
     reasonInput.style.resize = 'vertical';
 
     const content = createEl('div', { style: { display: 'flex', flexDirection: 'column', gap: 'var(--s-3)' } });
 
     content.appendChild(createEl('p', { style: { color: 'var(--c-text-2)', fontSize: 'var(--text-sm)' } }, [stock.company_name]));
+
+    if (isSystem) {
+      content.appendChild(createEl('p', {
+        style: { color: 'var(--c-text-2)', fontSize: 'var(--text-sm)', background: 'var(--c-warn-bg)', border: '1px solid var(--c-border)', borderRadius: 'var(--radius)', padding: 'var(--s-2) var(--s-3)', margin: '0' },
+      }, ['Baris ini blacklist by sistem karena red flag. Ambil alih akan mengubahnya menjadi blacklist manual — saham tetap blacklist walau flag merahnya lepas nanti; hanya admin yang bisa melepasnya.']));
+    }
 
     const statusWrap = createEl('div');
     statusWrap.innerHTML = '<label class="field__label">Status</label>';
@@ -317,10 +340,10 @@ export function render() {
 
     const modal = createModal({ title: `Set Status: ${stock.ticker}`, content, width: '420px' });
 
-    // Footer: [Reset (jika ada status)] [spacer] [Batal] [Simpan]
+    // Footer: [Reset (jika ada status & bukan baris sistem)] [spacer] [Batal] [Simpan/Ambil alih]
     const footer = createEl('div', { style: { display: 'flex', gap: 'var(--s-2)', marginTop: 'var(--s-2)', alignItems: 'center' } });
 
-    if (stock.stock_status) {
+    if (stock.stock_status && !isSystem) {
       const resetBtn = createEl('button', { class: 'btn btn--danger btn--sm' }, ['Reset']);
       resetBtn.addEventListener('click', () => handleReset(stock, modal));
       footer.appendChild(resetBtn);
@@ -330,14 +353,14 @@ export function render() {
     const cancelBtn = createEl('button', { class: 'btn btn--secondary' }, ['Cancel']);
     cancelBtn.addEventListener('click', () => modal.close());
 
-    const saveBtn = createEl('button', { class: 'btn btn--primary' }, ['Save']);
-    saveBtn.addEventListener('click', () => handleSave(stock, modal, select, reasonInput));
+    const saveBtn = createEl('button', { class: 'btn btn--primary' }, [isSystem ? 'Ambil alih' : 'Save']);
+    saveBtn.addEventListener('click', () => handleSave(stock, modal, select, reasonInput, isSystem));
 
     footer.append(cancelBtn, saveBtn);
     content.appendChild(footer);
   }
 
-  async function handleSave(stock, modal, select, reasonInput) {
+  async function handleSave(stock, modal, select, reasonInput, isSystem) {
     const reason = reasonInput.value.trim();
     if (!reason) {
       toast('Reason is required', { type: 'error' });
@@ -348,8 +371,11 @@ export function render() {
         ticker: stock.ticker,
         status: select.value,
         reason,
+        takeover: !!isSystem,
       });
-      toast(`Status for ${stock.ticker} set successfully`, { type: 'success' });
+      toast(isSystem
+        ? `Status for ${stock.ticker} diambil alih sebagai blacklist manual`
+        : `Status for ${stock.ticker} set successfully`, { type: 'success' });
       modal.close();
       loadStocks();
     } catch (e) {
