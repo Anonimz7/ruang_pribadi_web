@@ -13,6 +13,8 @@ export function render() {
     error: null,
     query: '',
     page: 1,
+    period: null,
+    xbrlLoading: false,
   };
 
   const container = createEl('div', { class: 'admin-data-monitoring' }, []);
@@ -39,6 +41,7 @@ export function render() {
     state.loading = true;
     state.error = null;
     state.page = 1;
+    state.period = null;
     renderAll();
     try {
       state.data = await Api.get('/data-updates/monitoring');
@@ -49,6 +52,23 @@ export function render() {
     }
     state.loading = false;
     renderAll();
+  }
+
+  // Muat ulang HANYA kartu XBRL untuk periode lain (kartu lain tetap).
+  async function loadXbrl() {
+    state.xbrlLoading = true;
+    renderXbrl();
+    try {
+      const q = state.period
+        ? `?period=${encodeURIComponent(state.period)}` : '';
+      const res = await Api.get('/data-updates/monitoring' + q);
+      if (state.data) state.data.xbrl = res.xbrl;
+      else state.data = res;
+    } catch (e) {
+      toast('Gagal memuat data XBRL', { type: 'error' });
+    }
+    state.xbrlLoading = false;
+    renderXbrl();
   }
 
   function cardHead(card, title, subtitle) {
@@ -79,10 +99,29 @@ export function render() {
   // ── Kartu XBRL ───────────────────────────────────────────────────
   function renderXbrl() {
     const d = state.data?.xbrl;
-    cardHead(xbrlCard, 'XBRL — Laporan Keuangan',
-      d?.latest_period ? `TW terakhir: ${d.latest_period}` : '');
+    // Head dengan dropdown periode (default: TW terakhir berisi data).
+    xbrlCard.innerHTML = '';
+    const head = createEl('div', { class: 'card__head' }, []);
+    const titleWrap = createEl('div', {}, []);
+    titleWrap.innerHTML = '<div class="card__title">XBRL — Laporan Keuangan</div>';
+    const headRight = createEl('div', { style: { display: 'flex', gap: 'var(--s-2)', alignItems: 'center' } }, []);
+    headRight.appendChild(createEl('span', { style: { fontSize: 'var(--text-sm)', color: 'var(--c-text-2)' } }, ['Periode:']));
+    const sel = createEl('select', { style: { padding: 'var(--s-2) var(--s-3)' } }, []);
+    (d?.periods || []).forEach(p => {
+      const opt = createEl('option', { value: p }, [p]);
+      if (p === (state.period || d.selected_period)) opt.selected = true;
+      sel.appendChild(opt);
+    });
+    sel.addEventListener('change', () => {
+      state.period = sel.value;
+      state.page = 1;
+      loadXbrl();
+    });
+    headRight.appendChild(sel);
+    head.append(titleWrap, headRight);
+    xbrlCard.appendChild(head);
     const body = createEl('div', {}, []);
-    if (state.loading) {
+    if (state.loading || state.xbrlLoading) {
       body.innerHTML = loadingBody();
     } else if (!d) {
       body.innerHTML = '<p style="color:var(--c-text-3);font-size:var(--text-sm);">Gagal memuat status XBRL.</p>';
