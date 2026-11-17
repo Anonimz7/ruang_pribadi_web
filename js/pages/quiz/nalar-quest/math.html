@@ -1,0 +1,308 @@
+<!doctype html>
+<html lang="id">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1">
+<title>Matematika — Drilling Soal Acak</title><link rel="stylesheet" href="nq-core.css">
+<link rel="stylesheet" href="../../../../css/vendor/katex/katex.min.css">
+</head>
+<body>
+
+<header class="top">
+  <div class="brand">
+    <span class="mark">MTK</span>
+    <span class="name">Matematika</span>
+    <span class="tag">drilling</span>
+  </div>
+  <nav class="tabs" id="tabs"><span style="font-size:12px;letter-spacing:.08em">MATEMATIKA</span></nav>
+  <div class="hint">Input menyesuaikan JSON</div>
+</header>
+
+<main class="app">
+  <aside class="rail">
+    <section id="sec-diff">
+      <h2 class="lbl">Tingkat</h2>
+      <div class="seg" id="diff">
+        <button data-d="0" class="on">Semua</button>
+        <button data-d="1">1</button>
+        <button data-d="2">2</button>
+        <button data-d="3">3</button>
+      </div>
+    </section>
+                <section>
+      <h2 class="lbl">Total</h2>
+      <dl class="ledger">
+        <div><dt>Benar</dt><dd id="s-ok">0</dd></div>
+        <div><dt>Salah</dt><dd id="s-no">0</dd></div>
+        <div><dt>Akurasi</dt><dd class="acc" id="s-acc">—</dd></div>
+        <div><dt>Streak</dt><dd id="s-st">0</dd></div>
+        <div><dt>Terbaik</dt><dd id="s-best">0</dd></div>
+      </dl>
+      <div class="calib-list" id="calib-total"></div>
+      <button class="btn-sm danger" id="reset-stats" style="margin-top:6px">Reset statistik</button>
+    </section>
+    <section id="sec-queue">
+      <h2 class="lbl">Antrean Matematika</h2>
+      <div id="math-queue" style="font-size:11px;line-height:1.6;color:var(--muted)"></div>
+      <button class="btn-sm" id="math-reshuffle" style="margin-top:6px">Kocok ulang</button>
+    </section>
+    <section id="sec-bank">
+      <h2 class="lbl">Bank</h2>
+      <div id="bank-status"></div>
+    </section>
+    <section id="sec-dataset">
+      <h2 class="lbl">Dataset</h2>
+      <div id="dataset-status" style="font-size:11px;line-height:1.6;color:var(--muted)">memuat&hellip;</div>
+      <div style="display:flex;flex-direction:column;gap:6px;margin-top:8px">
+        <button class="btn-sm" id="ds-add">Tambah manual</button>
+        <button class="btn-sm" id="ds-load-file">Muat file JSON</button>
+        <button class="btn-sm" id="ds-reload">Muat ulang dataset</button>
+        <button class="btn-sm" id="ds-guide">Unduh panduan MD</button>
+      </div>
+      <input type="file" id="ds-file" accept=".json,application/json" style="display:none">
+      <div class="ds-list" id="ds-custom-list"></div>
+      <div id="ds-import-report" style="font-size:11px;line-height:1.6;margin-top:8px"></div>
+      <div style="margin-top:10px;border-top:1px solid #ddd;padding-top:8px">
+        <div style="font-size:11px;color:var(--muted)">Admin server (unggah &amp; review)</div>
+        <div style="display:flex;gap:6px;margin-top:6px;flex-wrap:wrap">
+          <button class="btn-sm" id="ds-upload-server">Unggah ke server (draft)</button>
+        </div>
+        <div id="ds-auth-status" style="font-size:11px;line-height:1.6;margin-top:4px"></div>
+        <div id="ds-drafts-wrap" style="display:none;margin-top:8px">
+          <div style="font-size:11px;color:var(--muted)">Draft menunggu review</div>
+          <div id="ds-drafts-list" style="margin-top:4px"></div>
+        </div>
+      </div>
+      <input type="file" id="ds-file-server" accept=".json,application/json" style="display:none">
+    </section>
+    <section>
+      <button class="btn" id="next">Soal baru</button>
+    </section>
+  </aside>
+
+  <section class="stage">
+    <div class="mobile-bar">
+      <button class="btn-sm" id="rail-toggle">Pengaturan &amp; Statistik</button>
+    </div>
+    <div class="meta">
+      <span id="m-id">—</span>
+      <span><b id="m-tpl">—</b></span>
+      <span id="m-dom">—</span>
+      <span id="m-dif">—</span>
+      <span id="m-kind">—</span>
+      <span id="m-principle">—</span>
+      <span id="m-dist">—</span>
+      <span><span class="src-tag template" id="m-src">template</span></span>
+      <span id="m-session"></span>
+    </div>
+    <article>
+      <p class="prompt serif" id="prompt">Memuat…</p>
+      <div class="inputs" id="inputs"></div>
+      <div class="conf-slot" id="conf-slot"></div>
+      <div class="explain" id="explain" hidden></div>
+      <button class="btn" id="next-inline" style="display:none;margin-top:20px;max-width:660px">Soal berikutnya</button>
+    </article>
+  </section>
+
+  <aside class="src">
+    <div class="src-head">
+      <h2 class="lbl">Sumber soal</h2>
+      <div class="seg small" id="srctabs">
+        <button data-t="soal" class="on">soal.json</button>
+        <button data-t="tpl">template</button>
+      </div>
+      <button class="btn-sm src-toggle" id="src-toggle">Tampilkan JSON</button>
+    </div>
+    <div class="redact-note" id="redact-note">
+      Field jawaban (<span style="color:var(--ink)">correct</span>,
+      <span style="color:var(--ink)">canonical</span>,
+      <span style="color:var(--ink)">answer</span>) disamarkan sebagai
+      <span style="color:var(--ink)">"…"</span> sampai soal dijawab.
+    </div>
+    <pre class="code" id="code"></pre>
+  </aside>
+</main>
+
+<footer class="foot">
+  <span class="foot-ver">Matematika v0.7.2</span>
+  <span class="foot-sep">/</span>
+  <span>2026-11-14</span>
+  <span class="foot-spacer"></span>
+  <span class="foot-note">redaksi explanation · reveal setelah commit · 80/20 vs lastKey</span>
+</footer>
+<script src="../../../../js/vendor/katex/katex.min.js"></script>
+<script src="../../../../js/vendor/katex/auto-render.min.js"></script>
+<script>
+/* Konfigurasi + data halaman Matematika. WAJIB dimuat SEBELUM nq-core.js. */
+const DATASET_URL = "math-dataset.json";
+const FALLBACK_TEMPLATES = [{"id": "math.aritmetika.001", "type": "math", "domain": "angka", "principle": "penjumlahan", "surface_domain": "matematis", "surface_distance": 0, "contrast_with": [], "difficulty": 1, "vars": {"a": {"kind": "int", "min": 12, "max": 89}, "b": {"kind": "int", "min": 12, "max": 89}, "s": {"kind": "expr", "expr": "a + b"}, "d1": {"kind": "expr", "expr": "a + b + 10"}, "d2": {"kind": "expr", "expr": "a + b - 10"}, "d3": {"kind": "expr", "expr": "a + b + 1"}}, "constraints": [], "prompt": "Hitung $ {a} + {b} $.", "input": {"kind": "choice", "shuffle": true, "options": [{"text": "$ {s} $", "correct": true, "why": "$ {a} + {b} = {s} $."}, {"text": "$ {d1} $", "correct": false, "why": "Kelebihan 10 — periksa lagi puluhan."}, {"text": "$ {d2} $", "correct": false, "why": "Kekurangan 10 — periksa lagi puluhan."}, {"text": "$ {d3} $", "correct": false, "why": "Kelebihan 1 — periksa lagi satuan."}]}, "explain": "$ {a} + {b} = {s} $."}, {"id": "math.pecahan.001", "type": "math", "domain": "angka", "principle": "penjumlahan_pecahan", "surface_domain": "matematis", "surface_distance": 0, "contrast_with": [], "difficulty": 2, "vars": {"a": {"kind": "int", "min": 1, "max": 8}, "b": {"kind": "int", "min": 3, "max": 9}, "c": {"kind": "int", "min": 1, "max": 8}, "d": {"kind": "int", "min": 3, "max": 9}, "n": {"kind": "expr", "expr": "a * d + c * b"}, "m": {"kind": "expr", "expr": "b * d"}, "n2": {"kind": "expr", "expr": "a + c"}, "m2": {"kind": "expr", "expr": "b + d"}, "n3": {"kind": "expr", "expr": "a + c"}, "m3": {"kind": "expr", "expr": "b * d"}}, "constraints": ["a < b", "c < d"], "prompt": "Hitung $ \\frac{{a}}{{b}} + \\frac{{c}}{{d}} $.", "input": {"kind": "choice", "shuffle": true, "options": [{"text": "$ \\frac{{n}}{{m}} $", "correct": true, "why": "Penyebut disamakan: $ \\frac{{n}}{{m}} $."}, {"text": "$ \\frac{{n2}}{{m2}} $", "correct": false, "why": "Pembilang dan penyebut tidak boleh dijumlah langsung."}, {"text": "$ \\frac{{n3}}{{m3}} $", "correct": false, "why": "Pembilang dijumlah tapi penyebut dikali — penyebut harus disamakan dulu."}, {"text": "$ \\frac{{n}}{{m2}} $", "correct": false, "why": "Pembilang sudah benar, tapi penyebutnya dijumlah, bukan dikali."}]}, "explain": "Samakan penyebut: $ \\frac{{a}}{{b}} + \\frac{{c}}{{d}} = \\frac{a \\times d + c \\times b}{b \\times d} = \\frac{{n}}{{m}} $."}, {"id": "math.aritmetika.002", "type": "math", "domain": "angka", "principle": "pangkat_dua", "surface_domain": "matematis", "surface_distance": 0, "contrast_with": [], "difficulty": 1, "vars": {"a": {"kind": "int", "min": 3, "max": 15}, "s": {"kind": "expr", "expr": "a * a"}, "d1": {"kind": "expr", "expr": "2 * a"}, "d2": {"kind": "expr", "expr": "a * a + 1"}, "d3": {"kind": "expr", "expr": "a * a - 1"}}, "constraints": [], "prompt": "Hitung $ {a}^2 $.", "input": {"kind": "choice", "shuffle": true, "options": [{"text": "$ {s} $", "correct": true, "why": "$ {a}^2 = {a} \\times {a} = {s} $."}, {"text": "$ {d1} $", "correct": false, "why": "$2 \\times {a}$ bukan ${a}^2$ — pangkat berarti dikali dirinya sendiri."}, {"text": "$ {d2} $", "correct": false, "why": "Kelebihan 1 — periksa lagi perkaliannya."}, {"text": "$ {d3} $", "correct": false, "why": "Kekurangan 1 — periksa lagi perkaliannya."}]}, "explain": "$ {a}^2 = {a} \\times {a} = {s} $."}, {"id": "math.desimal.001", "type": "math", "domain": "angka", "principle": "penjumlahan_desimal", "surface_domain": "matematis", "surface_distance": 0, "contrast_with": [], "difficulty": 2, "vars": {"a": {"kind": "int", "min": 11, "max": 89}, "b": {"kind": "int", "min": 11, "max": 89}, "x": {"kind": "expr", "expr": "a / 10"}, "y": {"kind": "expr", "expr": "b / 10"}, "s": {"kind": "expr", "expr": "(a + b) / 10"}, "d1": {"kind": "expr", "expr": "(a + b + 1) / 10"}, "d2": {"kind": "expr", "expr": "(a + b - 1) / 10"}, "d3": {"kind": "expr", "expr": "(a + b) / 100"}}, "constraints": [], "prompt": "Hitung $ {x} + {y} $.", "input": {"kind": "choice", "shuffle": true, "options": [{"text": "$ {s} $", "correct": true, "why": "$ {x} + {y} = {s} $."}, {"text": "$ {d1} $", "correct": false, "why": "Kelebihan 0,1 — sejajarkan koma desimalnya."}, {"text": "$ {d2} $", "correct": false, "why": "Kekurangan 0,1 — sejajarkan koma desimalnya."}, {"text": "$ {d3} $", "correct": false, "why": "Koma bergeser satu tempat — hasilnya 10 kali lebih kecil."}]}, "explain": "$ {x} + {y} = {s} $."}];
+const FALLBACK_STATIC = [{"id": "math.statis.001", "source": "static", "template_id": null, "type": "math", "domain": "angka", "principle": "perkalian", "surface_domain": "matematis", "surface_distance": null, "contrast_with": [], "difficulty": 1, "prompt": "Sebuah toko menjual $12$ kotak pensil. Setiap kotak berisi $8$ pensil. Berapa pensil seluruhnya?", "input": {"kind": "choice", "shuffle": true, "options": [{"text": "96", "correct": true, "why": "$12 \\times 8 = 96$."}, {"text": "20", "correct": false, "why": "$12 + 8$ — itu penjumlahan, bukan perkalian."}, {"text": "48", "correct": false, "why": "$12 \\times 4$ — hanya setengah dari 8."}, {"text": "84", "correct": false, "why": "$12 \\times 7$ — salah satu faktor kurang 1."}]}, "explanation": "$12 \\times 8 = 96$."}, {"id": "math.statis.002", "source": "static", "template_id": null, "type": "math", "domain": "angka", "principle": "persen", "surface_domain": "matematis", "surface_distance": null, "contrast_with": [], "difficulty": 2, "prompt": "Harga sebuah tas $Rp200.000$. Toko memberi diskon $25\\%$. Berapa harga tas setelah diskon?", "input": {"kind": "choice", "shuffle": true, "options": [{"text": "Rp150.000", "correct": true, "why": "$200.000 \\times 25\\% = 50.000$ diskonnya, jadi $200.000 - 50.000 = 150.000$."}, {"text": "Rp50.000", "correct": false, "why": "Itu besar diskonnya, bukan harga setelah diskon."}, {"text": "Rp175.000", "correct": false, "why": "Itu $200.000 - 25.000$ — 25% disalahartikan sebagai Rp25.000."}, {"text": "Rp160.000", "correct": false, "why": "Itu harga bila diskonnya 20%, bukan 25%."}]}, "explanation": "Diskon $25\\%$ dari $Rp200.000$ adalah $Rp50.000$. Harga akhir: $Rp200.000 - Rp50.000 = Rp150.000$."}, {"id": "math.statis.003", "source": "static", "template_id": null, "type": "math", "domain": "angka", "principle": "luas_persegi_panjang", "surface_domain": "matematis", "surface_distance": null, "contrast_with": [], "difficulty": 2, "prompt": "Luas persegi panjang dengan panjang $12$ cm dan lebar $5$ cm adalah?", "input": {"kind": "choice", "shuffle": true, "options": [{"text": "60 cm²", "correct": true, "why": "Luas = panjang $\\times$ lebar."}, {"text": "34 cm", "correct": false, "why": "Itu keliling, bukan luas."}, {"text": "17 cm", "correct": false, "why": "Itu panjang + lebar."}, {"text": "30 cm²", "correct": false, "why": "Itu setengah dari luas — rumus segitiga, bukan persegi panjang."}]}, "explanation": "$L = p \\times l = 12 \\times 5 = 60$ cm²."}, {"id": "math.statis.004", "source": "static", "template_id": null, "type": "math", "domain": "angka", "principle": "tabungan", "surface_domain": "matematis", "surface_distance": null, "contrast_with": [], "difficulty": 3, "prompt": "Andi menabung $Rp50.000$ setiap bulan selama $6$ bulan, lalu mengambil $Rp120.000$. Berapa sisa tabungannya?", "input": {"kind": "choice", "shuffle": true, "options": [{"text": "Rp180.000", "correct": true, "why": "$50.000 \\times 6 = 300.000$, lalu $300.000 - 120.000 = 180.000$."}, {"text": "Rp300.000", "correct": false, "why": "Itu tabungan sebelum diambil — pengambilannya belum dikurangi."}, {"text": "Rp420.000", "correct": false, "why": "$300.000 + 120.000$ — pengambilan malah ditambah."}, {"text": "Rp150.000", "correct": false, "why": "Itu tabungan 3 bulan, bukan 6 bulan."}]}, "explanation": "$50.000 \\times 6 = 300.000$; $300.000 - 120.000 = 180.000$."}];
+const DS_EXAMPLE_TEMPLATE = {"id": "manual-tpl-001", "type": "math", "domain": "angka", "principle": "penjumlahan", "surface_domain": "matematis", "surface_distance": 0, "difficulty": 1, "vars": {"a": {"kind": "int", "min": 2, "max": 9}, "b": {"kind": "int", "min": 2, "max": 9}, "s": {"kind": "expr", "expr": "a + b"}}, "prompt": "Contoh template: Hitung $ {a} + {b} $ (tidak masuk antrean Matematika).", "input": {"kind": "choice", "shuffle": true, "options": [{"text": "$ {s} $", "correct": true, "why": ""}, {"text": "$ {a} $", "correct": false, "why": ""}]}, "explain": "Contoh."};
+const DS_EXAMPLE_STATIC = {"id": "math.statis.001", "source": "static", "template_id": null, "type": "math", "domain": "angka", "principle": "perkalian", "surface_domain": "matematis", "surface_distance": null, "contrast_with": [], "difficulty": 1, "prompt": "Sebuah toko menjual $12$ kotak pensil. Setiap kotak berisi $8$ pensil. Berapa pensil seluruhnya?", "input": {"kind": "choice", "shuffle": true, "options": [{"text": "96", "correct": true, "why": "$12 \\times 8 = 96$."}, {"text": "20", "correct": false, "why": "$12 + 8$ — itu penjumlahan, bukan perkalian."}, {"text": "48", "correct": false, "why": "$12 \\times 4$ — hanya setengah dari 8."}, {"text": "84", "correct": false, "why": "$12 \\times 7$ — salah satu faktor kurang 1."}]}, "explanation": "$12 \\times 8 = 96$."};
+const PANDUAN_MD = ["PANDUAN PENULIS SOAL MATEMATIKA (Drilling Acak) v0.1", "", "Matematika drilling adalah latihan berhitung acak: soal dibangkitkan dari", "template dengan nilai yang diacak setiap kali program dimulai, sehingga", "soal yang sama tidak pernah muncul dua kali dengan angka yang sama.", "Satu soal menuntut satu rantai berhitung yang jelas — dari soal ke jawaban", "lewat langkah-langkah yang bisa diperiksa ulang.", "", "NOTASI MATEMATIKA — LaTeX WAJIB", "- Semua notasi matematika ditulis dalam LaTeX, bukan teks biasa:", "  pecahan, pangkat, akar, variabel, persamaan, dan simbol matematika.", "- Inline: $...$ — contoh: $\\frac{3}{4}$, $x^2$, $\\sqrt{16}$, $2 \\times 5$.", "- Display (baris sendiri): $$...$$ — untuk persamaan yang panjang.", "- Jangan tulis \"3/4\", \"x^2\", atau \"akar 16\" sebagai teks biasa.", "- Di dalam string JSON, backslash LaTeX ditulis ganda: \"\\\\frac{3}{4}\"", "  (JSON memakai backslash sebagai escape, jadi satu backslash akan rusak).", "- Di dalam TEMPLATE, pecahan dengan nilai variabel ditulis dengan kurung", "  kurawal ganda: $\\frac{{a}}{{b}}$ — kurung tunggal {a} akan dimakan", "  mesin template, sehingga $\\frac{a}{b}$ rusak menjadi $\\frac35$.", "  Di soal STATIS (nilai sudah tetap), tulis biasa: $\\frac{3}{4}$.", "- LaTeX boleh dipakai di prompt, opsi jawaban, why, dan explanation.", "", "MENU AI (cabang Matematika) — jangan langsung membuat soal, tampilkan menu", "ini dan tunggu jawaban:", "  1. Mode: template (utama — nilai diacak) / statis (soal jadi, nilai tetap)", "  2. Topik: aritmetika / aljabar / geometri / pecahan & desimal / persen /", "     (pilih per batch sesuai permintaan)", "  3. Bentuk jawaban: choice (pilihan ganda seperti yang sudah ada)", "  4. LaTeX: wajib (lihat aturan di atas)", "  5. Kesulitan: 1 / 2 / 3", "  6. Jumlah soal: (angka)", "Untuk setiap baris, pengguna boleh memilih sendiri atau menulis \"acak\".", "Setelah pengguna menjawab menu, tulis konfigurasi yang dipakai di field", "description (satu baris), lalu keluarkan HANYA JSON sesuai ATURAN KELUARAN.", "", "ATURAN KELUARAN", "- Keluarkan HANYA satu objek JSON, tanpa teks di luar JSON:", "  {\"version\": \"0.7.2\", \"description\": \"...\", \"templates\": [...], \"static\": [...]}", "- Mode template mengisi array templates; mode statis mengisi array static.", "", "FIELD TEMPLATE MATEMATIKA", "- id: pola math.<topik>.001, mis. \"math.pecahan.001\"", "- type: \"math\" (nilai baru — perlu ditambahkan ke bank saat menu dibangun)", "- principle: topik yang dilatih, mis. \"penjumlahan_pecahan\"", "- domain: \"angka\"", "- surface_domain: \"matematis\"", "- surface_distance: 0", "- difficulty: 1, 2, atau 3", "- vars: nama variabel beserta jenis dan rentangnya, mis.", "  {\"a\": {\"kind\": \"int\", \"min\": 2, \"max\": 9}, \"b\": {\"kind\": \"int\", \"min\": 2, \"max\": 9}}", "- constraints: syarat antar variabel bila ada, mis. [\"a > b\"]", "- prompt: soal dengan placeholder {a}, {b}, ... dan LaTeX untuk notasinya", "- input: kind \"choice\", shuffle true, TEPAT 1 opsi benar, setiap opsi memakai why", "- explain: alur berhitung langkah demi langkah, bukan sekadar \"karena jawabannya X\"", "", "FIELD STATIS MATEMATIKA", "- Sama seperti template, tanpa vars dan tanpa constraints; nilai sudah tetap di prompt.", "- surface_distance: null (tidak berlaku untuk statis)", "- Tambah source: \"static\" dan template_id: null", "- Field penjelasan bernama \"explanation\" (bukan \"explain\") untuk statis.", "", "ANTI-SLOP MATEMATIKA", "- Hitung ulang jawaban dengan angka yang dipakai sebelum menulis opsi;", "  bila opsi benar dan explanation tidak cocok, perbaiki soalnya.", "- Pengecoh harus menangkap kesalahan berhitung yang umum (lupa urutan", "  operasi, salah membalik pecahan, keliru menempatkan koma desimal),", "  bukan sekadar jawaban ngawur.", "- Soal harus punya tepat satu jawaban yang pasti; bila ada ambiguitas,", "  perbaiki soalnya, jangan biarkan pembaca menebak.", "- Satuan dan konteks harus jelas (rupiah, meter, kg, dst.).", "- Jangan menyalin struktur soal yang sudah ada di bank; ubah konteks DAN", "  langkah berhitungnya.", "- Setiap entri harus lolos seluruh aturan validasi. Periksa sendiri", "  sebelum menjawab."];
+function downloadPanduanMD(){
+  const blob = new Blob([PANDUAN_MD.join("\n")], {type: "text/markdown"});
+  const a = document.createElement("a");
+  a.href = URL.createObjectURL(blob);
+  a.download = "panduan-matematika.md";
+  a.click();
+  setTimeout(() => URL.revokeObjectURL(a.href), 1000);
+}
+</script>
+<script src="nq-core.js?v=20261106-panele"></script>
+<script>
+
+/* Logika khas halaman Matematika: antrean kocok dari template yang
+   di-instantiate (nilai acak tiap bangun antrean) + soal statis. */
+Object.assign(state, { diff: 0, queue: [], queuePos: 0, bankKey: "" });
+
+function mathCandidates(){
+  const tpls = TEMPLATES.filter(t =>
+    state.validation.validIds.has(t.id) && t.type === "math" &&
+    (state.diff === 0 || t.difficulty === state.diff));
+  const stcs = STATIC_BANK.filter(s =>
+    state.validation.validIds.has(s.id) && s.type === "math" &&
+    (state.diff === 0 || s.difficulty === state.diff));
+  return { tpls, stcs };
+}
+function buildQueue(){
+  const c = mathCandidates();
+  const items = [];
+  c.tpls.forEach(t => {
+    const s = instantiate(t);
+    if(s) items.push(s);
+  });
+  c.stcs.forEach(s => {
+    const q = instantiateStatic(s);
+    if(q) items.push(q);
+  });
+  state.queue = shuffle(items);
+  state.queuePos = 0;
+  drawQueueStatus();
+}
+function drawQueueStatus(){
+  const el = document.getElementById("math-queue");
+  if(!el) return;
+  if(!state.queue.length){
+    el.textContent = "Belum ada soal Matematika untuk filter ini.";
+    return;
+  }
+  /* queuePos = jumlah soal yang sudah ditarik = nomor soal yang tampil. */
+  if(state.queuePos >= state.queue.length){
+    el.textContent = "Antrean habis — tekan \u201cKocok ulang\u201d untuk mulai lagi.";
+    return;
+  }
+  if(state.queuePos === 0){
+    el.textContent = "Antrean siap: " + state.queue.length + " soal — dikocok saat dibangun.";
+    return;
+  }
+  el.textContent = "Soal ke " + state.queuePos + " dari " + state.queue.length +
+    " — antrean dikocok saat dibangun.";
+}
+function nextSoal(){
+  if(state.awaitingConfidence) return;
+  if(state.queuePos >= state.queue.length){
+    const empty = !state.queue.length;
+    els.prompt.textContent = empty
+      ? "Belum ada soal Matematika untuk filter ini."
+      : "Antrean Matematika habis. Tekan \u201cKocok ulang\u201d untuk mulai lagi.";
+    els.inputs.innerHTML = "";
+    els.confSlot.innerHTML = "";
+    els.explain.hidden = true;
+    els.nextInline.style.display = "none";
+    state.soal = null;
+    els.mId.textContent = "—"; els.mTpl.textContent = "—";
+    els.mDom.textContent = "—"; els.mDif.textContent = "—";
+    els.mKind.textContent = "—"; els.mPrinciple.textContent = "—";
+    els.mDist.textContent = "—"; els.mSession.textContent = "";
+    drawQueueStatus();
+    return;
+  }
+  const s = state.queue[state.queuePos++];
+  state.lastKey = s.template_id || s.id;
+  state.soal = s;
+  state.soalStartedAt = Date.now();
+  state.answered = false;
+  state.awaitingConfidence = false;
+  state.userAnswer = null;
+  state.buffer = "";
+  state.pending = null;
+  draw();
+  drawQueueStatus();
+}
+/* Dipanggil inti setiap bank berubah: bangun ulang antrean hanya bila
+   isi bank Matematika benar-benar berubah (klik "Muat ulang" dua kali
+   tidak mengocok ulang antrean yang sedang dimainkan). */
+function onDatasetChanged(){
+  const key = TEMPLATES.filter(t => t.type === "math").map(t => t.id).join(",")
+    + "|" + STATIC_BANK.filter(s => s.type === "math").map(s => s.id).join(",");
+  if(key === state.bankKey) return;
+  state.bankKey = key;
+  buildQueue();
+  nextSoal();
+}
+$("diff").addEventListener("click", e => {
+  const b = e.target.closest("button"); if(!b) return;
+  [...e.currentTarget.children].forEach(x => x.classList.toggle("on", x === b));
+  state.diff = Number(b.dataset.d);
+  state.lastKey = null;
+  buildQueue();
+  nextSoal();
+});
+document.getElementById("math-reshuffle").addEventListener("click", () => {
+  buildQueue();
+  nextSoal();
+});
+$("reset-stats").addEventListener("click", () => {
+  if(!confirm("Hapus semua statistik?")) return;
+  state.stats = { ok:0, no:0, streak:0, best:0, byPrinciple: {} };
+  drawStats();
+  drawBankStatus();
+  buildQueue();
+  nextSoal();
+});
+/* Render LaTeX (KaTeX) pada soal yang tampil. Inti tidak boleh disentuh,
+   jadi draw() dan renderExplain() dibungkus di sini (pola yang sama
+   seperti pembungkusan loadFromApiOrFile di HLR). */
+function renderMath(){
+  if(typeof renderMathInElement !== "function") return;
+  const opts = { delimiters: [
+    {left: "$$", right: "$$", display: true},
+    {left: "$", right: "$", display: false}
+  ], throwOnError: false };
+  [els.prompt, els.inputs, els.explain].forEach(el => {
+    if(el) renderMathInElement(el, opts);
+  });
+}
+const _coreDraw = draw;
+draw = function(){ _coreDraw(); renderMath(); };
+const _coreRenderExplain = renderExplain;
+renderExplain = function(){ _coreRenderExplain.apply(null, arguments); renderMath(); };
+/* Matematika: bank API yang sukses tapi tidak berisi entri math BUKAN
+   keadaan valid — isinya hanya ada di file lokal sampai ada yang
+   menerbitkan entri math ke bank. Aturan inti ("API sukses walau kosong
+   tetap dipakai") benar untuk NQ, jadi fallback ini hanya di halaman
+   Matematika; bila API sudah berisi entri math, API tetap dipakai.
+   Dibungkus di sini (bukan di inti) supaya berlaku di semua pemanggilan
+   loadFromApiOrFile — boot halaman maupun tombol "Muat dari API". */
+const _coreLoadFromApiOrFile = loadFromApiOrFile;
+loadFromApiOrFile = async function(){
+  await _coreLoadFromApiOrFile();
+  if(!TEMPLATES.some(t => t.type === "math") &&
+     !STATIC_BANK.some(s => s.type === "math")){
+    await loadDataset();
+    refreshAfterDatasetChange();
+  }
+};
+initCoreEvents();
+initDatasetUI();
+loadFromApiOrFile().then(() => {
+  runValidation();
+  drawStats();
+  drawBankStatus();
+  drawDatasetPanel();
+});
+</script>
+
+</body>
+</html>

@@ -151,6 +151,7 @@ export const ROUTE_MAP = {
   backup: '/saham/admin/backup',
   stock_status: '/saham/admin/stock-status',
   idx_upload: '/saham/admin/idx-upload',
+  data_monitoring: '/saham/admin/data-monitoring',
   // Tools baru (dikonversi dari HTML standalone)
   color_palate: '/color-palate',
   math_dasar: '/math-dasar',
@@ -167,4 +168,5 @@ export const ROUTE_MAP = {
 export const EXTERNAL_URLS = {
   deck_of_cards: '/js/pages/games/deck-of-cards-old/index.html',
   hlr: '/js/pages/quiz/nalar-quest/hlr.html',
+  math: '/js/pages/quiz/nalar-quest/math.html',
 };

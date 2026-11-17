@@ -1,0 +1,460 @@
+{
+  "version": "0.7.2",
+  "description": "Bank awal Matematika — drilling acak (template + statis), LaTeX.",
+  "templates": [
+    {
+      "id": "math.aritmetika.001",
+      "type": "math",
+      "domain": "angka",
+      "principle": "penjumlahan",
+      "surface_domain": "matematis",
+      "surface_distance": 0,
+      "contrast_with": [],
+      "difficulty": 1,
+      "vars": {
+        "a": {
+          "kind": "int",
+          "min": 12,
+          "max": 89
+        },
+        "b": {
+          "kind": "int",
+          "min": 12,
+          "max": 89
+        },
+        "s": {
+          "kind": "expr",
+          "expr": "a + b"
+        },
+        "d1": {
+          "kind": "expr",
+          "expr": "a + b + 10"
+        },
+        "d2": {
+          "kind": "expr",
+          "expr": "a + b - 10"
+        },
+        "d3": {
+          "kind": "expr",
+          "expr": "a + b + 1"
+        }
+      },
+      "constraints": [],
+      "prompt": "Hitung $ {a} + {b} $.",
+      "input": {
+        "kind": "choice",
+        "shuffle": true,
+        "options": [
+          {
+            "text": "$ {s} $",
+            "correct": true,
+            "why": "$ {a} + {b} = {s} $."
+          },
+          {
+            "text": "$ {d1} $",
+            "correct": false,
+            "why": "Kelebihan 10 — periksa lagi puluhan."
+          },
+          {
+            "text": "$ {d2} $",
+            "correct": false,
+            "why": "Kekurangan 10 — periksa lagi puluhan."
+          },
+          {
+            "text": "$ {d3} $",
+            "correct": false,
+            "why": "Kelebihan 1 — periksa lagi satuan."
+          }
+        ]
+      },
+      "explain": "$ {a} + {b} = {s} $."
+    },
+    {
+      "id": "math.pecahan.001",
+      "type": "math",
+      "domain": "angka",
+      "principle": "penjumlahan_pecahan",
+      "surface_domain": "matematis",
+      "surface_distance": 0,
+      "contrast_with": [],
+      "difficulty": 2,
+      "vars": {
+        "a": {
+          "kind": "int",
+          "min": 1,
+          "max": 8
+        },
+        "b": {
+          "kind": "int",
+          "min": 3,
+          "max": 9
+        },
+        "c": {
+          "kind": "int",
+          "min": 1,
+          "max": 8
+        },
+        "d": {
+          "kind": "int",
+          "min": 3,
+          "max": 9
+        },
+        "n": {
+          "kind": "expr",
+          "expr": "a * d + c * b"
+        },
+        "m": {
+          "kind": "expr",
+          "expr": "b * d"
+        },
+        "n2": {
+          "kind": "expr",
+          "expr": "a + c"
+        },
+        "m2": {
+          "kind": "expr",
+          "expr": "b + d"
+        },
+        "n3": {
+          "kind": "expr",
+          "expr": "a + c"
+        },
+        "m3": {
+          "kind": "expr",
+          "expr": "b * d"
+        }
+      },
+      "constraints": [
+        "a < b",
+        "c < d"
+      ],
+      "prompt": "Hitung $ \\frac{{a}}{{b}} + \\frac{{c}}{{d}} $.",
+      "input": {
+        "kind": "choice",
+        "shuffle": true,
+        "options": [
+          {
+            "text": "$ \\frac{{n}}{{m}} $",
+            "correct": true,
+            "why": "Penyebut disamakan: $ \\frac{{n}}{{m}} $."
+          },
+          {
+            "text": "$ \\frac{{n2}}{{m2}} $",
+            "correct": false,
+            "why": "Pembilang dan penyebut tidak boleh dijumlah langsung."
+          },
+          {
+            "text": "$ \\frac{{n3}}{{m3}} $",
+            "correct": false,
+            "why": "Pembilang dijumlah tapi penyebut dikali — penyebut harus disamakan dulu."
+          },
+          {
+            "text": "$ \\frac{{n}}{{m2}} $",
+            "correct": false,
+            "why": "Pembilang sudah benar, tapi penyebutnya dijumlah, bukan dikali."
+          }
+        ]
+      },
+      "explain": "Samakan penyebut: $ \\frac{{a}}{{b}} + \\frac{{c}}{{d}} = \\frac{a \\times d + c \\times b}{b \\times d} = \\frac{{n}}{{m}} $."
+    },
+    {
+      "id": "math.aritmetika.002",
+      "type": "math",
+      "domain": "angka",
+      "principle": "pangkat_dua",
+      "surface_domain": "matematis",
+      "surface_distance": 0,
+      "contrast_with": [],
+      "difficulty": 1,
+      "vars": {
+        "a": {
+          "kind": "int",
+          "min": 3,
+          "max": 15
+        },
+        "s": {
+          "kind": "expr",
+          "expr": "a * a"
+        },
+        "d1": {
+          "kind": "expr",
+          "expr": "2 * a"
+        },
+        "d2": {
+          "kind": "expr",
+          "expr": "a * a + 1"
+        },
+        "d3": {
+          "kind": "expr",
+          "expr": "a * a - 1"
+        }
+      },
+      "constraints": [],
+      "prompt": "Hitung $ {a}^2 $.",
+      "input": {
+        "kind": "choice",
+        "shuffle": true,
+        "options": [
+          {
+            "text": "$ {s} $",
+            "correct": true,
+            "why": "$ {a}^2 = {a} \\times {a} = {s} $."
+          },
+          {
+            "text": "$ {d1} $",
+            "correct": false,
+            "why": "$2 \\times {a}$ bukan ${a}^2$ — pangkat berarti dikali dirinya sendiri."
+          },
+          {
+            "text": "$ {d2} $",
+            "correct": false,
+            "why": "Kelebihan 1 — periksa lagi perkaliannya."
+          },
+          {
+            "text": "$ {d3} $",
+            "correct": false,
+            "why": "Kekurangan 1 — periksa lagi perkaliannya."
+          }
+        ]
+      },
+      "explain": "$ {a}^2 = {a} \\times {a} = {s} $."
+    },
+    {
+      "id": "math.desimal.001",
+      "type": "math",
+      "domain": "angka",
+      "principle": "penjumlahan_desimal",
+      "surface_domain": "matematis",
+      "surface_distance": 0,
+      "contrast_with": [],
+      "difficulty": 2,
+      "vars": {
+        "a": {
+          "kind": "int",
+          "min": 11,
+          "max": 89
+        },
+        "b": {
+          "kind": "int",
+          "min": 11,
+          "max": 89
+        },
+        "x": {
+          "kind": "expr",
+          "expr": "a / 10"
+        },
+        "y": {
+          "kind": "expr",
+          "expr": "b / 10"
+        },
+        "s": {
+          "kind": "expr",
+          "expr": "(a + b) / 10"
+        },
+        "d1": {
+          "kind": "expr",
+          "expr": "(a + b + 1) / 10"
+        },
+        "d2": {
+          "kind": "expr",
+          "expr": "(a + b - 1) / 10"
+        },
+        "d3": {
+          "kind": "expr",
+          "expr": "(a + b) / 100"
+        }
+      },
+      "constraints": [],
+      "prompt": "Hitung $ {x} + {y} $.",
+      "input": {
+        "kind": "choice",
+        "shuffle": true,
+        "options": [
+          {
+            "text": "$ {s} $",
+            "correct": true,
+            "why": "$ {x} + {y} = {s} $."
+          },
+          {
+            "text": "$ {d1} $",
+            "correct": false,
+            "why": "Kelebihan 0,1 — sejajarkan koma desimalnya."
+          },
+          {
+            "text": "$ {d2} $",
+            "correct": false,
+            "why": "Kekurangan 0,1 — sejajarkan koma desimalnya."
+          },
+          {
+            "text": "$ {d3} $",
+            "correct": false,
+            "why": "Koma bergeser satu tempat — hasilnya 10 kali lebih kecil."
+          }
+        ]
+      },
+      "explain": "$ {x} + {y} = {s} $."
+    }
+  ],
+  "static": [
+    {
+      "id": "math.statis.001",
+      "source": "static",
+      "template_id": null,
+      "type": "math",
+      "domain": "angka",
+      "principle": "perkalian",
+      "surface_domain": "matematis",
+      "surface_distance": null,
+      "contrast_with": [],
+      "difficulty": 1,
+      "prompt": "Sebuah toko menjual $12$ kotak pensil. Setiap kotak berisi $8$ pensil. Berapa pensil seluruhnya?",
+      "input": {
+        "kind": "choice",
+        "shuffle": true,
+        "options": [
+          {
+            "text": "96",
+            "correct": true,
+            "why": "$12 \\times 8 = 96$."
+          },
+          {
+            "text": "20",
+            "correct": false,
+            "why": "$12 + 8$ — itu penjumlahan, bukan perkalian."
+          },
+          {
+            "text": "48",
+            "correct": false,
+            "why": "$12 \\times 4$ — hanya setengah dari 8."
+          },
+          {
+            "text": "84",
+            "correct": false,
+            "why": "$12 \\times 7$ — salah satu faktor kurang 1."
+          }
+        ]
+      },
+      "explanation": "$12 \\times 8 = 96$."
+    },
+    {
+      "id": "math.statis.002",
+      "source": "static",
+      "template_id": null,
+      "type": "math",
+      "domain": "angka",
+      "principle": "persen",
+      "surface_domain": "matematis",
+      "surface_distance": null,
+      "contrast_with": [],
+      "difficulty": 2,
+      "prompt": "Harga sebuah tas $Rp200.000$. Toko memberi diskon $25\\%$. Berapa harga tas setelah diskon?",
+      "input": {
+        "kind": "choice",
+        "shuffle": true,
+        "options": [
+          {
+            "text": "Rp150.000",
+            "correct": true,
+            "why": "$200.000 \\times 25\\% = 50.000$ diskonnya, jadi $200.000 - 50.000 = 150.000$."
+          },
+          {
+            "text": "Rp50.000",
+            "correct": false,
+            "why": "Itu besar diskonnya, bukan harga setelah diskon."
+          },
+          {
+            "text": "Rp175.000",
+            "correct": false,
+            "why": "Itu $200.000 - 25.000$ — 25% disalahartikan sebagai Rp25.000."
+          },
+          {
+            "text": "Rp160.000",
+            "correct": false,
+            "why": "Itu harga bila diskonnya 20%, bukan 25%."
+          }
+        ]
+      },
+      "explanation": "Diskon $25\\%$ dari $Rp200.000$ adalah $Rp50.000$. Harga akhir: $Rp200.000 - Rp50.000 = Rp150.000$."
+    },
+    {
+      "id": "math.statis.003",
+      "source": "static",
+      "template_id": null,
+      "type": "math",
+      "domain": "angka",
+      "principle": "luas_persegi_panjang",
+      "surface_domain": "matematis",
+      "surface_distance": null,
+      "contrast_with": [],
+      "difficulty": 2,
+      "prompt": "Luas persegi panjang dengan panjang $12$ cm dan lebar $5$ cm adalah?",
+      "input": {
+        "kind": "choice",
+        "shuffle": true,
+        "options": [
+          {
+            "text": "60 cm²",
+            "correct": true,
+            "why": "Luas = panjang $\\times$ lebar."
+          },
+          {
+            "text": "34 cm",
+            "correct": false,
+            "why": "Itu keliling, bukan luas."
+          },
+          {
+            "text": "17 cm",
+            "correct": false,
+            "why": "Itu panjang + lebar."
+          },
+          {
+            "text": "30 cm²",
+            "correct": false,
+            "why": "Itu setengah dari luas — rumus segitiga, bukan persegi panjang."
+          }
+        ]
+      },
+      "explanation": "$L = p \\times l = 12 \\times 5 = 60$ cm²."
+    },
+    {
+      "id": "math.statis.004",
+      "source": "static",
+      "template_id": null,
+      "type": "math",
+      "domain": "angka",
+      "principle": "tabungan",
+      "surface_domain": "matematis",
+      "surface_distance": null,
+      "contrast_with": [],
+      "difficulty": 3,
+      "prompt": "Andi menabung $Rp50.000$ setiap bulan selama $6$ bulan, lalu mengambil $Rp120.000$. Berapa sisa tabungannya?",
+      "input": {
+        "kind": "choice",
+        "shuffle": true,
+        "options": [
+          {
+            "text": "Rp180.000",
+            "correct": true,
+            "why": "$50.000 \\times 6 = 300.000$, lalu $300.000 - 120.000 = 180.000$."
+          },
+          {
+            "text": "Rp300.000",
+            "correct": false,
+            "why": "Itu tabungan sebelum diambil — pengambilannya belum dikurangi."
+          },
+          {
+            "text": "Rp420.000",
+            "correct": false,
+            "why": "$300.000 + 120.000$ — pengambilan malah ditambah."
+          },
+          {
+            "text": "Rp150.000",
+            "correct": false,
+            "why": "Itu tabungan 3 bulan, bukan 6 bulan."
+          }
+        ]
+      },
+      "explanation": "$50.000 \\times 6 = 300.000$; $300.000 - 120.000 = 180.000$."
+    }
+  ]
+}

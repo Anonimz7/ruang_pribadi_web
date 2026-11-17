@@ -65,6 +65,13 @@
       "minTier": 1
     },
     {
+      "key": "math",
+      "icon": "Icons.calculate",
+      "label": "Matematika",
+      "section": "quiz",
+      "minTier": 1
+    },
+    {
       "key": "news",
       "icon": "Icons.article",
       "label": "News",
@@ -274,6 +281,14 @@
       "key": "idx_upload",
       "icon": "Icons.upload_file",
       "label": "IDX Upload",
+      "section": "admin",
+      "portal": "saham",
+      "minTier": 0
+    },
+    {
+      "key": "data_monitoring",
+      "icon": "Icons.monitor",
+      "label": "Pemantauan Data",
       "section": "admin",
       "portal": "saham",
       "minTier": 0

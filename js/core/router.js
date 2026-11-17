@@ -53,6 +53,7 @@ const routes = {
   '/saham/admin/reports': () => import('../pages/saham/admin/reports.js'),
   '/saham/admin/stock-status': () => import('../pages/saham/admin/stock-status.js'),
   '/saham/admin/idx-upload': () => import('../pages/saham/admin/idx-upload.js'),
+  '/saham/admin/data-monitoring': () => import('../pages/saham/admin/data-monitoring.js'),
   // Tools — dikonversi dari HTML standalone ke ES module
   '/color-palate': () => import('../pages/tools/Color-Palate/color-palate.js'),
   '/math-dasar': () => import('../pages/quiz/Math-Dasar/math-dasar.js'),
