@@ -260,8 +260,6 @@ export function render() {
       body.innerHTML = kvRows([
         ['TW terakhir', d.latest_period],
         ['Jumlah TW', String(d.periods ?? 0)],
-        ['Baris di TW terakhir', String(d.rows_latest ?? 0)],
-        ['Total baris', String(d.total_rows ?? 0)],
       ]);
     }
     bkpmCard.appendChild(body);

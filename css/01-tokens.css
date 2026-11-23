@@ -1,5 +1,9 @@
 /* 01-tokens.css — Design tokens */
 :root {
+  /* Skema warna native browser (popup select, scrollbar, kontrol form)
+     mengikuti tema — tanpa ini popup select tetap terang di mode gelap. */
+  color-scheme: light;
+
   /* Colors */
   --c-bg:        #fafafa;
   --c-surface:   #ffffff;
@@ -75,6 +79,8 @@
 }
 
 [data-theme="dark"] {
+  color-scheme: dark;
+
   --c-bg:        var(--dark-bg);
   --c-surface:   var(--dark-surface);
   --c-surface-2: var(--dark-surface-2);

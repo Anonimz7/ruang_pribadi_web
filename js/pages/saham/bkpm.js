@@ -22,15 +22,18 @@ const TABS = {
   province: 'Provinsi',
 };
 const LIST_LIMIT = 20;
+const SUMMARY_PAGE_SIZE = 20;
 
 const state = {
   tab: 'summary',
   period: null,
+  periodTo: null,
   periods: [],
   latest: null,
   items: [],
   total: 0,
   offset: 0,
+  summaryPage: 1,
   loading: false,
   charts: [],
 };
@@ -69,6 +72,7 @@ async function loadPeriods() {
     state.periods = res.periods || [];
     state.latest = res.latest_period || null;
     if (!state.period) state.period = state.latest;
+    if (!state.periodTo) state.periodTo = state.latest;
   } catch (e) {
     toast('Gagal memuat data BKPM', { type: 'error' });
   }
@@ -89,7 +93,8 @@ async function loadBreakdown(reset) {
   renderBody();
   try {
     const res = await Api.get('/bkpm/breakdown', {
-      period: state.period, by: state.tab,
+      period: state.period, period_to: state.periodTo || state.period,
+      by: state.tab,
       limit: LIST_LIMIT, offset: state.offset,
     });
     state.total = res.total || 0;
@@ -140,12 +145,11 @@ function renderHeader() {
   const n = state.periods.length;
   const first = n ? state.periods[0].period : '-';
   const last = state.latest || '-';
-  const rows = state.periods.reduce((a, p) => a + (p.rows || 0), 0);
   el.innerHTML = `
     <div style="display:flex;align-items:center;justify-content:space-between;flex-wrap:wrap;gap:var(--s-3);">
       <div>
         <h1 style="margin:0;">BKPM — Realisasi Investasi</h1>
-        <div style="font-size:var(--text-sm);color:var(--c-text-3);margin-top:4px;">${n ? `${n} triwulan · ${first} – ${last} · ${fmtPrice(rows)} baris` : 'Memuat…'}</div>
+        <div style="font-size:var(--text-sm);color:var(--c-text-3);margin-top:4px;">${n ? `${n} triwulan · ${first} – ${last}` : 'Memuat…'}</div>
       </div>
     </div>`;
 }
@@ -178,28 +182,40 @@ function renderPeriodSelect() {
     wrap.innerHTML = '';
     return;
   }
+  const options = (selected) => state.periods.map((p) => `<option value="${p.period}"${p.period === selected ? ' selected' : ''}>${p.period}</option>`).join('');
   wrap.innerHTML = `
-    <div style="display:flex;gap:var(--s-2);align-items:center;">
-      <span style="font-size:var(--text-sm);color:var(--c-text-2);">Periode:</span>
-      <select style="padding:var(--s-2) var(--s-3);">
-        ${state.periods.map((p) => `<option value="${p.period}"${p.period === state.period ? ' selected' : ''}>${p.period}</option>`).join('')}
+    <div style="display:flex;gap:var(--s-2);align-items:center;flex-wrap:wrap;">
+      <span style="font-size:var(--text-sm);color:var(--c-text-2);">Dari:</span>
+      <select data-range="from" style="padding:var(--s-2) var(--s-3);">
+        ${options(state.period)}
+      </select>
+      <span style="font-size:var(--text-sm);color:var(--c-text-2);">Sampai:</span>
+      <select data-range="to" style="padding:var(--s-2) var(--s-3);">
+        ${options(state.periodTo || state.period)}
       </select>
     </div>`;
-  wrap.querySelector('select').addEventListener('change', (e) => {
-    state.period = e.target.value;
+  wrap.querySelectorAll('select').forEach((sel) => sel.addEventListener('change', (e) => {
+    const v = e.target.value;
+    const nextFrom = sel.dataset.range === 'from' ? v : state.period;
+    const nextTo = sel.dataset.range === 'to' ? v : (state.periodTo || state.period);
+    if (nextFrom > nextTo) {
+      toast('Periode awal harus sebelum atau sama dengan periode akhir', { type: 'error' });
+      e.target.value = sel.dataset.range === 'from' ? state.period : (state.periodTo || state.period);
+      return;
+    }
+    state.period = nextFrom;
+    state.periodTo = nextTo;
     loadBreakdown(true);
-  });
+  }));
 }
 
 function valueCells(r, withSplit) {
   if (!withSplit) {
-    return `<td style="text-align:right;">${fmtT(r.total)}</td>
-      <td style="text-align:right;">${fmtPrice(r.rows)}</td>`;
+    return `<td style="text-align:right;">${fmtT(r.total)}</td>`;
   }
   return `<td style="text-align:right;">${fmtT(r.total)}</td>
     <td style="text-align:right;">${fmtT(r.pma)}</td>
-    <td style="text-align:right;">${fmtT(r.pmdn)}</td>
-    <td style="text-align:right;">${fmtPrice(r.rows)}</td>`;
+    <td style="text-align:right;">${fmtT(r.pmdn)}</td>`;
 }
 
 function renderBody() {
@@ -223,7 +239,12 @@ function renderSummary(el) {
       <div style="font-size:var(--text-sm);color:var(--c-text-3);">Belum ada data BKPM.</div></div>`;
     return;
   }
-  const rows = state.periods.map((p) => `
+  // Nomor halaman (hemat DOM saat triwulan bertambah).
+  const totalPages = Math.max(1, Math.ceil(state.periods.length / SUMMARY_PAGE_SIZE));
+  if (state.summaryPage > totalPages) state.summaryPage = totalPages;
+  const start = (state.summaryPage - 1) * SUMMARY_PAGE_SIZE;
+  const pagePeriods = state.periods.slice(start, start + SUMMARY_PAGE_SIZE);
+  const rows = pagePeriods.map((p) => `
     <tr>
       <td>${p.period}</td>
       ${valueCells(p, true)}
@@ -237,11 +258,33 @@ function renderSummary(el) {
   tableWrap.innerHTML = `
     <div class="card" style="overflow-x:auto;">
       <table class="table">
-        <thead><tr><th>Triwulan</th><th style="text-align:right;">Total (Rp T)</th><th style="text-align:right;">PMA (Rp T)</th><th style="text-align:right;">PMDN (Rp T)</th><th style="text-align:right;">Baris</th></tr></thead>
+        <thead><tr><th>Triwulan</th><th style="text-align:right;">Total (Rp T)</th><th style="text-align:right;">PMA (Rp T)</th><th style="text-align:right;">PMDN (Rp T)</th></tr></thead>
         <tbody>${rows}</tbody>
       </table>
     </div>
-    <p style="color:var(--c-text-3);font-size:var(--text-sm);margin-top:var(--s-3);">TW1-2024: berkas sumber memuat baris duplikat (88.294 baris), sehingga total triwulan ini lebih besar dari kondisi sebenarnya.</p>`;
+    <p style="color:var(--c-text-3);font-size:var(--text-sm);margin-top:var(--s-2);">Menampilkan ${start + 1}–${Math.min(start + SUMMARY_PAGE_SIZE, state.periods.length)} dari ${state.periods.length} triwulan.</p>`;
+  // Nomor halaman (pola yang sama dengan Pemantauan Data).
+  const pager = createEl('div', { style: { display: 'flex', gap: 'var(--s-2)', alignItems: 'center', marginTop: 'var(--s-3)', flexWrap: 'wrap' } }, []);
+  const mkBtn = (label, page, disabled, primary) => {
+    const attrs = { class: `btn btn--sm${primary ? ' btn--primary' : ''}` };
+    if (disabled) attrs.disabled = '';
+    const b = createEl('button', attrs, [label]);
+    if (!disabled) b.addEventListener('click', () => {
+      state.summaryPage = page;
+      renderBody();
+      mountChart();
+    });
+    return b;
+  };
+  pager.appendChild(mkBtn('‹', state.summaryPage - 1, state.summaryPage <= 1, false));
+  for (let p = 1; p <= totalPages; p++) {
+    pager.appendChild(mkBtn(String(p), p, false, p === state.summaryPage));
+  }
+  pager.appendChild(mkBtn('›', state.summaryPage + 1, state.summaryPage >= totalPages, false));
+  tableWrap.appendChild(pager);
+  const note = createEl('p', { style: { color: 'var(--c-text-3)', fontSize: 'var(--text-sm)', marginTop: 'var(--s-3)' } }, []);
+  note.textContent = 'TW1-2024: jumlah baris triwulan ini tidak sebanding dengan triwulan lain (88.294 baris) karena sel-selnya terpecah ke beberapa baris; total investasinya tetap benar.';
+  tableWrap.appendChild(note);
   el.appendChild(tableWrap);
 }
 
@@ -257,8 +300,8 @@ function renderBreakdown(el) {
     return;
   }
   const head = isCountry
-    ? `<tr><th>Negara</th><th style="text-align:right;">Total / PMA (Rp T)</th><th style="text-align:right;">Baris</th></tr>`
-    : `<tr><th>${state.tab === 'sector' ? 'Sektor' : 'Provinsi'}</th><th style="text-align:right;">Total (Rp T)</th><th style="text-align:right;">PMA (Rp T)</th><th style="text-align:right;">PMDN (Rp T)</th><th style="text-align:right;">Baris</th></tr>`;
+    ? `<tr><th>Negara</th><th style="text-align:right;">Total / PMA (Rp T)</th></tr>`
+    : `<tr><th>${state.tab === 'sector' ? 'Sektor' : 'Provinsi'}</th><th style="text-align:right;">Total (Rp T)</th><th style="text-align:right;">PMA (Rp T)</th><th style="text-align:right;">PMDN (Rp T)</th></tr>`;
   const rows = state.items.map((r) => `
     <tr>
       <td><div style="font-weight:600;">${r.key || '—'}</div></td>
