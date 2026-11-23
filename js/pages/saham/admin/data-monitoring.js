@@ -34,7 +34,8 @@ export function render() {
   const kseiCard = createEl('div', { class: 'card' }, []);
   const holdersCard = createEl('div', { class: 'card' }, []);
   const commodityCard = createEl('div', { class: 'card' }, []);
-  container.append(xbrlCard, kseiCard, holdersCard, commodityCard);
+  const bkpmCard = createEl('div', { class: 'card' }, []);
+  container.append(xbrlCard, kseiCard, holdersCard, commodityCard, bkpmCard);
 
   // ── Muat data ────────────────────────────────────────────────────
   async function load() {
@@ -246,6 +247,26 @@ export function render() {
     commodityCard.appendChild(body);
   }
 
+  // ── Kartu BKPM ───────────────────────────────────────────────────
+  function renderBkpm() {
+    const d = state.data?.bkpm;
+    cardHead(bkpmCard, 'BKPM — Realisasi Investasi', 'Realisasi investasi triwulan');
+    const body = createEl('div', {}, []);
+    if (state.loading) {
+      body.innerHTML = loadingBody();
+    } else if (!d || !d.latest_period) {
+      body.innerHTML = '<p style="color:var(--c-text-3);font-size:var(--text-sm);">Belum ada data.</p>';
+    } else {
+      body.innerHTML = kvRows([
+        ['TW terakhir', d.latest_period],
+        ['Jumlah TW', String(d.periods ?? 0)],
+        ['Baris di TW terakhir', String(d.rows_latest ?? 0)],
+        ['Total baris', String(d.total_rows ?? 0)],
+      ]);
+    }
+    bkpmCard.appendChild(body);
+  }
+
   function renderAll() {
     renderXbrl();
     renderSnapshot(kseiCard, 'KSEI — Kepemilikan Asing', 'Snapshot bulanan',
@@ -253,6 +274,7 @@ export function render() {
     renderSnapshot(holdersCard, 'Shareholding — Pemegang Saham ≥1%', 'Snapshot bulanan',
       state.data?.holders, 'Jumlah bulan');
     renderCommodity();
+    renderBkpm();
   }
 
   // Init

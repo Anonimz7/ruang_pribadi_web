@@ -160,6 +160,14 @@
       "minTier": 2
     },
     {
+      "key": "bkpm",
+      "icon": "Icons.show_chart",
+      "label": "BKPM",
+      "section": "market",
+      "portal": "saham",
+      "minTier": 2
+    },
+    {
       "key": "video_downloader",
       "icon": "Icons.download",
       "label": "Video Downloader",

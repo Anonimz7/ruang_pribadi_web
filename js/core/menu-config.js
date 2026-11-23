@@ -142,6 +142,7 @@ export const ROUTE_MAP = {
   simulasi_iseng: '/saham/simulasi-iseng',
   pemantauan: '/saham/pemantauan',
   market_data: '/saham/market-data',
+  bkpm: '/saham/bkpm',
   scenario: '/saham/scenario',
   video_downloader: '/video',
   user_permissions: '/saham/admin/users',

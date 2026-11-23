@@ -44,6 +44,7 @@ const routes = {
   '/saham/simulasi-iseng': () => import('../pages/saham/simulasi-iseng.js'),
   '/saham/pemantauan': () => import('../pages/saham/pemantauan.js'),
   '/saham/market-data': () => import('../pages/saham/market-data.js'),
+  '/saham/bkpm': () => import('../pages/saham/bkpm.js'),
   '/saham/scenario': () => import('../pages/saham/scenario.js'),
   '/saham/admin/dashboard': () => import('../pages/saham/admin/dashboard.js'),
   '/saham/admin/users': () => import('../pages/saham/admin/users.js'),
