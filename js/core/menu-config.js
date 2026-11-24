@@ -170,4 +170,5 @@ export const EXTERNAL_URLS = {
   deck_of_cards: '/js/pages/games/deck-of-cards-old/index.html',
   hlr: '/js/pages/quiz/nalar-quest/hlr.html',
   math: '/js/pages/quiz/nalar-quest/math.html',
+  lang: '/js/pages/quiz/nalar-quest/bahasa.html',
 };

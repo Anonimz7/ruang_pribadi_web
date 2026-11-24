@@ -72,6 +72,13 @@
       "minTier": 1
     },
     {
+      "key": "lang",
+      "icon": "Icons.book_open",
+      "label": "Bahasa",
+      "section": "quiz",
+      "minTier": 1
+    },
+    {
       "key": "news",
       "icon": "Icons.article",
       "label": "News",

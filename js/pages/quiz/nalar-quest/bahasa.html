@@ -1,0 +1,308 @@
+<!doctype html>
+<html lang="id">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1">
+<title>Bahasa — Bank Soal Monolingual</title><link rel="stylesheet" href="nq-core.css">
+</head>
+<body>
+
+<header class="top">
+  <div class="brand">
+    <span class="mark">BHS</span>
+    <span class="name">Bahasa</span>
+    <span class="tag">bank soal</span>
+  </div>
+  <nav class="tabs" id="tabs"><span style="font-size:12px;letter-spacing:.08em">BAHASA</span></nav>
+  <div class="hint">Input menyesuaikan JSON</div>
+</header>
+
+<main class="app">
+  <aside class="rail">
+    <section id="sec-lang">
+      <h2 class="lbl">Bahasa</h2>
+      <div class="seg" id="lang">
+        <button data-l="english" class="on">Inggris</button>
+        <button data-l="mandarin">Mandarin</button>
+        <button data-l="japanese">Jepang</button>
+      </div>
+    </section>
+    <section id="sec-diff">
+      <h2 class="lbl">Tingkat</h2>
+      <div class="seg" id="diff">
+        <button data-d="0" class="on">Semua</button>
+        <button data-d="1">1</button>
+        <button data-d="2">2</button>
+        <button data-d="3">3</button>
+      </div>
+    </section>
+                <section>
+      <h2 class="lbl">Total</h2>
+      <dl class="ledger">
+        <div><dt>Benar</dt><dd id="s-ok">0</dd></div>
+        <div><dt>Salah</dt><dd id="s-no">0</dd></div>
+        <div><dt>Akurasi</dt><dd class="acc" id="s-acc">—</dd></div>
+        <div><dt>Streak</dt><dd id="s-st">0</dd></div>
+        <div><dt>Terbaik</dt><dd id="s-best">0</dd></div>
+      </dl>
+      <div class="calib-list" id="calib-total"></div>
+      <button class="btn-sm danger" id="reset-stats" style="margin-top:6px">Reset statistik</button>
+    </section>
+    <section id="sec-queue">
+      <h2 class="lbl">Antrean Bahasa</h2>
+      <div id="lang-queue" style="font-size:11px;line-height:1.6;color:var(--muted)"></div>
+      <button class="btn-sm" id="lang-reshuffle" style="margin-top:6px">Kocok ulang</button>
+    </section>
+    <section id="sec-bank">
+      <h2 class="lbl">Bank</h2>
+      <div id="bank-status"></div>
+    </section>
+    <section id="sec-dataset">
+      <h2 class="lbl">Dataset</h2>
+      <div id="dataset-status" style="font-size:11px;line-height:1.6;color:var(--muted)">memuat&hellip;</div>
+      <div style="display:flex;flex-direction:column;gap:6px;margin-top:8px">
+        <button class="btn-sm" id="ds-add">Tambah manual</button>
+        <button class="btn-sm" id="ds-load-file">Muat file JSON</button>
+        <button class="btn-sm" id="ds-reload">Muat ulang dataset</button>
+        <button class="btn-sm" id="ds-guide">Unduh panduan MD</button>
+      </div>
+      <input type="file" id="ds-file" accept=".json,application/json" style="display:none">
+      <div class="ds-list" id="ds-custom-list"></div>
+      <div id="ds-import-report" style="font-size:11px;line-height:1.6;margin-top:8px"></div>
+      <div style="margin-top:10px;border-top:1px solid #ddd;padding-top:8px">
+        <div style="font-size:11px;color:var(--muted)">Admin server (unggah &amp; review)</div>
+        <div style="display:flex;gap:6px;margin-top:6px;flex-wrap:wrap">
+          <button class="btn-sm" id="ds-upload-server">Unggah ke server (draft)</button>
+        </div>
+        <div id="ds-auth-status" style="font-size:11px;line-height:1.6;margin-top:4px"></div>
+        <div id="ds-drafts-wrap" style="display:none;margin-top:8px">
+          <div style="font-size:11px;color:var(--muted)">Draft menunggu review</div>
+          <div id="ds-drafts-list" style="margin-top:4px"></div>
+        </div>
+      </div>
+      <input type="file" id="ds-file-server" accept=".json,application/json" style="display:none">
+    </section>
+    <section>
+      <button class="btn" id="next">Soal baru</button>
+    </section>
+  </aside>
+
+  <section class="stage">
+    <div class="mobile-bar">
+      <button class="btn-sm" id="rail-toggle">Pengaturan &amp; Statistik</button>
+    </div>
+    <div class="meta">
+      <span id="m-id">—</span>
+      <span><b id="m-tpl">—</b></span>
+      <span id="m-dom">—</span>
+      <span id="m-dif">—</span>
+      <span id="m-kind">—</span>
+      <span id="m-principle">—</span>
+      <span id="m-dist">—</span>
+      <span><span class="src-tag template" id="m-src">template</span></span>
+      <span id="m-session"></span>
+    </div>
+    <article>
+      <p class="prompt serif" id="prompt">Memuat…</p>
+      <div class="inputs" id="inputs"></div>
+      <div class="conf-slot" id="conf-slot"></div>
+      <div class="explain" id="explain" hidden></div>
+      <button class="btn" id="next-inline" style="display:none;margin-top:20px;max-width:660px">Soal berikutnya</button>
+    </article>
+  </section>
+
+  <aside class="src">
+    <div class="src-head">
+      <h2 class="lbl">Sumber soal</h2>
+      <div class="seg small" id="srctabs">
+        <button data-t="soal" class="on">soal.json</button>
+        <button data-t="tpl">template</button>
+      </div>
+      <button class="btn-sm src-toggle" id="src-toggle">Tampilkan JSON</button>
+    </div>
+    <div class="redact-note" id="redact-note">
+      Field jawaban (<span style="color:var(--ink)">correct</span>,
+      <span style="color:var(--ink)">canonical</span>,
+      <span style="color:var(--ink)">answer</span>) disamarkan sebagai
+      <span style="color:var(--ink)">"…"</span> sampai soal dijawab.
+    </div>
+    <pre class="code" id="code"></pre>
+  </aside>
+</main>
+
+<footer class="foot">
+  <span class="foot-ver">Bahasa v0.7.2</span>
+  <span class="foot-sep">/</span>
+  <span>2026-11-24</span>
+  <span class="foot-spacer"></span>
+  <span class="foot-note">redaksi explanation · reveal setelah commit · 80/20 vs lastKey</span>
+</footer>
+<script>
+/* Konfigurasi + data halaman Bahasa. WAJIB dimuat SEBELUM nq-core.js. */
+const DATASET_URL = "lang-dataset.json";
+const FALLBACK_TEMPLATES = [];
+const FALLBACK_STATIC = [{"contrast_with":[],"difficulty":1,"domain":"bahasa","explanation":"Maria's decision is in the past, and the alarm is for tomorrow morning. The only continuation that keeps the tense and the time consistent is 'She set her alarm for five o'clock.'","id":"lang.en.lanjut.001","input":{"kind":"choice","options":[{"correct":true,"text":"She set her alarm for five o'clock.","why":"The story is told in the past ('decided'), so the continuation stays in the past tense."},{"correct":false,"text":"She sets her alarm for five o'clock yesterday.","why":"'Sets' is present tense, and 'yesterday' contradicts 'tomorrow'."},{"correct":false,"text":"She will setting her alarm for five o'clock.","why":"'Will setting' is not a correct verb form."},{"correct":false,"text":"She set her alarm for five o'clock last week.","why":"'Last week' contradicts 'tomorrow'."}],"shuffle":true},"principle":"lanjut_kalimat","prompt":"Maria decided to wake up early tomorrow.","source":"static","surface_distance":null,"surface_domain":"english","template_id":null,"type":"lang"},{"contrast_with":[],"difficulty":2,"domain":"bahasa","explanation":"A closed museum means the visitors cannot enter yet. The natural continuation states the consequence: they had to wait until it reopened next spring.","id":"lang.en.lanjut.002","input":{"kind":"choice","options":[{"correct":true,"text":"The visitors had to wait until next spring.","why":"A closed museum means the visitors cannot enter yet — the natural consequence is waiting."},{"correct":false,"text":"The visitors had waited until next spring yesterday.","why":"'Had waited' describes waiting already finished, and 'yesterday' clashes with 'until next spring'."},{"correct":false,"text":"The visitors will have waited until next spring.","why":"The future perfect does not fit a simple consequence here."},{"correct":false,"text":"The visitors waiting until next spring.","why":"This has no finite verb — it is a fragment, not a sentence."}],"shuffle":true},"principle":"lanjut_kalimat","prompt":"The museum was closed for renovation.","source":"static","surface_distance":null,"surface_domain":"english","template_id":null,"type":"lang"},{"contrast_with":[],"difficulty":1,"domain":"bahasa","explanation":"We put books on a shelf — 'on' marks the surface they rest on.","id":"lang.en.rumpang.001","input":{"kind":"choice","options":[{"correct":true,"text":"on","why":"Books rest on the surface of a shelf."},{"correct":false,"text":"in","why":"'In' needs a container, like a box."},{"correct":false,"text":"at","why":"'At' does not describe where something is placed."},{"correct":false,"text":"under","why":"'Under' would put the books beneath the shelf, not on it."}],"shuffle":true},"principle":"kata_rumpang","prompt":"Please put the books ___ the shelf.","source":"static","surface_distance":null,"surface_domain":"english","template_id":null,"type":"lang"},{"contrast_with":[],"difficulty":2,"domain":"bahasa","explanation":"The present perfect ('has lived') with a starting point in the past takes 'since'. 'For' takes a duration, 'from' needs an end, and 'at' does not fit years.","id":"lang.en.rumpang.002","input":{"kind":"choice","options":[{"correct":true,"text":"since","why":"With the present perfect and a starting year, English uses 'since'."},{"correct":false,"text":"for","why":"'For' is for a length of time, like 'for five years', not a year."},{"correct":false,"text":"from","why":"'From 2019' needs an end point, like 'from 2019 to 2023'."},{"correct":false,"text":"at","why":"'At' is for places and clock times, not years."}],"shuffle":true},"principle":"kata_rumpang","prompt":"She has lived in Jakarta ___ 2019.","source":"static","surface_distance":null,"surface_domain":"english","template_id":null,"type":"lang"}];
+const DS_EXAMPLE_TEMPLATE = {"id": "manual-tpl-001", "type": "lang", "domain": "bahasa", "principle": "lanjut_kalimat", "surface_domain": "english", "surface_distance": 0, "difficulty": 1, "vars": {}, "prompt": "Contoh template (tidak masuk antrean Bahasa).", "input": {"kind": "choice", "shuffle": true, "options": [{"text": "A", "correct": true, "why": ""}, {"text": "B", "correct": false, "why": ""}]}, "explain": "Contoh."};
+const DS_EXAMPLE_STATIC = {"contrast_with":[],"difficulty":1,"domain":"bahasa","explanation":"Maria's decision is in the past, and the alarm is for tomorrow morning. The only continuation that keeps the tense and the time consistent is 'She set her alarm for five o'clock.'","id":"lang.en.lanjut.001","input":{"kind":"choice","options":[{"correct":true,"text":"She set her alarm for five o'clock.","why":"The story is told in the past ('decided'), so the continuation stays in the past tense."},{"correct":false,"text":"She sets her alarm for five o'clock yesterday.","why":"'Sets' is present tense, and 'yesterday' contradicts 'tomorrow'."},{"correct":false,"text":"She will setting her alarm for five o'clock.","why":"'Will setting' is not a correct verb form."},{"correct":false,"text":"She set her alarm for five o'clock last week.","why":"'Last week' contradicts 'tomorrow'."}],"shuffle":true},"principle":"lanjut_kalimat","prompt":"Maria decided to wake up early tomorrow.","source":"static","surface_distance":null,"surface_domain":"english","template_id":null,"type":"lang"};
+const PANDUAN_MD = ["PANDUAN PENULIS SOAL BAHASA (Bank Soal Monolingual) v0.1", "", "Bank soal Bahasa adalah bank soal monolingual: setiap soal ditulis FULL", "dalam SATU bahasa — Inggris penuh, Mandarin penuh, atau Jepang penuh.", "Ini BUKAN pasangan bahasa (bukan Mandarin–Indonesia atau", "Inggris–Indonesia). Model pasangan bahasa sudah ada di menu Language", "(#/bahasa, kamus + reader) dan tidak diulang di sini.", "", "JENIS SOAL — hanya dua:", "1. Melanjutkan kalimat — soal memberi satu kalimat (atau awal kalimat),", "   pemain memilih lanjutan yang tepat. Semua dalam bahasa itu.", "2. Mengisi kata rumpang (cloze) — soal memberi kalimat dengan satu bagian", "   kosong, pemain memilih kata/frasa yang tepat untuk mengisinya.", "Jawaban TIDAK harus menerjemahkan. Terjemahan tetap ada sebagai opsi —", "bukan keharusan: sebagian soal boleh memakai terjemahan sebagai salah", "satu opsi jawaban, bila menu memintanya.", "", "FORMAT TERJEMAHAN (bila menu memilih \"Terjemahan sebagai opsi: ya\")", "- Soal: satu kalimat dalam bahasa sumber (mis. Inggris).", "- Jawaban: pilihan ganda A/B/C/D dalam bahasa target (mis. Indonesia) —", "  satu terjemahan benar, sisanya pengecoh yang mirip tapi salah", "  (subjek ketukar, makna meleset, tenses salah).", "- Berlaku juga sebaliknya (soal Indonesia, pilihan Inggris) bila menu", "  memintanya.", "- Contoh: soal \"The cat is sleeping on the chair.\" — jawaban benar", "  \"Kucing itu sedang tidur di kursi.\"", "", "MENU AI (cabang Bahasa) — jangan langsung membuat soal, tampilkan menu", "ini dan tunggu jawaban:", "  1. Bahasa: inggris / mandarin / jepang", "  2. Jenis soal: lanjut_kalimat / kata_rumpang / campuran", "  3. Terjemahan sebagai opsi: ya / tidak", "  4. Bentuk jawaban: choice (pilihan ganda seperti yang sudah ada)", "  5. Kesulitan: 1 / 2 / 3", "  6. Jumlah soal: (angka)", "Untuk setiap baris, pengguna boleh memilih sendiri atau menulis \"acak\".", "Setelah pengguna menjawab menu, tulis konfigurasi yang dipakai di field", "description (satu baris), lalu keluarkan HANYA JSON sesuai ATURAN KELUARAN.", "", "ATURAN KELUARAN", "- Keluarkan HANYA satu objek JSON, tanpa teks di luar JSON:", "  {\"version\": \"0.7.2\", \"description\": \"...\", \"templates\": [...], \"static\": [...]}", "- Mode template mengisi array templates; mode statis mengisi array static.", "", "FIELD TEMPLATE BAHASA", "- id: pola lang.<bahasa>.<tipe>.001, mis. \"lang.en.lanjut.001\"", "  (bahasa: en / zh / ja; tipe: lanjut / rumpang)", "- type: \"lang\" (nilai baru — perlu ditambahkan ke bank saat menu dibangun)", "- principle: jenis soal yang dilatih, \"lanjut_kalimat\" atau \"kata_rumpang\"", "- domain: \"bahasa\"", "- surface_domain: bahasa soalnya, \"english\" | \"mandarin\" | \"japanese\"", "- surface_distance: 0", "- difficulty: 1, 2, atau 3", "- vars: nama variabel beserta jenis dan rentangnya (untuk template yang", "  memakai bagian yang diacak), mis.", "  {\"a\": {\"kind\": \"int\", \"min\": 2, \"max\": 9}}", "- constraints: syarat antar variabel bila ada", "- prompt: soal dengan placeholder {a}, {b}, ... bila memakai vars;", "  seluruh kalimat soal dalam bahasa yang dipilih", "- input: kind \"choice\", shuffle true, TEPAT 1 opsi benar, setiap opsi memakai why", "- explain: alur penalaran langkah demi langkah, dalam bahasa yang sama", "  dengan soalnya, bukan sekadar \"karena jawabannya X\"", "", "FIELD STATIS BAHASA", "- Sama seperti template, tanpa vars dan tanpa constraints; nilai sudah tetap di prompt.", "- surface_distance: null (tidak berlaku untuk statis)", "- Tambah source: \"static\" dan template_id: null", "- Field penjelasan bernama \"explanation\" (bukan \"explain\") untuk statis.", "", "ATURAN BAHASA", "- Seluruh soal, opsi, why, dan explanation ditulis dalam bahasa yang", "  dipilih — jangan mencampur bahasa Indonesia ke dalam soal (kecuali", "  bila opsi terjemahan diminta menu).", "- Untuk Mandarin: hanzi disajikan apa adanya; pinyin hanya bila diminta", "  menu. Untuk Jepang: kana/kanji disajikan apa adanya; romaji atau", "  furigana hanya bila diminta menu.", "- Kalimat harus natural — seperti yang dipakai penutur asli — bukan", "  kalimat terjemahan kata-per-kata.", "", "ANTI-SLOP BAHASA", "- Lanjutan kalimat yang benar harus satu-satunya yang natural dan", "  gramatikal; bila dua opsi sama-sama bisa benar, perbaiki soalnya.", "- Pengecoh harus menangkap kesalahan yang umum (pilihan kata yang", "  mirip tapi salah konteks, urutan kata yang salah, partikel yang", "  salah), bukan sekadar jawaban ngawur.", "- Kata rumpang harus punya tepat satu isian yang benar; bila ada", "  ambiguitas, perbaiki soalnya, jangan biarkan pembaca menebak.", "- Jangan menyalin struktur soal yang sudah ada di bank; ubah konteks", "  DAN isi kalimatnya.", "- Setiap entri harus lolos seluruh aturan validasi. Periksa sendiri", "  sebelum menjawab."];
+function downloadPanduanMD(){
+  const blob = new Blob([PANDUAN_MD.join("\n")], {type: "text/markdown"});
+  const a = document.createElement("a");
+  a.href = URL.createObjectURL(blob);
+  a.download = "panduan-bahasa.md";
+  a.click();
+  setTimeout(() => URL.revokeObjectURL(a.href), 1000);
+}
+</script>
+<script src="nq-core.js?v=20261106-panele"></script>
+<script>
+
+/* Logika khas halaman Bahasa: antrean kocok dari template yang
+   di-instantiate (nilai acak tiap bangun antrean) + soal statis,
+   disaring per bahasa (surface_domain) lewat pemilih di atas. */
+const LANG_LABEL = { english: "Bahasa Inggris", mandarin: "Bahasa Mandarin", japanese: "Bahasa Jepang" };
+Object.assign(state, { diff: 0, lang: "english", queue: [], queuePos: 0, bankKey: "" });
+
+function langCandidates(){
+  const tpls = TEMPLATES.filter(t =>
+    state.validation.validIds.has(t.id) && t.type === "lang" &&
+    t.surface_domain === state.lang &&
+    (state.diff === 0 || t.difficulty === state.diff));
+  const stcs = STATIC_BANK.filter(s =>
+    state.validation.validIds.has(s.id) && s.type === "lang" &&
+    s.surface_domain === state.lang &&
+    (state.diff === 0 || s.difficulty === state.diff));
+  return { tpls, stcs };
+}
+function buildQueue(){
+  const c = langCandidates();
+  const items = [];
+  c.tpls.forEach(t => {
+    const s = instantiate(t);
+    if(s) items.push(s);
+  });
+  c.stcs.forEach(s => {
+    const q = instantiateStatic(s);
+    if(q) items.push(q);
+  });
+  state.queue = shuffle(items);
+  state.queuePos = 0;
+  drawQueueStatus();
+}
+function drawQueueStatus(){
+  const el = document.getElementById("lang-queue");
+  if(!el) return;
+  if(!state.queue.length){
+    el.textContent = "Belum ada soal " + LANG_LABEL[state.lang] + " untuk filter ini.";
+    return;
+  }
+  /* queuePos = jumlah soal yang sudah ditarik = nomor soal yang tampil. */
+  if(state.queuePos >= state.queue.length){
+    el.textContent = "Antrean habis — tekan \u201cKocok ulang\u201d untuk mulai lagi.";
+    return;
+  }
+  if(state.queuePos === 0){
+    el.textContent = "Antrean siap: " + state.queue.length + " soal — dikocok saat dibangun.";
+    return;
+  }
+  el.textContent = "Soal ke " + state.queuePos + " dari " + state.queue.length +
+    " — antrean dikocok saat dibangun.";
+}
+function nextSoal(){
+  if(state.awaitingConfidence) return;
+  if(state.queuePos >= state.queue.length){
+    const empty = !state.queue.length;
+    els.prompt.textContent = empty
+      ? "Belum ada soal " + LANG_LABEL[state.lang] + " untuk filter ini."
+      : "Antrean Bahasa habis. Tekan \u201cKocok ulang\u201d untuk mulai lagi.";
+    els.inputs.innerHTML = "";
+    els.confSlot.innerHTML = "";
+    els.explain.hidden = true;
+    els.nextInline.style.display = "none";
+    state.soal = null;
+    els.mId.textContent = "—"; els.mTpl.textContent = "—";
+    els.mDom.textContent = "—"; els.mDif.textContent = "—";
+    els.mKind.textContent = "—"; els.mPrinciple.textContent = "—";
+    els.mDist.textContent = "—"; els.mSession.textContent = "";
+    drawQueueStatus();
+    return;
+  }
+  const s = state.queue[state.queuePos++];
+  state.lastKey = s.template_id || s.id;
+  state.soal = s;
+  state.soalStartedAt = Date.now();
+  state.answered = false;
+  state.awaitingConfidence = false;
+  state.userAnswer = null;
+  state.buffer = "";
+  state.pending = null;
+  draw();
+  drawQueueStatus();
+}
+/* Dipanggil inti setiap bank berubah: bangun ulang antrean hanya bila
+   isi bank Bahasa benar-benar berubah (klik "Muat ulang" dua kali
+   tidak mengocok ulang antrean yang sedang dimainkan). */
+function onDatasetChanged(){
+  const key = TEMPLATES.filter(t => t.type === "lang").map(t => t.id).join(",")
+    + "|" + STATIC_BANK.filter(s => s.type === "lang").map(s => s.id).join(",");
+  if(key === state.bankKey) return;
+  state.bankKey = key;
+  buildQueue();
+  nextSoal();
+}
+$("lang").addEventListener("click", e => {
+  const b = e.target.closest("button"); if(!b) return;
+  [...e.currentTarget.children].forEach(x => x.classList.toggle("on", x === b));
+  state.lang = b.dataset.l;
+  state.lastKey = null;
+  buildQueue();
+  nextSoal();
+});
+$("diff").addEventListener("click", e => {
+  const b = e.target.closest("button"); if(!b) return;
+  [...e.currentTarget.children].forEach(x => x.classList.toggle("on", x === b));
+  state.diff = Number(b.dataset.d);
+  state.lastKey = null;
+  buildQueue();
+  nextSoal();
+});
+document.getElementById("lang-reshuffle").addEventListener("click", () => {
+  buildQueue();
+  nextSoal();
+});
+$("reset-stats").addEventListener("click", () => {
+  if(!confirm("Hapus semua statistik?")) return;
+  state.stats = { ok:0, no:0, streak:0, best:0, byPrinciple: {} };
+  drawStats();
+  drawBankStatus();
+  buildQueue();
+  nextSoal();
+});
+/* Bahasa: bank API yang sukses tapi tidak berisi entri lang BUKAN
+   keadaan valid — isinya hanya ada di file lokal sampai ada yang
+   menerbitkan entri lang ke bank. Aturan inti ("API sukses walau kosong
+   tetap dipakai") benar untuk NQ, jadi fallback ini hanya di halaman
+   Bahasa; bila API sudah berisi entri lang, API tetap dipakai.
+   Dibungkus di sini (bukan di inti) supaya berlaku di semua pemanggilan
+   loadFromApiOrFile — boot halaman maupun tombol "Muat dari API". */
+const _coreLoadFromApiOrFile = loadFromApiOrFile;
+loadFromApiOrFile = async function(){
+  await _coreLoadFromApiOrFile();
+  if(!TEMPLATES.some(t => t.type === "lang") &&
+     !STATIC_BANK.some(s => s.type === "lang")){
+    await loadDataset();
+    refreshAfterDatasetChange();
+  }
+};
+initCoreEvents();
+initDatasetUI();
+loadFromApiOrFile().then(() => {
+  runValidation();
+  drawStats();
+  drawBankStatus();
+  drawDatasetPanel();
+});
+</script>
+
+</body>
+</html>

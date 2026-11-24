@@ -23,6 +23,7 @@ const QUIZ = [
   { href: 'js/pages/quiz/nalar-quest/nalarquest.html', key: 'nalarquest', icon: 'target', label: 'NalarQuest', desc: 'Latihan penalaran — prinsip sama, permukaan berbeda' },
   { href: 'js/pages/quiz/nalar-quest/hlr.html', key: 'hlr', icon: 'git-branch', label: 'High Level Reasoning', desc: 'Penalaran tingkat tinggi — soal panjang lintas disiplin' },
   { href: 'js/pages/quiz/nalar-quest/math.html', key: 'math', icon: 'calculate', label: 'Matematika', desc: 'Drilling soal acak — berhitung dengan LaTeX' },
+  { href: 'js/pages/quiz/nalar-quest/bahasa.html', key: 'lang', icon: 'book-open', label: 'Bahasa', desc: 'Bank soal monolingual — lanjut kalimat & kata rumpang' },
 ];
 
 export function render() {
